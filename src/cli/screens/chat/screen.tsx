@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
-import { Footer, Header, Loading } from "~/cli/tui/components";
-import { DEFAULT_KEYS } from "~/cli/tui/constants.js";
-import { useKeyboard } from "~/cli/tui/hooks";
-import { chat, speak } from "~/cli/tui/services/yappr.js";
+import { Footer, Header, Loading } from "~/cli/components";
+import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { useKeyboard } from "~/cli/hooks";
+import { chat, speak } from "~/cli/services/yappr.js";
 
 export interface ChatScreenProps {
   onBack: () => void;

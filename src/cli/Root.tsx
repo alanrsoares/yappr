@@ -9,7 +9,7 @@ import { McpStatusScreen } from "./screens/mcp-status/index.js";
 import { SpeakScreen } from "./screens/speak/index.js";
 import { VoicesScreen } from "./screens/voices/index.js";
 
-export function App() {
+export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");
 
   const goBack = () => setScreen("menu");

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { McpManager, type ServerStatus } from "../../../sdk/mcp.js";
+import { McpManager, type ServerStatus } from "../../sdk/mcp.js";
 
 export interface UseMcpStatusesOptions {
   configPath: string;

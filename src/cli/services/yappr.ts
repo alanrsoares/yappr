@@ -3,12 +3,12 @@
  */
 import path from "path";
 import { spawn } from "bun";
-import type { Tool as OllamaTool } from "ollama";
+import ollama, { type Tool as OllamaTool } from "ollama";
 
-import { AudioManager } from "../../../sdk/audio_manager.js";
-import { McpManager } from "../../../sdk/mcp.js";
-import { AudioRecorder } from "../../../sdk/recorder.js";
-import { KittenTTSClient } from "../../../sdk/tts.js";
+import { AudioManager, type AudioDevice } from "~/sdk/audio_manager.js";
+import { McpManager } from "~/sdk/mcp.js";
+import { AudioRecorder } from "~/sdk/recorder.js";
+import { KittenTTSClient } from "~/sdk/tts.js";
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 const INPUT_WAV = path.join(PROJECT_ROOT, "input.wav");
@@ -18,14 +18,31 @@ const defaultTts = new KittenTTSClient();
 const defaultRecorder = new AudioRecorder();
 const defaultAudioManager = new AudioManager();
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface ListenStepResult {
+  transcript: string;
+  response: string | null;
+  error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// API
+// ---------------------------------------------------------------------------
+
 export async function listVoices(): Promise<string[]> {
   const client = new KittenTTSClient();
   return client.listVoices();
 }
 
-export async function listDevices(): Promise<
-  { index: number; name: string }[]
-> {
+export async function listDevices(): Promise<AudioDevice[]> {
   return defaultAudioManager.listDevices();
 }
 
@@ -52,7 +69,6 @@ export async function speak(
 
 export interface ChatOptions {
   model?: string;
-  voice?: string;
   useTools?: boolean;
 }
 
@@ -61,11 +77,7 @@ export async function chat(
   prompt: string,
   options: ChatOptions = {},
 ): Promise<string | null> {
-  const {
-    model = "qwen2.5:14b",
-    voice: _voice = "af_bella",
-    useTools = true,
-  } = options;
+  const { model = "qwen2.5:14b", useTools = true } = options;
   const mcp = new McpManager();
   let tools: OllamaTool[] = [];
 
@@ -74,47 +86,31 @@ export async function chat(
     tools = mcp.getOllamaTools();
   }
 
-  const messages: Array<{ role: string; content: string }> = [
-    { role: "user", content: prompt },
-  ];
+  const messages: ChatMessage[] = [{ role: "user", content: prompt }];
 
   try {
     while (true) {
-      const response = await fetch("http://localhost:11434/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages,
-          stream: false,
-          tools: tools.length > 0 ? tools : undefined,
-        }),
+      const response = await ollama.chat({
+        model,
+        messages,
+        stream: false,
+        tools: tools.length > 0 ? tools : undefined,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (errorText.includes("does not support tools") && useTools) {
-          await mcp.close();
-          return chat(prompt, { ...options, useTools: false });
-        }
-        throw new Error(`Ollama: ${response.statusText} - ${errorText}`);
-      }
-
-      const data = (await response.json()) as {
-        message: {
-          content?: string;
-          tool_calls?: Array<{
-            function: { name: string; arguments: string };
-          }>;
-        };
-      };
-      const message = data.message;
-      messages.push(message as { role: string; content: string });
+      const message = response.message;
+      messages.push({
+        role: message.role ?? "assistant",
+        content: message.content ?? "",
+      });
 
       if (message.tool_calls?.length) {
         for (const call of message.tool_calls) {
           const name = call.function.name;
-          const args = JSON.parse(call.function.arguments || "{}");
+          const rawArgs = call.function.arguments;
+          const args =
+            typeof rawArgs === "string"
+              ? (JSON.parse(rawArgs || "{}") as Record<string, unknown>)
+              : (rawArgs as Record<string, unknown>);
           try {
             const result = await mcp.callTool(name, args);
             messages.push({
@@ -138,6 +134,13 @@ export async function chat(
     }
   } catch (error) {
     await mcp.close();
+    if (
+      useTools &&
+      error instanceof Error &&
+      error.message.includes("does not support tools")
+    ) {
+      return chat(prompt, { ...options, useTools: false });
+    }
     throw error;
   }
 }
@@ -152,7 +155,7 @@ export interface ListenStepOptions {
 /** One listen cycle: record (until signal aborted) → transcribe → chat → speak. */
 export async function runListenStep(
   options: ListenStepOptions = {},
-): Promise<{ transcript: string; response: string | null; error?: string }> {
+): Promise<ListenStepResult> {
   const {
     deviceIndex = 0,
     model = "qwen2.5:14b",
@@ -173,7 +176,7 @@ export async function runListenStep(
     if (!transcript?.trim() || transcript.length < 2) {
       return { transcript, response: null };
     }
-    const response = await chat(transcript, { model, voice });
+    const response = await chat(transcript, { model });
     if (response) {
       await speak(response, { voice });
     }

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 
-import { Footer, Header, Loading } from "~/cli/tui/components";
-import { DEFAULT_KEYS } from "~/cli/tui/constants.js";
-import { useKeyboard } from "~/cli/tui/hooks";
-import { listVoices } from "~/cli/tui/services/yappr.js";
+import { Footer, Header, Loading } from "~/cli/components";
+import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { useKeyboard } from "~/cli/hooks";
+import { listVoices } from "~/cli/services/yappr.js";
 
 export interface VoicesScreenProps {
   onBack: () => void;

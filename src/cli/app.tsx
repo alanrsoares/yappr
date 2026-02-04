@@ -1,5 +1,5 @@
 import { render } from "ink";
 
-import { App } from "./tui/index.js";
+import { Root } from "./Root.js";
 
-render(<App />);
+render(<Root />);

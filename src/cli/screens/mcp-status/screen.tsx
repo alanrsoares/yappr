@@ -1,8 +1,8 @@
 import { Box, Text } from "ink";
 
-import { Footer, Header, Loading } from "~/cli/tui/components";
-import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "~/cli/tui/constants.js";
-import { useKeyboard, useMcpStatuses } from "~/cli/tui/hooks";
+import { Footer, Header, Loading } from "~/cli/components/index.js";
+import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "~/cli/constants.js";
+import { useKeyboard, useMcpStatuses } from "~/cli/hooks/index.js";
 import { StatusTable } from "./components/status-table.js";
 import { getSummaryCounts, Summary } from "./components/summary.js";
 
