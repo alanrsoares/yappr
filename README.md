@@ -1,41 +1,91 @@
-# Yappr
+# Yappr 🎙️🤖
 
-A simple Bun + TypeScript based Text-to-Speech (TTS) CLI and SDK, powered by the **Kitten TTS model** and integrated with **Ollama** for AI chat.
+Yappr is a high-performance, **100% local** voice assistant CLI and SDK. It combines state-of-the-art TTS/STT models with local LLMs (via Ollama) and extensible tools (via MCP).
 
-## Ideation & Architecture
+Designed to run efficiently on Apple Silicon (M-series), Yappr ensures your voice data and conversations never leave your hardware.
 
-### 1. Core Components
+## ✨ Features
 
-*   **SDK (`src/sdk`)**: A TypeScript library that provides a clean API to interact with the Kitten TTS engine.
-    *   `synthesize(text: string, options?: TTSOptions): Promise<ArrayBuffer>`
-    *   `listVoices()` (if supported)
-*   **CLI (`src/cli`)**: A command-line tool using the SDK.
-    *   `yappr speak "Hello world"`
-    *   `yappr chat --model gemma3 "Tell me a story"` (Streams Ollama text -> TTS)
+- **Kokoro TTS:** Near human-level text-to-speech using the 82M parameter Kokoro model.
+- **Whisper STT:** Fast, accurate local speech-to-text via `faster-whisper`.
+- **Ollama Integration:** Seamlessly chat with local LLMs like `qwen2.5`, `mistral`, or `llama3`.
+- **MCP (Model Context Protocol):** Automatically loads tools from your `~/.cursor/mcp.json`. Your voice assistant can search files, check GitHub, use Figma, and more.
+- **Voice Mode:** Real-time voice-to-voice conversation loop.
 
-### 2. Technology Stack
+## 🏗️ Architecture
 
-*   **Runtime**: Bun (fast startup, built-in TS support).
-*   **Language**: TypeScript.
-*   **LLM Provider**: Ollama (local models like `gemma3`, `mistral`).
-*   **TTS Engine**: Kitten TTS.
+Yappr uses a hybrid architecture for maximum performance:
+- **CLI/SDK (Bun + TypeScript):** Handles orchestration, MCP tool execution, and the user interface.
+- **Inference Server (Python + FastAPI):** Wraps the heavy-lifting ML models (Kokoro & Whisper) for high-speed local inference.
 
-### 3. Open Questions / Next Steps
+## 🚀 Getting Started
 
-To proceed with the implementation, we need to define how **Kitten TTS** is executed. Since Kitten TTS is typically a Python/C++ model, we have a few options:
+### Prerequisites
 
-*   **Option A (Python API)**: We run a small Python server (e.g., FastAPI) that loads the Kitten model, and our TS SDK calls it via HTTP.
-*   **Option B (Local Command)**: The SDK spawns a process (e.g., `kitten-tts-cli "text" -o output.wav`) if a binary exists.
-*   **Option C (Ollama Native?)**: If you have a custom Ollama build that supports TTS directly, we can use the Ollama API.
+- **Bun:** `curl -fsSL https://bun.sh/install | bash`
+- **Python 3.10+**
+- **System Dependencies:**
+  ```bash
+  brew install sox ffmpeg ollama
+  ```
 
-**Current Assumption**: We will proceed with **Option A** (Python Wrapper) or **Option B** (if you have the binary) as the most robust way to bridge Bun and the model.
+### Installation
 
-## Usage
+1. **Clone and Install JS Dependencies:**
+   ```bash
+   bun install
+   ```
 
+2. **Setup Python Environment:**
+   ```bash
+   python3 -m venv python/venv
+   source python/venv/bin/activate
+   pip install -r python/requirements.txt
+   ```
+
+## 📖 Usage
+
+### 1. Start the Inference Server
+The server must be running in a separate terminal to handle TTS and STT requests.
 ```bash
-# Install dependencies
-bun install
-
-# Run CLI (dev)
-bun run src/cli/index.ts speak "Hello there!"
+bun run serve
 ```
+*(On first run, it will download the Kokoro and Whisper models ~400MB total).*
+
+### 2. Voice-to-Voice Mode (Recommended)
+Start an interactive voice session. It will list your microphones; select one and start yapping!
+```bash
+bun run listen
+```
+
+### 3. Text Chat with Voice Output
+Chat with Ollama via text and hear the response synthesized.
+```bash
+bun run chat "What is the capital of France?" --model qwen2.5:14b
+```
+
+### 4. Simple Text-to-Speech
+```bash
+bun run speak "Hello, I am speaking from your terminal." --voice af_sky --speed 1.1
+```
+
+### 5. List Available Voices
+```bash
+bun run voices
+```
+
+## 🛠️ Configuration
+
+Yappr automatically detects MCP servers from `~/.cursor/mcp.json`. When using a model that supports tool-calling (like `qwen2.5`), you can ask Yappr to perform actions using those tools.
+
+## 🔒 Privacy
+
+All processing is local.
+- **No** cloud APIs.
+- **No** data collection.
+- **No** subscription fees.
+- Just you and your silicon.
+
+## 📜 License
+
+MIT
