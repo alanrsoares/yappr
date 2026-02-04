@@ -5,6 +5,7 @@ import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { renderTable } from "./table.js";
 
 interface McpServerConfig {
   command?: string;
@@ -53,18 +54,14 @@ export class McpManager {
   }
 
   private printStatusTable(results: ServerStatus[]): void {
-    console.log("\n┌──────────────────────────────┬──────────────┬───────┬────────────────────────────────┐");
-    console.log("│ Server Name                  │ Status       │ Tools │ Message                        │");
-    console.log("├──────────────────────────────┼──────────────┼───────┼────────────────────────────────┤");
-
-    for (const res of results) {
-      const name = res.id.padEnd(28).slice(0, 28);
-      const status = res.status.padEnd(12).slice(0, 12);
-      const tools = res.tools.toString().padStart(5);
-      const msg = res.message.padEnd(30).slice(0, 30);
-      console.log(`│ ${name} │ ${status} │ ${tools} │ ${msg} │`);
-    }
-    console.log("└──────────────────────────────┴──────────────┴───────┴────────────────────────────────┘\n");
+    const headers = ["Server Name", "Status", "Tools", "Message"];
+    const rows = results.map((r) => [
+      r.id,
+      r.status,
+      r.tools.toString(),
+      r.message,
+    ]);
+    renderTable(headers, rows, { align: ["left", "left", "right", "left"] });
   }
 
   private async connectToServer(id: string, config: McpServerConfig): Promise<ServerStatus> {
