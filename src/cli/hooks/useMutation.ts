@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
-import type { ResultAsync } from "neverthrow";
+import { ok, type Result, type ResultAsync } from "neverthrow";
 
 export interface UseMutationResult<T, E, V> {
-  /** Trigger the mutation with optional variables. */
-  mutate: (variables: V) => void;
-  /** Trigger and await the Result. Useful when you need the result. */
-  mutateAsync: (variables: V) => Promise<{ data: T } | { error: E }>;
+  /** Trigger the mutation (fire-and-forget). Returns Result for sync validation / fluent composition. */
+  mutate: (variables: V) => Result<void, E>;
+  /** Trigger and get back ResultAsync for chaining: .map(), .match(), .andThen(), etc. */
+  mutateAsync: (variables: V) => ResultAsync<T, E>;
   data: T | undefined;
   error: E | null;
   isPending: boolean;
@@ -16,8 +16,9 @@ export interface UseMutationResult<T, E, V> {
 }
 
 /**
- * Lightweight mutation hook for ResultAsync. Does not run automatically; call mutate() to run.
+ * Lightweight mutation hook for ResultAsync. Does not run automatically; call mutate() or mutateAsync() to run.
  * Type-safe: T = success data, E = error (default Error), V = variables (default void).
+ * mutate returns Result for sync/fluent use; mutateAsync returns ResultAsync for chaining and awaiting.
  */
 export function useMutation<T, E = Error, V = void>(
   mutationFn: (variables: V) => ResultAsync<T, E>,
@@ -27,46 +28,44 @@ export function useMutation<T, E = Error, V = void>(
   const [isPending, setIsPending] = useState(false);
 
   const mutate = useCallback(
-    (variables: V) => {
+    (variables: V): Result<void, E> => {
       setIsPending(true);
       setError(null);
       setData(undefined);
       mutationFn(variables)
+        .andTee((value) => {
+          setData(value);
+          setError(null);
+        })
+        .orTee((err) => {
+          setError(err);
+          setData(undefined);
+        })
         .match(
-          (value) => {
-            setData(value);
-            setError(null);
-          },
-          (err) => {
-            setError(err);
-            setData(undefined);
-          },
-        )
-        .finally(() => setIsPending(false));
+          () => setIsPending(false),
+          () => setIsPending(false),
+        );
+      return ok(undefined);
     },
     [mutationFn],
   );
 
   const mutateAsync = useCallback(
-    async (variables: V): Promise<{ data: T } | { error: E }> => {
+    (variables: V): ResultAsync<T, E> => {
       setIsPending(true);
       setError(null);
       setData(undefined);
-      const result = await mutationFn(variables);
-      return result.match(
-        (value) => {
+      return mutationFn(variables)
+        .andTee((value) => {
           setData(value);
           setError(null);
-          setIsPending(false);
-          return { data: value } as { data: T };
-        },
-        (err) => {
+        })
+        .orTee((err) => {
           setError(err);
           setData(undefined);
-          setIsPending(false);
-          return { error: err } as { error: E };
-        },
-      );
+        })
+        .andTee(() => setIsPending(false))
+        .orTee(() => setIsPending(false));
     },
     [mutationFn],
   );
