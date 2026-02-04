@@ -1,8 +1,6 @@
 """Tests for Result type (neverthrow-style)."""
 from __future__ import annotations
 
-import pytest
-
 from result import Err, Ok, err, ok
 
 
