@@ -9,9 +9,12 @@ import {
   StreamableHTTPError,
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
+import { errAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
-import { renderTable } from "./table.js";
+function toError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(String(e));
+}
 
 interface McpServerConfig {
   command?: string;
@@ -40,13 +43,6 @@ export class McpManager {
   private clients: Map<string, Client> = new Map();
   private tools: Map<string, { server: string; tool: Tool }> = new Map();
 
-  async loadConfig(
-    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
-  ): Promise<void> {
-    const results = await this.loadConfigAndGetStatuses(configPath);
-    if (results.length > 0) this.printStatusTable(results);
-  }
-
   /**
    * Load MCP config, connect to each server, and return statuses without printing.
    * Returns [] if config is missing or invalid. Use for TUI or custom output.
@@ -70,20 +66,6 @@ export class McpManager {
     } catch {
       return [];
     }
-  }
-
-  private printStatusTable(results: ServerStatus[]): void {
-    const headers = ["Server Name", "Status", "Tools", "Transport", "Message"];
-    const rows = results.map((r) => [
-      r.id,
-      r.status,
-      r.tools.toString(),
-      r.transport ?? "—",
-      r.message,
-    ]);
-    renderTable(headers, rows, {
-      align: ["left", "left", "right", "left", "left"],
-    });
   }
 
   /**
@@ -220,27 +202,28 @@ export class McpManager {
     }));
   }
 
-  async callTool(
+  callTool(
     name: string,
     args: Record<string, unknown>,
-  ): Promise<CallToolResult> {
+  ): ResultAsync<CallToolResult, Error> {
     const entry = this.tools.get(name);
     if (!entry) {
-      throw new Error(`Tool ${name} not found`);
+      return errAsync(new Error(`Tool ${name} not found`));
     }
 
     const { server } = entry;
     const client = this.clients.get(server);
     if (!client) {
-      throw new Error(`Server ${server} for tool ${name} is not connected`);
+      return errAsync(
+        new Error(`Server ${server} for tool ${name} is not connected`),
+      );
     }
 
     console.log(`Calling MCP tool '${name}' on server '${server}'...`);
-    // Note: The SDK returns CallToolResultSchema which is equivalent to CallToolResult
-    return (await client.callTool({
-      name,
-      arguments: args,
-    })) as CallToolResult;
+    return ResultAsync.fromPromise(
+      client.callTool({ name, arguments: args }) as Promise<CallToolResult>,
+      toError,
+    );
   }
 
   async close(): Promise<void> {

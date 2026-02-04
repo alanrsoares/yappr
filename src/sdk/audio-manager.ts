@@ -1,4 +1,9 @@
 import { spawn } from "bun";
+import { ResultAsync } from "neverthrow";
+
+function toError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(String(e));
+}
 
 export interface AudioDevice {
   index: number;
@@ -6,8 +11,9 @@ export interface AudioDevice {
 }
 
 export class AudioManager {
-  async listDevices(): Promise<AudioDevice[]> {
-    return new Promise((resolve) => {
+  listDevices(): ResultAsync<AudioDevice[], Error> {
+    return ResultAsync.fromPromise(
+      new Promise<AudioDevice[]>((resolve, reject) => {
       // ffmpeg writes device list to stderr
       const proc = spawn(
         ["ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", ""],
@@ -35,12 +41,15 @@ export class AudioManager {
       }
 
       // Wait for process to exit (it will fail with exit code, that's expected)
-      Promise.all([readStream(), proc.exited]).then(() => {
-        const output = Buffer.concat(chunks).toString();
-        // console.log("DEBUG FFmpeg Output:\n", output); // Uncomment to debug
-        resolve(this.parseDeviceOutput(output));
-      });
-    });
+      Promise.all([readStream(), proc.exited])
+        .then(() => {
+          const output = Buffer.concat(chunks).toString();
+          resolve(this.parseDeviceOutput(output));
+        })
+        .catch(reject);
+    }),
+    toError,
+    );
   }
 
   private parseDeviceOutput(output: string): AudioDevice[] {

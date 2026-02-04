@@ -33,6 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "ink": "^6.6.0",
     "ink-text-input": "^6.0.0",
+    "neverthrow": "^8.2.0",
     "ollama": "^0.6.3",
     "react": "^19.2.4",
     "zod": "^4.3.6"

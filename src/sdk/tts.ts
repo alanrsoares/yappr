@@ -1,3 +1,5 @@
+import { ResultAsync } from "neverthrow";
+
 import type { components } from "./schema";
 
 export type TTSOptions = Partial<components["schemas"]["SynthesizeRequest"]>;
@@ -10,6 +12,10 @@ interface TranscribeResponse {
   text: string;
 }
 
+function toError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(String(e));
+}
+
 export class KittenTTSClient {
   private baseUrl: string;
 
@@ -17,74 +23,73 @@ export class KittenTTSClient {
     this.baseUrl = baseUrl;
   }
 
-  async listVoices(): Promise<string[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/voices`);
-      if (!response.ok) {
-        throw new Error(`Failed to list voices: ${response.statusText}`);
-      }
-      const data = (await response.json()) as VoicesResponse;
-      return data.voices;
-    } catch (error) {
-      console.error("Error listing voices:", error);
-      throw error;
-    }
+  listVoices(): ResultAsync<string[], Error> {
+    return ResultAsync.fromPromise(
+      (async () => {
+        const response = await fetch(`${this.baseUrl}/voices`);
+        if (!response.ok) {
+          throw new Error(`Failed to list voices: ${response.statusText}`);
+        }
+        const data = (await response.json()) as VoicesResponse;
+        return data.voices;
+      })(),
+      toError,
+    );
   }
 
-  async transcribe(filePath: string): Promise<string> {
-    try {
-      const file = Bun.file(filePath);
-      const formData = new FormData();
-      formData.append("file", file);
+  transcribe(filePath: string): ResultAsync<string, Error> {
+    return ResultAsync.fromPromise(
+      (async () => {
+        const file = Bun.file(filePath);
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const response = await fetch(`${this.baseUrl}/transcribe`, {
-        method: "POST",
-        body: formData,
-      });
+        const response = await fetch(`${this.baseUrl}/transcribe`, {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.statusText}`);
-      }
+        if (!response.ok) {
+          throw new Error(`Transcription failed: ${response.statusText}`);
+        }
 
-      const data = (await response.json()) as TranscribeResponse;
-      return data.text;
-    } catch (error) {
-      console.error("Error transcribing audio:", error);
-      throw error;
-    }
+        const data = (await response.json()) as TranscribeResponse;
+        return data.text;
+      })(),
+      toError,
+    );
   }
 
-  async synthesize(
+  synthesize(
     text: string,
     options: TTSOptions = {},
-  ): Promise<ArrayBuffer> {
-    try {
-      // Use the generated schema type for the body
-      const body: components["schemas"]["SynthesizeRequest"] = {
-        text,
-        voice: options.voice ?? "af_bella",
-        speed: options.speed ?? 1.0,
-      };
+  ): ResultAsync<ArrayBuffer, Error> {
+    return ResultAsync.fromPromise(
+      (async () => {
+        const body: components["schemas"]["SynthesizeRequest"] = {
+          text,
+          voice: options.voice ?? "af_bella",
+          speed: options.speed ?? 1.0,
+        };
 
-      const response = await fetch(`${this.baseUrl}/synthesize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch(`${this.baseUrl}/synthesize`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to synthesize: ${response.status} - ${errorText}`,
-        );
-      }
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Failed to synthesize: ${response.status} - ${errorText}`,
+          );
+        }
 
-      return await response.arrayBuffer();
-    } catch (error) {
-      console.error("Error synthesizing speech:", error);
-      throw error;
-    }
+        return await response.arrayBuffer();
+      })(),
+      toError,
+    );
   }
 }

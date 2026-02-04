@@ -1,4 +1,9 @@
 import { spawn } from "bun";
+import { ResultAsync } from "neverthrow";
+
+function toError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(String(e));
+}
 
 export interface RecordOptions {
   /** When aborted, recording stops. Use for TUI (e.g. Enter to stop) instead of stdin. */
@@ -10,10 +15,18 @@ export class AudioRecorder {
    * Record from microphone. With signal: stops when signal is aborted (TUI-friendly).
    * Without signal: blocks on stdin until Enter (CLI-friendly).
    */
-  async record(
+  record(
     outputPath: string,
     deviceIndex: number = 0,
     options: RecordOptions = {},
+  ): ResultAsync<void, Error> {
+    return ResultAsync.fromPromise(this.recordAsync(outputPath, deviceIndex, options), toError);
+  }
+
+  private async recordAsync(
+    outputPath: string,
+    deviceIndex: number,
+    options: RecordOptions,
   ): Promise<void> {
     const { signal } = options;
 

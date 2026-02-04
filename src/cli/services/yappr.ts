@@ -5,7 +5,7 @@ import path from "path";
 import { spawn } from "bun";
 import ollama, { type Tool as OllamaTool } from "ollama";
 
-import { AudioManager, type AudioDevice } from "~/sdk/audio_manager.js";
+import { AudioManager, type AudioDevice } from "~/sdk/audio-manager.js";
 import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { KittenTTSClient } from "~/sdk/tts.js";
@@ -39,11 +39,15 @@ export interface ListenStepResult {
 
 export async function listVoices(): Promise<string[]> {
   const client = new KittenTTSClient();
-  return client.listVoices();
+  return await client.listVoices().match((v) => v, (e) => {
+    throw e;
+  });
 }
 
 export async function listDevices(): Promise<AudioDevice[]> {
-  return defaultAudioManager.listDevices();
+  return await defaultAudioManager.listDevices().match((v) => v, (e) => {
+    throw e;
+  });
 }
 
 export interface SpeakOptions {
@@ -58,8 +62,9 @@ export async function speak(
 ): Promise<void> {
   const { voice = "af_bella", speed = 1.0, play = true } = options;
   const client = new KittenTTSClient();
-  const audioData = await client.synthesize(text, { voice, speed });
-  await Bun.write(OUTPUT_WAV, audioData);
+  const result = await client.synthesize(text, { voice, speed });
+  if (result.isErr()) throw result.error;
+  await Bun.write(OUTPUT_WAV, result.value);
   if (play && process.platform === "darwin") {
     spawn(["afplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
   } else if (play && process.platform === "linux") {
@@ -111,20 +116,23 @@ export async function chat(
             typeof rawArgs === "string"
               ? (JSON.parse(rawArgs || "{}") as Record<string, unknown>)
               : (rawArgs as Record<string, unknown>);
-          try {
-            const result = await mcp.callTool(name, args);
-            messages.push({
-              role: "tool",
-              content: JSON.stringify(
-                Array.isArray(result?.content) ? result.content : result,
-              ),
-            });
-          } catch (err) {
-            messages.push({
-              role: "tool",
-              content: `Error: ${err instanceof Error ? err.message : "Unknown"}`,
-            });
-          }
+          const toolResult = await mcp.callTool(name, args);
+          toolResult.match(
+            (result) => {
+              messages.push({
+                role: "tool",
+                content: JSON.stringify(
+                  Array.isArray(result?.content) ? result.content : result,
+                ),
+              });
+            },
+            (err) => {
+              messages.push({
+                role: "tool",
+                content: `Error: ${err.message}`,
+              });
+            },
+          );
         }
       } else {
         const text = message.content ?? null;
@@ -167,15 +175,31 @@ export async function runListenStep(
     throw new Error("recordSignal (AbortSignal) required for TUI");
   }
 
-  await defaultRecorder.record(INPUT_WAV, deviceIndex, {
+  const recordResult = await defaultRecorder.record(INPUT_WAV, deviceIndex, {
     signal: recordSignal,
   });
+  if (recordResult.isErr()) {
+    return {
+      transcript: "",
+      response: null,
+      error: recordResult.error.message,
+    };
+  }
+
+  const transcriptResult = await defaultTts.transcribe(INPUT_WAV);
+  if (transcriptResult.isErr()) {
+    return {
+      transcript: "",
+      response: null,
+      error: transcriptResult.error.message,
+    };
+  }
+  const transcript = transcriptResult.value;
+  if (!transcript?.trim() || transcript.length < 2) {
+    return { transcript, response: null };
+  }
 
   try {
-    const transcript = await defaultTts.transcribe(INPUT_WAV);
-    if (!transcript?.trim() || transcript.length < 2) {
-      return { transcript, response: null };
-    }
     const response = await chat(transcript, { model });
     if (response) {
       await speak(response, { voice });
