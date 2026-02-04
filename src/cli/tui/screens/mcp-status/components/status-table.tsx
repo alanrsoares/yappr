@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 
-import type { ServerStatus } from "../../../sdk/mcp.js";
+import type { ServerStatus } from "~/sdk/mcp.js";
 
 const HEADERS = ["Server", "Status", "Tools", "Transport", "Message"] as const;
 
@@ -33,6 +33,9 @@ export interface StatusTableProps {
   rows: ServerStatus[];
 }
 
+const pad = (s: string, w: number) => (s ?? "").padEnd(w);
+const sep = (w: number) => "─".repeat(w + 2);
+
 export function StatusTable({ rows }: StatusTableProps) {
   if (rows.length === 0) return null;
 
@@ -41,12 +44,33 @@ export function StatusTable({ rows }: StatusTableProps) {
     return max;
   });
 
-  const sep = (w: number) => "─".repeat(w + 2);
   const top = "┌" + colWidths.map(sep).join("┬") + "┐";
   const headSep = "├" + colWidths.map(sep).join("┼") + "┤";
   const bottom = "└" + colWidths.map(sep).join("┴") + "┘";
 
-  const pad = (s: string, w: number) => (s ?? "").padEnd(w);
+  function renderRow(row: ServerStatus, index: number) {
+    const w1 = colWidths[1] ?? 0;
+    const statusPadded = pad(row.status, w1);
+    return (
+      <Box key={`${row.id}-${index}`}>
+        <Text>
+          {"│ "}
+          {pad(row.id, colWidths[0] ?? 0)}
+          {" │ "}
+        </Text>
+        <Text color={statusColor(row.status)}>{statusPadded}</Text>
+        <Text>
+          {" │ "}
+          {pad(String(row.tools), colWidths[2] ?? 0)}
+          {" │ "}
+          {pad(row.transport ?? "—", colWidths[3] ?? 0)}
+          {" │ "}
+          {pad(row.message, colWidths[4] ?? 0)}
+          {" │"}
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column">
@@ -57,29 +81,7 @@ export function StatusTable({ rows }: StatusTableProps) {
         {" │"}
       </Text>
       <Text>{headSep}</Text>
-      {rows.map((r, i) => {
-        const w1 = colWidths[1] ?? 0;
-        const statusPadded = pad(r.status, w1);
-        return (
-          <Box key={`${r.id}-${i}`}>
-            <Text>
-              {"│ "}
-              {pad(r.id, colWidths[0] ?? 0)}
-              {" │ "}
-            </Text>
-            <Text color={statusColor(r.status)}>{statusPadded}</Text>
-            <Text>
-              {" │ "}
-              {pad(String(r.tools), colWidths[2] ?? 0)}
-              {" │ "}
-              {pad(r.transport ?? "—", colWidths[3] ?? 0)}
-              {" │ "}
-              {pad(r.message, colWidths[4] ?? 0)}
-              {" │"}
-            </Text>
-          </Box>
-        );
-      })}
+      {rows.map(renderRow)}
       <Text>{bottom}</Text>
     </Box>
   );

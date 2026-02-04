@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "lint": "eslint .",
-    "tui": "bun run src/cli/mcp-status.tsx",
+    "tui": "bun run src/cli/app.tsx",
     "serve": "bun run src/cli/index.ts serve",
     "speak": "bun run src/cli/index.ts speak",
     "chat": "bun run src/cli/index.ts chat",

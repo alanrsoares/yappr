@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Box } from "ink";
 
 import type { ScreenId } from "./constants.js";
-import { ChatScreen } from "./screens/ChatScreen.js";
-import { ListenScreen } from "./screens/ListenScreen.js";
-import { MainMenuScreen } from "./screens/MainMenuScreen.js";
-import { McpStatusScreen } from "./screens/McpStatusScreen.js";
-import { SpeakScreen } from "./screens/SpeakScreen.js";
-import { VoicesScreen } from "./screens/VoicesScreen.js";
+import { ChatScreen } from "./screens/chat/index.js";
+import { ListenScreen } from "./screens/listen/index.js";
+import { MainMenuScreen } from "./screens/main-menu/index.js";
+import { McpStatusScreen } from "./screens/mcp-status/index.js";
+import { SpeakScreen } from "./screens/speak/index.js";
+import { VoicesScreen } from "./screens/voices/index.js";
 
 export function App() {
   const [screen, setScreen] = useState<ScreenId>("menu");

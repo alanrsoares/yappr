@@ -1,15 +1,10 @@
 import { Box, Text } from "ink";
 
-import {
-  Footer,
-  getSummaryCounts,
-  Header,
-  Loading,
-  StatusTable,
-  Summary,
-} from "../components/index.js";
-import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "../constants.js";
-import { useKeyboard, useMcpStatuses } from "../hooks/index.js";
+import { Footer, Header, Loading } from "~/cli/tui/components";
+import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "~/cli/tui/constants.js";
+import { useKeyboard, useMcpStatuses } from "~/cli/tui/hooks";
+import { StatusTable } from "./components/status-table.js";
+import { getSummaryCounts, Summary } from "./components/summary.js";
 
 export interface McpStatusScreenProps {
   onBack: () => void;

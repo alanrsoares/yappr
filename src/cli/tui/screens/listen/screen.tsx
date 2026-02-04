@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { Box, Text } from "ink";
 
-import { Footer, Header, Loading } from "../components/index.js";
-import { DEFAULT_KEYS } from "../constants.js";
-import { useKeyboard } from "../hooks/index.js";
-import { runListenStep } from "../services/yappr.js";
+import { Footer, Header, Loading } from "~/cli/tui/components";
+import { DEFAULT_KEYS } from "~/cli/tui/constants.js";
+import { useKeyboard } from "~/cli/tui/hooks";
+import { runListenStep } from "~/cli/tui/services/yappr.js";
 
 export interface ListenScreenProps {
   onBack: () => void;

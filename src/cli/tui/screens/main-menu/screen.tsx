@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Box, Text } from "ink";
 
-import { Header, Menu } from "../components/index.js";
-import { MENU_ITEMS, type ScreenId } from "../constants.js";
-import { useKeyboard } from "../hooks/index.js";
+import { Header } from "~/cli/tui/components";
+import { MENU_ITEMS, type ScreenId } from "~/cli/tui/constants.js";
+import { useKeyboard } from "~/cli/tui/hooks";
+import { Menu } from "./components/menu.js";
 
 export interface MainMenuScreenProps {
   onSelect: (screen: ScreenId) => void;

@@ -1,6 +1,6 @@
-export { ChatScreen } from "./ChatScreen";
-export { ListenScreen } from "./ListenScreen";
-export { MainMenuScreen } from "./MainMenuScreen";
-export { McpStatusScreen } from "./McpStatusScreen";
-export { SpeakScreen } from "./SpeakScreen";
-export { VoicesScreen } from "./VoicesScreen";
+export { ChatScreen } from "./chat/index.js";
+export { ListenScreen } from "./listen/index.js";
+export { MainMenuScreen } from "./main-menu/index.js";
+export { McpStatusScreen } from "./mcp-status/index.js";
+export { SpeakScreen } from "./speak/index.js";
+export { VoicesScreen } from "./voices/index.js";

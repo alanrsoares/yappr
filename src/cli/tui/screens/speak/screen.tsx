@@ -2,34 +2,30 @@ import { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
-import { Footer, Header, Loading } from "../components/index.js";
-import { DEFAULT_KEYS } from "../constants.js";
-import { useKeyboard } from "../hooks/index.js";
-import { chat, speak } from "../services/yappr.js";
+import { Footer, Header, Loading } from "~/cli/tui/components";
+import { DEFAULT_KEYS } from "~/cli/tui/constants.js";
+import { useKeyboard } from "~/cli/tui/hooks";
+import { speak } from "~/cli/tui/services/yappr.js";
 
-export interface ChatScreenProps {
+export interface SpeakScreenProps {
   onBack: () => void;
 }
 
-export function ChatScreen({ onBack }: ChatScreenProps) {
+export function SpeakScreen({ onBack }: SpeakScreenProps) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
     "idle",
   );
-  const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (prompt: string) => {
-    if (!prompt.trim()) return;
+  const handleSubmit = async (text: string) => {
+    if (!text.trim()) return;
     setStatus("loading");
     setError(null);
-    setResponse(null);
     try {
-      const text = await chat(prompt.trim());
-      setResponse(text ?? "(no response)");
+      await speak(text.trim());
       setStatus("done");
       setValue("");
-      if (text) await speak(text);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");
@@ -45,23 +41,21 @@ export function ChatScreen({ onBack }: ChatScreenProps) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="Chat" subtitle="Prompt Ollama (with MCP tools) + TTS" />
+      <Header
+        title="Speak"
+        subtitle="Type text and press Enter to synthesize"
+      />
       <Box>
-        <Text color="cyan">Prompt: </Text>
+        <Text color="cyan">Text: </Text>
         <TextInput
           value={value}
           onChange={setValue}
           onSubmit={handleSubmit}
-          placeholder="Ask something..."
+          placeholder="Enter text to speak..."
         />
       </Box>
-      {status === "loading" && <Loading message="Waiting for Ollama..." />}
-      {status === "done" && response && (
-        <Box marginTop={1} flexDirection="column">
-          <Text color="green">Ollama:</Text>
-          <Text>{response}</Text>
-        </Box>
-      )}
+      {status === "loading" && <Loading message="Synthesizing..." />}
+      {status === "done" && <Text color="green">Done. Playing.</Text>}
       {status === "error" && error && <Text color="red">{error}</Text>}
       <Footer
         items={[
