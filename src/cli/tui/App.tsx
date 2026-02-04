@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import { Box } from "ink";
 
 import type { ScreenId } from "./constants.js";

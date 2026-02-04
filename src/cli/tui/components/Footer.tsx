@@ -1,5 +1,4 @@
 import { Fragment } from "react";
-
 import { Box, Text } from "ink";
 
 export interface FooterItem {

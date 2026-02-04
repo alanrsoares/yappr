@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import { Box, Text } from "ink";
 
 import { Header, Menu } from "../components/index.js";

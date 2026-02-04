@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "../components/index.js";
