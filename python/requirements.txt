@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+requests
+kokoro
+soundfile
+numpy
+faster-whisper
+python-multipart
+

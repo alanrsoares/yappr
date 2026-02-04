@@ -1,0 +1,22 @@
+{
+  "name": "yappr",
+  "scripts": {
+    "serve": "bun run src/cli/index.ts serve",
+    "speak": "bun run src/cli/index.ts speak",
+    "chat": "bun run src/cli/index.ts chat",
+    "listen": "bun run src/cli/index.ts listen",
+    "voices": "bun run src/cli/index.ts voices",
+    "dev": "bun --watch src/cli/index.ts"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "zod": "^4.3.6"
+  }
+}
