@@ -1,8 +1,6 @@
-export interface TTSOptions {
-  voice?: string;
-  speed?: number;
-  sampleRate?: number;
-}
+import type { components } from "./schema";
+
+export type TTSOptions = Partial<components["schemas"]["SynthesizeRequest"]>;
 
 interface VoicesResponse {
   voices: string[];
@@ -58,11 +56,11 @@ export class KittenTTSClient {
 
   async synthesize(text: string, options: TTSOptions = {}): Promise<ArrayBuffer> {
     try {
-      const body = {
+      // Use the generated schema type for the body
+      const body: components["schemas"]["SynthesizeRequest"] = {
         text,
-        voice: options.voice || "af_bella",
-        speed: options.speed || 1.0,
-        sample_rate: options.sampleRate || 24000,
+        voice: options.voice ?? "af_bella",
+        speed: options.speed ?? 1.0,
       };
 
       const response = await fetch(`${this.baseUrl}/synthesize`, {
