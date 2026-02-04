@@ -9,7 +9,7 @@ import {
   StreamableHTTPError,
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
-import { errAsync, ResultAsync } from "neverthrow";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
 function toError(e: unknown): Error {
@@ -45,27 +45,26 @@ export class McpManager {
 
   /**
    * Load MCP config, connect to each server, and return statuses without printing.
-   * Returns [] if config is missing or invalid. Use for TUI or custom output.
+   * Returns Ok([]) if config is missing. Use for TUI or custom output.
    */
-  async loadConfigAndGetStatuses(
+  loadConfigAndGetStatuses(
     configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
-  ): Promise<ServerStatus[]> {
-    if (!fs.existsSync(configPath)) return [];
+  ): ResultAsync<ServerStatus[], Error> {
+    if (!fs.existsSync(configPath)) return okAsync([]);
 
-    try {
-      const content = fs.readFileSync(configPath, "utf-8");
-      const config = JSON.parse(content) as McpConfig;
-      const results: ServerStatus[] = [];
-
-      for (const [id, serverConfig] of Object.entries(config.mcpServers)) {
-        const status = await this.connectToServer(id, serverConfig);
-        results.push(status);
-      }
-
-      return results;
-    } catch {
-      return [];
-    }
+    return ResultAsync.fromPromise(
+      (async (): Promise<ServerStatus[]> => {
+        const content = fs.readFileSync(configPath, "utf-8");
+        const config = JSON.parse(content) as McpConfig;
+        const results: ServerStatus[] = [];
+        for (const [id, serverConfig] of Object.entries(config.mcpServers)) {
+          const status = await this.connectToServer(id, serverConfig);
+          results.push(status);
+        }
+        return results;
+      })(),
+      toError,
+    );
   }
 
   /**

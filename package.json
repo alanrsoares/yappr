@@ -10,7 +10,8 @@
     "listen": "bun run src/cli/index.ts listen",
     "voices": "bun run src/cli/index.ts voices",
     "dev": "bun --watch src/cli/index.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
   },
   "private": true,
   "devDependencies": {

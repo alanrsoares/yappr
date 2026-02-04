@@ -29,17 +29,18 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
     runListenStep({
       deviceIndex,
       recordSignal: abortRef.current.signal,
-    })
-      .then((res) => {
+    }).match(
+      (res) => {
         setTranscript(res.transcript);
         setResponse(res.response);
         setError(res.error ?? null);
         setPhase("result");
-      })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : String(e));
+      },
+      (e) => {
+        setError(e.message);
         setPhase("result");
-      });
+      },
+    );
   };
 
   const stopRecording = () => {

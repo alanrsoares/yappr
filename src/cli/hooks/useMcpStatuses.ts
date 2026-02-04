@@ -21,26 +21,31 @@ export function useMcpStatuses({
   const [error, setError] = useState<string | null>(null);
   const managerRef = useRef<McpManager | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback((): Promise<void> => {
     setLoading(true);
     setError(null);
-    try {
-      managerRef.current?.close();
-      const manager = new McpManager();
-      managerRef.current = manager;
-      const result = await manager.loadConfigAndGetStatuses(configPath);
-      setStatuses(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
-      setStatuses([]);
-    } finally {
-      setLoading(false);
-    }
+    managerRef.current?.close();
+    const manager = new McpManager();
+    managerRef.current = manager;
+    return manager
+      .loadConfigAndGetStatuses(configPath)
+      .match(
+        (statuses) => {
+          setStatuses(statuses);
+          setError(null);
+        },
+        (e) => {
+          setError(e.message);
+          setStatuses([]);
+        },
+      )
+      .finally(() => setLoading(false));
   }, [configPath]);
 
   useEffect(() => {
-    load();
+    const timeoutId = setTimeout(() => load(), 0);
     return () => {
+      clearTimeout(timeoutId);
       managerRef.current?.close();
     };
   }, [load]);

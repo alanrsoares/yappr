@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard } from "~/cli/hooks";
+import { useKeyboard, useQuery } from "~/cli/hooks";
 import { listVoices } from "~/cli/services/yappr.js";
 
 export interface VoicesScreenProps {
@@ -11,16 +10,7 @@ export interface VoicesScreenProps {
 }
 
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
-  const [voices, setVoices] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    listVoices()
-      .then(setVoices)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: voices = [], error, isLoading } = useQuery(listVoices);
 
   useKeyboard({
     bindings: [
@@ -32,10 +22,10 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
   return (
     <Box flexDirection="column" padding={1}>
       <Header title="Voices" subtitle="TTS voices from server" />
-      {loading ? (
+      {isLoading ? (
         <Loading message="Loading voices..." />
       ) : error ? (
-        <Text color="red">{error}</Text>
+        <Text color="red">{error.message}</Text>
       ) : (
         <Box flexDirection="column">
           {voices.map((v) => (

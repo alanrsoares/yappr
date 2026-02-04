@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+import { okAsync } from "neverthrow";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard } from "~/cli/hooks";
+import { useKeyboard, useMutation } from "~/cli/hooks";
 import { chat, speak } from "~/cli/services/yappr.js";
 
 export interface ChatScreenProps {
@@ -13,28 +14,21 @@ export interface ChatScreenProps {
 
 export function ChatScreen({ onBack }: ChatScreenProps) {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
-    "idle",
+  const chatMutation = useMutation<string | null, Error, string>((prompt) =>
+    chat(prompt).andThen((text) =>
+      text ? speak(text).map(() => text) : okAsync(null),
+    ),
   );
-  const [response, setResponse] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { mutate, data: response, error, isPending } = chatMutation;
 
-  const handleSubmit = async (prompt: string) => {
-    if (!prompt.trim()) return;
-    setStatus("loading");
-    setError(null);
-    setResponse(null);
-    try {
-      const text = await chat(prompt.trim());
-      setResponse(text ?? "(no response)");
-      setStatus("done");
+  const handleSubmit = useCallback(
+    (prompt: string) => {
+      if (!prompt.trim()) return;
+      mutate(prompt.trim());
       setValue("");
-      if (text) await speak(text);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setStatus("error");
-    }
-  };
+    },
+    [mutate],
+  );
 
   useKeyboard({
     bindings: [
@@ -55,14 +49,16 @@ export function ChatScreen({ onBack }: ChatScreenProps) {
           placeholder="Ask something..."
         />
       </Box>
-      {status === "loading" && <Loading message="Waiting for Ollama..." />}
-      {status === "done" && response && (
+      {isPending && <Loading message="Waiting for Ollama..." />}
+      {chatMutation.isSuccess && response !== undefined && (
         <Box marginTop={1} flexDirection="column">
           <Text color="green">Ollama:</Text>
-          <Text>{response}</Text>
+          <Text>{response ?? "(no response)"}</Text>
         </Box>
       )}
-      {status === "error" && error && <Text color="red">{error}</Text>}
+      {chatMutation.isError && error && (
+        <Text color="red">{error.message}</Text>
+      )}
       <Footer
         items={[
           { key: "Esc", label: "back" },

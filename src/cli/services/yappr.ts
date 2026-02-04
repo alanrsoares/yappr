@@ -1,9 +1,11 @@
 /**
  * Shared yappr actions for the TUI (and optionally CLI). Uses SDK + Ollama.
+ * Public async API returns ResultAsync for consistent, functional error handling.
  */
 import path from "path";
 import { spawn } from "bun";
 import ollama, { type Tool as OllamaTool } from "ollama";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
 import { AudioManager, type AudioDevice } from "~/sdk/audio-manager.js";
 import { McpManager } from "~/sdk/mcp.js";
@@ -17,6 +19,10 @@ const OUTPUT_WAV = path.join(PROJECT_ROOT, "output.wav");
 const defaultTts = new KittenTTSClient();
 const defaultRecorder = new AudioRecorder();
 const defaultAudioManager = new AudioManager();
+
+function toError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(String(e));
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,17 +43,12 @@ export interface ListenStepResult {
 // API
 // ---------------------------------------------------------------------------
 
-export async function listVoices(): Promise<string[]> {
-  const client = new KittenTTSClient();
-  return await client.listVoices().match((v) => v, (e) => {
-    throw e;
-  });
+export function listVoices(): ResultAsync<string[], Error> {
+  return new KittenTTSClient().listVoices();
 }
 
-export async function listDevices(): Promise<AudioDevice[]> {
-  return await defaultAudioManager.listDevices().match((v) => v, (e) => {
-    throw e;
-  });
+export function listDevices(): ResultAsync<AudioDevice[], Error> {
+  return defaultAudioManager.listDevices();
 }
 
 export interface SpeakOptions {
@@ -56,20 +57,26 @@ export interface SpeakOptions {
   play?: boolean;
 }
 
-export async function speak(
+export function speak(
   text: string,
   options: SpeakOptions = {},
-): Promise<void> {
+): ResultAsync<void, Error> {
   const { voice = "af_bella", speed = 1.0, play = true } = options;
   const client = new KittenTTSClient();
-  const result = await client.synthesize(text, { voice, speed });
-  if (result.isErr()) throw result.error;
-  await Bun.write(OUTPUT_WAV, result.value);
-  if (play && process.platform === "darwin") {
-    spawn(["afplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
-  } else if (play && process.platform === "linux") {
-    spawn(["aplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
-  }
+  return client
+    .synthesize(text, { voice, speed })
+    .andThen((audioData) =>
+      ResultAsync.fromPromise(Bun.write(OUTPUT_WAV, audioData), toError).map(
+        () => undefined as void,
+      ),
+    )
+    .andTee(() => {
+      if (play && process.platform === "darwin") {
+        spawn(["afplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
+      } else if (play && process.platform === "linux") {
+        spawn(["aplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
+      }
+    });
 }
 
 export interface ChatOptions {
@@ -78,78 +85,84 @@ export interface ChatOptions {
 }
 
 /** One-shot Ollama chat with optional MCP tools. Returns assistant text or null. */
-export async function chat(
+export function chat(
   prompt: string,
   options: ChatOptions = {},
-): Promise<string | null> {
+): ResultAsync<string | null, Error> {
   const { model = "qwen2.5:14b", useTools = true } = options;
   const mcp = new McpManager();
-  let tools: OllamaTool[] = [];
-
-  if (useTools) {
-    await mcp.loadConfigAndGetStatuses();
-    tools = mcp.getOllamaTools();
-  }
-
   const messages: ChatMessage[] = [{ role: "user", content: prompt }];
 
-  try {
-    while (true) {
-      const response = await ollama.chat({
-        model,
-        messages,
-        stream: false,
-        tools: tools.length > 0 ? tools : undefined,
-      });
+  const getTools = useTools
+    ? mcp.loadConfigAndGetStatuses().map(() => mcp.getOllamaTools())
+    : okAsync<OllamaTool[], Error>([]);
 
-      const message = response.message;
-      messages.push({
-        role: message.role ?? "assistant",
-        content: message.content ?? "",
-      });
-
-      if (message.tool_calls?.length) {
-        for (const call of message.tool_calls) {
-          const name = call.function.name;
-          const rawArgs = call.function.arguments;
-          const args =
-            typeof rawArgs === "string"
-              ? (JSON.parse(rawArgs || "{}") as Record<string, unknown>)
-              : (rawArgs as Record<string, unknown>);
-          const toolResult = await mcp.callTool(name, args);
-          toolResult.match(
-            (result) => {
-              messages.push({
-                role: "tool",
-                content: JSON.stringify(
-                  Array.isArray(result?.content) ? result.content : result,
-                ),
-              });
-            },
-            (err) => {
-              messages.push({
-                role: "tool",
-                content: `Error: ${err.message}`,
-              });
-            },
-          );
-        }
-      } else {
-        const text = message.content ?? null;
-        await mcp.close();
-        return text;
-      }
-    }
-  } catch (error) {
-    await mcp.close();
-    if (
+  return getTools
+    .andThen((tools) =>
+      ResultAsync.fromPromise(
+        runChatLoop(mcp, model, messages, tools),
+        toError,
+      ),
+    )
+    .orElse((e) =>
       useTools &&
-      error instanceof Error &&
-      error.message.includes("does not support tools")
-    ) {
-      return chat(prompt, { ...options, useTools: false });
+      e instanceof Error &&
+      e.message.includes("does not support tools")
+        ? chat(prompt, { ...options, useTools: false })
+        : errAsync(e),
+    );
+}
+
+async function runChatLoop(
+  mcp: McpManager,
+  model: string,
+  messages: ChatMessage[],
+  tools: OllamaTool[],
+): Promise<string | null> {
+  while (true) {
+    const response = await ollama.chat({
+      model,
+      messages,
+      stream: false,
+      tools: tools.length > 0 ? tools : undefined,
+    });
+
+    const message = response.message;
+    messages.push({
+      role: message.role ?? "assistant",
+      content: message.content ?? "",
+    });
+
+    if (message.tool_calls?.length) {
+      for (const call of message.tool_calls) {
+        const name = call.function.name;
+        const rawArgs = call.function.arguments;
+        const args =
+          typeof rawArgs === "string"
+            ? (JSON.parse(rawArgs || "{}") as Record<string, unknown>)
+            : (rawArgs as Record<string, unknown>);
+        const toolResult = await mcp.callTool(name, args);
+        toolResult.match(
+          (result) => {
+            messages.push({
+              role: "tool",
+              content: JSON.stringify(
+                Array.isArray(result?.content) ? result.content : result,
+              ),
+            });
+          },
+          (err) => {
+            messages.push({
+              role: "tool",
+              content: `Error: ${err.message}`,
+            });
+          },
+        );
+      }
+    } else {
+      await mcp.close();
+      return message.content ?? null;
     }
-    throw error;
   }
 }
 
@@ -160,10 +173,10 @@ export interface ListenStepOptions {
   recordSignal?: AbortSignal;
 }
 
-/** One listen cycle: record (until signal aborted) → transcribe → chat → speak. */
-export async function runListenStep(
+/** One listen cycle: record → transcribe → chat → speak. */
+export function runListenStep(
   options: ListenStepOptions = {},
-): Promise<ListenStepResult> {
+): ResultAsync<ListenStepResult, Error> {
   const {
     deviceIndex = 0,
     model = "qwen2.5:14b",
@@ -172,44 +185,25 @@ export async function runListenStep(
   } = options;
 
   if (!recordSignal) {
-    throw new Error("recordSignal (AbortSignal) required for TUI");
+    return errAsync(
+      new Error("recordSignal (AbortSignal) required for TUI"),
+    );
   }
 
-  const recordResult = await defaultRecorder.record(INPUT_WAV, deviceIndex, {
-    signal: recordSignal,
-  });
-  if (recordResult.isErr()) {
-    return {
-      transcript: "",
-      response: null,
-      error: recordResult.error.message,
-    };
-  }
-
-  const transcriptResult = await defaultTts.transcribe(INPUT_WAV);
-  if (transcriptResult.isErr()) {
-    return {
-      transcript: "",
-      response: null,
-      error: transcriptResult.error.message,
-    };
-  }
-  const transcript = transcriptResult.value;
-  if (!transcript?.trim() || transcript.length < 2) {
-    return { transcript, response: null };
-  }
-
-  try {
-    const response = await chat(transcript, { model });
-    if (response) {
-      await speak(response, { voice });
-    }
-    return { transcript, response };
-  } catch (err) {
-    return {
-      transcript: "",
-      response: null,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
+  return defaultRecorder
+    .record(INPUT_WAV, deviceIndex, { signal: recordSignal })
+    .andThen(() => defaultTts.transcribe(INPUT_WAV))
+    .andThen((transcript) => {
+      if (!transcript?.trim() || transcript.length < 2) {
+        return okAsync<ListenStepResult, Error>({ transcript, response: null });
+      }
+      return chat(transcript, { model }).andThen((response) =>
+        response
+          ? speak(response, { voice }).map(() => ({
+              transcript,
+              response,
+            }))
+          : okAsync<ListenStepResult, Error>({ transcript, response: null }),
+      );
+    });
 }

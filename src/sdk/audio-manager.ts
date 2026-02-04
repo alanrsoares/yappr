@@ -14,41 +14,41 @@ export class AudioManager {
   listDevices(): ResultAsync<AudioDevice[], Error> {
     return ResultAsync.fromPromise(
       new Promise<AudioDevice[]>((resolve, reject) => {
-      // ffmpeg writes device list to stderr
-      const proc = spawn(
-        ["ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", ""],
-        {
-          stdout: "ignore",
-          stderr: "pipe", // Capture stderr
-        },
-      );
+        // ffmpeg writes device list to stderr
+        const proc = spawn(
+          ["ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", ""],
+          {
+            stdout: "ignore",
+            stderr: "pipe", // Capture stderr
+          },
+        );
 
-      const chunks: Uint8Array[] = [];
+        const chunks: Uint8Array[] = [];
 
-      // Read stderr
-      async function readStream() {
-        if (!proc.stderr) return;
-        const reader = proc.stderr.getReader();
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
+        // Read stderr
+        async function readStream() {
+          if (!proc.stderr) return;
+          const reader = proc.stderr.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+          } finally {
+            reader.releaseLock();
           }
-        } finally {
-          reader.releaseLock();
         }
-      }
 
-      // Wait for process to exit (it will fail with exit code, that's expected)
-      Promise.all([readStream(), proc.exited])
-        .then(() => {
-          const output = Buffer.concat(chunks).toString();
-          resolve(this.parseDeviceOutput(output));
-        })
-        .catch(reject);
-    }),
-    toError,
+        // Wait for process to exit (it will fail with exit code, that's expected)
+        Promise.all([readStream(), proc.exited])
+          .then(() => {
+            const output = Buffer.concat(chunks).toString();
+            resolve(this.parseDeviceOutput(output));
+          })
+          .catch(reject);
+      }),
+      toError,
     );
   }
 

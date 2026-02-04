@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard } from "~/cli/hooks";
+import { useKeyboard, useMutation } from "~/cli/hooks";
 import { speak } from "~/cli/services/yappr.js";
 
 export interface SpeakScreenProps {
@@ -13,24 +13,16 @@ export interface SpeakScreenProps {
 
 export function SpeakScreen({ onBack }: SpeakScreenProps) {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
-    "idle",
-  );
-  const [error, setError] = useState<string | null>(null);
+  const speakMutation = useMutation<void, Error, string>(speak);
 
-  const handleSubmit = async (text: string) => {
-    if (!text.trim()) return;
-    setStatus("loading");
-    setError(null);
-    try {
-      await speak(text.trim());
-      setStatus("done");
+  const handleSubmit = useCallback(
+    (text: string) => {
+      if (!text.trim()) return;
+      speakMutation.mutate(text.trim());
       setValue("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setStatus("error");
-    }
-  };
+    },
+    [speakMutation],
+  );
 
   useKeyboard({
     bindings: [
@@ -54,9 +46,11 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
           placeholder="Enter text to speak..."
         />
       </Box>
-      {status === "loading" && <Loading message="Synthesizing..." />}
-      {status === "done" && <Text color="green">Done. Playing.</Text>}
-      {status === "error" && error && <Text color="red">{error}</Text>}
+      {speakMutation.isPending && <Loading message="Synthesizing..." />}
+      {speakMutation.isSuccess && <Text color="green">Done. Playing.</Text>}
+      {speakMutation.isError && speakMutation.error && (
+        <Text color="red">{speakMutation.error.message}</Text>
+      )}
       <Footer
         items={[
           { key: "Esc", label: "back" },
