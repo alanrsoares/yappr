@@ -23,11 +23,11 @@ interface McpConfig {
   mcpServers: Record<string, McpServerConfig>;
 }
 
-type TransportKind = "stdio" | "streamable-http" | "sse";
+export type TransportKind = "stdio" | "streamable-http" | "sse";
 
-interface ServerStatus {
+export interface ServerStatus {
   id: string;
-  status: "✅ Connected" | "❌ Failed" | "⚠️ Skipped";
+  status: "[OK] Connected" | "[FAIL] Failed" | "[SKIP] Skipped";
   tools: number;
   message: string;
   /** Set when connected via URL; indicates whether server supports Streamable HTTP or legacy SSE. */
@@ -39,10 +39,18 @@ export class McpManager {
   private tools: Map<string, { server: string; tool: Tool }> = new Map();
 
   async loadConfig(configPath: string = path.join(os.homedir(), ".cursor", "mcp.json")): Promise<void> {
-    if (!fs.existsSync(configPath)) {
-      console.warn(`MCP config not found at ${configPath}`);
-      return;
-    }
+    const results = await this.loadConfigAndGetStatuses(configPath);
+    if (results.length > 0) this.printStatusTable(results);
+  }
+
+  /**
+   * Load MCP config, connect to each server, and return statuses without printing.
+   * Returns [] if config is missing or invalid. Use for TUI or custom output.
+   */
+  async loadConfigAndGetStatuses(
+    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json")
+  ): Promise<ServerStatus[]> {
+    if (!fs.existsSync(configPath)) return [];
 
     try {
       const content = fs.readFileSync(configPath, "utf-8");
@@ -54,10 +62,9 @@ export class McpManager {
         results.push(status);
       }
 
-      this.printStatusTable(results);
-
-    } catch (error) {
-      console.error("Failed to load MCP config:", error);
+      return results;
+    } catch {
+      return [];
     }
   }
 
@@ -93,7 +100,7 @@ export class McpManager {
       if (config.url) {
         return await this.connectWithUrl(id, config.url);
       }
-      return { id, status: "⚠️ Skipped", tools: 0, message: "No command/url" };
+      return { id, status: "[SKIP] Skipped", tools: 0, message: "No command/url" };
     } catch (error: unknown) {
       let msg = error instanceof Error ? error.message : "Unknown error";
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
@@ -101,7 +108,7 @@ export class McpManager {
       } else if (msg.includes("Non-200")) {
         msg = "Auth/Connection Err";
       }
-      return { id, status: "❌ Failed", tools: 0, message: msg };
+      return { id, status: "[FAIL] Failed", tools: 0, message: msg };
     }
   }
 
@@ -171,7 +178,7 @@ export class McpManager {
     }
     return {
       id,
-      status: "✅ Connected",
+      status: "[OK] Connected",
       tools: toolCount,
       message: "Ready",
       transport,

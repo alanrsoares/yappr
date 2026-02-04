@@ -1,31 +1,51 @@
 import { spawn } from "bun";
 
-export class AudioRecorder {
-    async record(outputPath: string, deviceIndex: number = 0): Promise<void> {
-        console.log(`🎤 Recording (Device :${deviceIndex})... Press ENTER to send.`);
-        
-        // Start recording with ffmpeg
-        // -y: Overwrite output
-        // -f avfoundation: Input format
-        // -i ":<index>": Audio device index (video index omitted with empty string before :)
-        // -ar 16000: 16kHz
-        // -ac 1: Mono
-        const proc = spawn(["ffmpeg", "-y", "-f", "avfoundation", "-i", `:${deviceIndex}`, "-ar", "16000", "-ac", "1", outputPath], {
-            stdout: "ignore",
-            stderr: "ignore", // ffmpeg is noisy
-        });
+export interface RecordOptions {
+  /** When aborted, recording stops. Use for TUI (e.g. Enter to stop) instead of stdin. */
+  signal?: AbortSignal;
+}
 
-        // Wait for ENTER
-        // Using standard process.stdin iterator for Bun
-        for await (const _ of console) {
-            break; // Break after first line (Enter)
-        }
-        
-        // Stop recording
-        // ffmpeg needs 'q' usually, but SIGTERM/kill works for capturing
-        proc.kill(); 
+export class AudioRecorder {
+  /**
+   * Record from microphone. With signal: stops when signal is aborted (TUI-friendly).
+   * Without signal: blocks on stdin until Enter (CLI-friendly).
+   */
+  async record(
+    outputPath: string,
+    deviceIndex: number = 0,
+    options: RecordOptions = {}
+  ): Promise<void> {
+    const { signal } = options;
+
+    const proc = spawn(
+      [
+        "ffmpeg", "-y", "-f", "avfoundation", "-i", `:${deviceIndex}`,
+        "-ar", "16000", "-ac", "1", outputPath,
+      ],
+      { stdout: "ignore", stderr: "ignore" }
+    );
+
+    if (signal) {
+      if (signal.aborted) {
+        proc.kill();
         await proc.exited;
-        
-        console.log("Processing...");
+        return;
+      }
+      await new Promise<void>((resolve) => {
+        signal.addEventListener("abort", () => {
+          proc.kill();
+          void proc.exited.then(() => resolve());
+        }, { once: true });
+      });
+      return;
     }
+
+    console.log(`🎤 Recording (Device :${deviceIndex})... Press ENTER to send.`);
+    for await (const _ of console) {
+      break;
+    }
+    proc.kill();
+    await proc.exited;
+    console.log("Processing...");
+  }
 }

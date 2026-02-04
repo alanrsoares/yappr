@@ -1,6 +1,7 @@
 {
   "name": "yappr",
   "scripts": {
+    "tui": "bun run src/cli/mcp-status.tsx",
     "serve": "bun run src/cli/index.ts serve",
     "speak": "bun run src/cli/index.ts speak",
     "chat": "bun run src/cli/index.ts chat",
@@ -11,6 +12,7 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/react": "^19.2.10",
     "openapi-typescript": "^7.10.1"
   },
   "peerDependencies": {
@@ -18,7 +20,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.3",
-    "string-width": "^8.1.1",
+    "ink": "^6.6.0",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.4",
     "zod": "^4.3.6"
   }
 }
