@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "yappr-server"
 version = "0.1.0"
@@ -24,6 +28,10 @@ dev = [
   "ruff>=0.8.0",
   "mypy>=1.13.0",
 ]
+
+[tool.setuptools]
+# Only ship these modules; exclude scripts (check_*, inspect_*, export_*, etc.)
+py-modules = ["server", "core", "result"]
 
 [tool.ruff]
 target-version = "py310"

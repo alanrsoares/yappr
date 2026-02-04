@@ -37,10 +37,13 @@ server.log
 
 # Python
 python/venv
+python/python
 __pycache__
 *.pyc
 *.pth
 *.onnx
+*.egg-info
+*.egg
 
 # Audio Artifacts
 *.wav
