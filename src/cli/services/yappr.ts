@@ -4,13 +4,20 @@
  */
 import path from "path";
 import { spawn } from "bun";
-import ollama, { type Tool as OllamaTool } from "ollama";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import ollama, { type Tool as OllamaTool } from "ollama";
 
-import { AudioManager, type AudioDevice } from "~/sdk/audio-manager.js";
+import {
+  listInputDevices,
+  listOutputDevices,
+  type AudioDevice,
+} from "~/sdk/audio-devices.js";
 import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { KittenTTSClient } from "~/sdk/tts.js";
+
+export type { AudioDevice };
+export { listInputDevices, listOutputDevices };
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 const INPUT_WAV = path.join(PROJECT_ROOT, "input.wav");
@@ -18,7 +25,6 @@ const OUTPUT_WAV = path.join(PROJECT_ROOT, "output.wav");
 
 const defaultTts = new KittenTTSClient();
 const defaultRecorder = new AudioRecorder();
-const defaultAudioManager = new AudioManager();
 
 function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
@@ -47,8 +53,11 @@ export function listVoices(): ResultAsync<string[], Error> {
   return new KittenTTSClient().listVoices();
 }
 
-export function listDevices(): ResultAsync<AudioDevice[], Error> {
-  return defaultAudioManager.listDevices();
+export function listOllamaModels(): ResultAsync<string[], Error> {
+  return ResultAsync.fromPromise(
+    ollama.list().then((res) => res.models.map((m) => m.name)),
+    toError,
+  );
 }
 
 export interface SpeakOptions {
@@ -185,9 +194,7 @@ export function runListenStep(
   } = options;
 
   if (!recordSignal) {
-    return errAsync(
-      new Error("recordSignal (AbortSignal) required for TUI"),
-    );
+    return errAsync(new Error("recordSignal (AbortSignal) required for TUI"));
   }
 
   return defaultRecorder

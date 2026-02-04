@@ -20,7 +20,10 @@ export class AudioRecorder {
     deviceIndex: number = 0,
     options: RecordOptions = {},
   ): ResultAsync<void, Error> {
-    return ResultAsync.fromPromise(this.recordAsync(outputPath, deviceIndex, options), toError);
+    return ResultAsync.fromPromise(
+      this.recordAsync(outputPath, deviceIndex, options),
+      toError,
+    );
   }
 
   private async recordAsync(

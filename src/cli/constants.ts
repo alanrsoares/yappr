@@ -6,7 +6,14 @@ export const DEFAULT_KEYS = {
   back: ["b", "escape"],
 } as const;
 
-export type ScreenId = "menu" | "mcp" | "speak" | "chat" | "listen" | "voices";
+export type ScreenId =
+  | "menu"
+  | "mcp"
+  | "speak"
+  | "chat"
+  | "listen"
+  | "voices"
+  | "settings";
 
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "mcp", label: "MCP servers" },
@@ -14,4 +21,5 @@ export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "chat", label: "Chat (prompt → Ollama + TTS)" },
   { id: "listen", label: "Listen (voice → transcribe → chat → TTS)" },
   { id: "voices", label: "List voices" },
+  { id: "settings", label: "Settings" },
 ];

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import type { ResultAsync } from "neverthrow";
 
 export interface UseQueryOptions {

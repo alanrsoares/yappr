@@ -4,7 +4,7 @@ import TextInput from "ink-text-input";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard, useMutation } from "~/cli/hooks";
+import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { speak } from "~/cli/services/yappr.js";
 
 export interface SpeakScreenProps {
@@ -13,7 +13,10 @@ export interface SpeakScreenProps {
 
 export function SpeakScreen({ onBack }: SpeakScreenProps) {
   const [value, setValue] = useState("");
-  const speakMutation = useMutation<void, Error, string>(speak);
+  const { preferences } = usePreferences();
+  const speakMutation = useMutation<void, Error, string>((text) =>
+    speak(text, { voice: preferences.defaultVoice }),
+  );
 
   const handleSubmit = useCallback(
     (text: string) => {

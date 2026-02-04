@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+
 import { okAsync } from "neverthrow";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard, useMutation } from "~/cli/hooks";
+import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { chat, speak } from "~/cli/services/yappr.js";
 
 export interface ChatScreenProps {
@@ -14,9 +15,12 @@ export interface ChatScreenProps {
 
 export function ChatScreen({ onBack }: ChatScreenProps) {
   const [value, setValue] = useState("");
+  const { preferences } = usePreferences();
   const chatMutation = useMutation<string | null, Error, string>((prompt) =>
-    chat(prompt).andThen((text) =>
-      text ? speak(text).map(() => text) : okAsync(null),
+    chat(prompt, { model: preferences.defaultOllamaModel }).andThen((text) =>
+      text
+        ? speak(text, { voice: preferences.defaultVoice }).map(() => text)
+        : okAsync(null),
     ),
   );
   const { mutate, data: response, error, isPending } = chatMutation;

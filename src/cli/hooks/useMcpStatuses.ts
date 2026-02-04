@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { McpManager, type ServerStatus } from "~/sdk/mcp.js";
+import { useQuery } from "./useQuery.js";
 
 export interface UseMcpStatusesOptions {
   configPath: string;
@@ -10,45 +11,35 @@ export interface UseMcpStatusesResult {
   statuses: ServerStatus[];
   loading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: () => void;
 }
 
 export function useMcpStatuses({
   configPath,
 }: UseMcpStatusesOptions): UseMcpStatusesResult {
-  const [statuses, setStatuses] = useState<ServerStatus[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const managerRef = useRef<McpManager | null>(null);
 
-  const load = useCallback((): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    managerRef.current?.close();
-    const manager = new McpManager();
-    managerRef.current = manager;
-    return manager
-      .loadConfigAndGetStatuses(configPath)
-      .match(
-        (statuses) => {
-          setStatuses(statuses);
-          setError(null);
-        },
-        (e) => {
-          setError(e.message);
-          setStatuses([]);
-        },
-      )
-      .finally(() => setLoading(false));
-  }, [configPath]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => load(), 0);
-    return () => {
-      clearTimeout(timeoutId);
+  const query = useQuery(
+    () => {
       managerRef.current?.close();
-    };
-  }, [load]);
+      const manager = new McpManager();
+      managerRef.current = manager;
+      return manager.loadConfigAndGetStatuses(configPath);
+    },
+    { deps: [configPath] },
+  );
 
-  return { statuses, loading, error, refresh: load };
+  useEffect(
+    () => () => {
+      managerRef.current?.close();
+    },
+    [],
+  );
+
+  return {
+    statuses: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    refresh: query.refetch,
+  };
 }

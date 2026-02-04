@@ -3,7 +3,7 @@ import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard } from "~/cli/hooks";
+import { useKeyboard, usePreferences } from "~/cli/hooks";
 import { runListenStep } from "~/cli/services/yappr.js";
 
 export interface ListenScreenProps {
@@ -17,8 +17,8 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [deviceIndex, _setDeviceIndex] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const { preferences } = usePreferences();
 
   const startRecording = () => {
     abortRef.current = new AbortController();
@@ -27,7 +27,9 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
     setResponse(null);
     setError(null);
     runListenStep({
-      deviceIndex,
+      deviceIndex: preferences.defaultInputDeviceIndex,
+      model: preferences.defaultOllamaModel,
+      voice: preferences.defaultVoice,
       recordSignal: abortRef.current.signal,
     }).match(
       (res) => {
@@ -72,7 +74,8 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
       />
       {phase === "idle" && (
         <Text dimColor>
-          Press Enter to start recording. (Device: {deviceIndex})
+          Press Enter to start recording. (Device:{" "}
+          {preferences.defaultInputDeviceIndex})
         </Text>
       )}
       {phase === "recording" && (

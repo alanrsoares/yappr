@@ -6,6 +6,7 @@ import { ChatScreen } from "./screens/chat/index.js";
 import { ListenScreen } from "./screens/listen/index.js";
 import { MainMenuScreen } from "./screens/main-menu/index.js";
 import { McpStatusScreen } from "./screens/mcp-status/index.js";
+import { SettingsScreen } from "./screens/settings/index.js";
 import { SpeakScreen } from "./screens/speak/index.js";
 import { VoicesScreen } from "./screens/voices/index.js";
 
@@ -22,6 +23,7 @@ export function Root() {
       {screen === "chat" && <ChatScreen onBack={goBack} />}
       {screen === "listen" && <ListenScreen onBack={goBack} />}
       {screen === "voices" && <VoicesScreen onBack={goBack} />}
+      {screen === "settings" && <SettingsScreen onBack={goBack} />}
     </Box>
   );
 }
