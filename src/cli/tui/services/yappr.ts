@@ -1,12 +1,14 @@
 /**
  * Shared yappr actions for the TUI (and optionally CLI). Uses SDK + Ollama.
  */
-import { spawn } from "bun";
 import path from "path";
-import { KittenTTSClient } from "../../../sdk/tts.js";
-import { AudioRecorder } from "../../../sdk/recorder.js";
+import { spawn } from "bun";
+import type { Tool as OllamaTool } from "ollama";
+
 import { AudioManager } from "../../../sdk/audio_manager.js";
 import { McpManager } from "../../../sdk/mcp.js";
+import { AudioRecorder } from "../../../sdk/recorder.js";
+import { KittenTTSClient } from "../../../sdk/tts.js";
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 const INPUT_WAV = path.join(PROJECT_ROOT, "input.wav");
@@ -21,7 +23,9 @@ export async function listVoices(): Promise<string[]> {
   return client.listVoices();
 }
 
-export async function listDevices(): Promise<{ index: number; name: string }[]> {
+export async function listDevices(): Promise<
+  { index: number; name: string }[]
+> {
   return defaultAudioManager.listDevices();
 }
 
@@ -33,7 +37,7 @@ export interface SpeakOptions {
 
 export async function speak(
   text: string,
-  options: SpeakOptions = {}
+  options: SpeakOptions = {},
 ): Promise<void> {
   const { voice = "af_bella", speed = 1.0, play = true } = options;
   const client = new KittenTTSClient();
@@ -55,11 +59,15 @@ export interface ChatOptions {
 /** One-shot Ollama chat with optional MCP tools. Returns assistant text or null. */
 export async function chat(
   prompt: string,
-  options: ChatOptions = {}
+  options: ChatOptions = {},
 ): Promise<string | null> {
-  const { model = "qwen2.5:14b", voice = "af_bella", useTools = true } = options;
+  const {
+    model = "qwen2.5:14b",
+    voice: _voice = "af_bella",
+    useTools = true,
+  } = options;
   const mcp = new McpManager();
-  let tools: unknown[] = [];
+  let tools: OllamaTool[] = [];
 
   if (useTools) {
     await mcp.loadConfigAndGetStatuses();
@@ -112,7 +120,7 @@ export async function chat(
             messages.push({
               role: "tool",
               content: JSON.stringify(
-                Array.isArray(result?.content) ? result.content : result
+                Array.isArray(result?.content) ? result.content : result,
               ),
             });
           } catch (err) {
@@ -143,7 +151,7 @@ export interface ListenStepOptions {
 
 /** One listen cycle: record (until signal aborted) → transcribe → chat → speak. */
 export async function runListenStep(
-  options: ListenStepOptions = {}
+  options: ListenStepOptions = {},
 ): Promise<{ transcript: string; response: string | null; error?: string }> {
   const {
     deviceIndex = 0,
@@ -156,7 +164,9 @@ export async function runListenStep(
     throw new Error("recordSignal (AbortSignal) required for TUI");
   }
 
-  await defaultRecorder.record(INPUT_WAV, deviceIndex, { signal: recordSignal });
+  await defaultRecorder.record(INPUT_WAV, deviceIndex, {
+    signal: recordSignal,
+  });
 
   try {
     const transcript = await defaultTts.transcribe(INPUT_WAV);

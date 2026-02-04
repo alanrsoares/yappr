@@ -1,10 +1,12 @@
-import React from "react";
 import { Box, Text } from "ink";
+
 import type { ServerStatus } from "../../../sdk/mcp.js";
 
 const HEADERS = ["Server", "Status", "Tools", "Transport", "Message"] as const;
 
-function statusColor(status: ServerStatus["status"]): "green" | "red" | "yellow" {
+function statusColor(
+  status: ServerStatus["status"],
+): "green" | "red" | "yellow" {
   if (status === "[OK] Connected") return "green";
   if (status === "[FAIL] Failed") return "red";
   return "yellow";
@@ -34,11 +36,8 @@ export interface StatusTableProps {
 export function StatusTable({ rows }: StatusTableProps) {
   if (rows.length === 0) return null;
 
-  const colWidths = HEADERS.map((h, i) => {
-    const max = Math.max(
-      h.length,
-      ...rows.map((r) => getCell(r, h).length)
-    );
+  const colWidths = HEADERS.map((h) => {
+    const max = Math.max(h.length, ...rows.map((r) => getCell(r, h).length));
     return max;
   });
 

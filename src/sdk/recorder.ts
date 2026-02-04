@@ -13,16 +13,25 @@ export class AudioRecorder {
   async record(
     outputPath: string,
     deviceIndex: number = 0,
-    options: RecordOptions = {}
+    options: RecordOptions = {},
   ): Promise<void> {
     const { signal } = options;
 
     const proc = spawn(
       [
-        "ffmpeg", "-y", "-f", "avfoundation", "-i", `:${deviceIndex}`,
-        "-ar", "16000", "-ac", "1", outputPath,
+        "ffmpeg",
+        "-y",
+        "-f",
+        "avfoundation",
+        "-i",
+        `:${deviceIndex}`,
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        outputPath,
       ],
-      { stdout: "ignore", stderr: "ignore" }
+      { stdout: "ignore", stderr: "ignore" },
     );
 
     if (signal) {
@@ -32,15 +41,21 @@ export class AudioRecorder {
         return;
       }
       await new Promise<void>((resolve) => {
-        signal.addEventListener("abort", () => {
-          proc.kill();
-          void proc.exited.then(() => resolve());
-        }, { once: true });
+        signal.addEventListener(
+          "abort",
+          () => {
+            proc.kill();
+            void proc.exited.then(() => resolve());
+          },
+          { once: true },
+        );
       });
       return;
     }
 
-    console.log(`🎤 Recording (Device :${deviceIndex})... Press ENTER to send.`);
+    console.log(
+      `🎤 Recording (Device :${deviceIndex})... Press ENTER to send.`,
+    );
     for await (const _ of console) {
       break;
     }

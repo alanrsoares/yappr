@@ -23,7 +23,7 @@ export class KittenTTSClient {
       if (!response.ok) {
         throw new Error(`Failed to list voices: ${response.statusText}`);
       }
-      const data = await response.json() as VoicesResponse;
+      const data = (await response.json()) as VoicesResponse;
       return data.voices;
     } catch (error) {
       console.error("Error listing voices:", error);
@@ -32,29 +32,32 @@ export class KittenTTSClient {
   }
 
   async transcribe(filePath: string): Promise<string> {
-      try {
-          const file = Bun.file(filePath);
-          const formData = new FormData();
-          formData.append("file", file);
+    try {
+      const file = Bun.file(filePath);
+      const formData = new FormData();
+      formData.append("file", file);
 
-          const response = await fetch(`${this.baseUrl}/transcribe`, {
-              method: "POST",
-              body: formData,
-          });
+      const response = await fetch(`${this.baseUrl}/transcribe`, {
+        method: "POST",
+        body: formData,
+      });
 
-          if (!response.ok) {
-              throw new Error(`Transcription failed: ${response.statusText}`);
-          }
-
-          const data = await response.json() as TranscribeResponse;
-          return data.text;
-      } catch (error) {
-          console.error("Error transcribing audio:", error);
-          throw error;
+      if (!response.ok) {
+        throw new Error(`Transcription failed: ${response.statusText}`);
       }
+
+      const data = (await response.json()) as TranscribeResponse;
+      return data.text;
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+      throw error;
+    }
   }
 
-  async synthesize(text: string, options: TTSOptions = {}): Promise<ArrayBuffer> {
+  async synthesize(
+    text: string,
+    options: TTSOptions = {},
+  ): Promise<ArrayBuffer> {
     try {
       // Use the generated schema type for the body
       const body: components["schemas"]["SynthesizeRequest"] = {
@@ -73,7 +76,9 @@ export class KittenTTSClient {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to synthesize: ${response.status} - ${errorText}`);
+        throw new Error(
+          `Failed to synthesize: ${response.status} - ${errorText}`,
+        );
       }
 
       return await response.arrayBuffer();

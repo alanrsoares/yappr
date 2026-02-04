@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+
 import { Box, Text } from "ink";
+
 import { Header, Menu } from "../components/index.js";
-import { useKeyboard } from "../hooks/index.js";
 import { MENU_ITEMS, type ScreenId } from "../constants.js";
+import { useKeyboard } from "../hooks/index.js";
 
 export interface MainMenuScreenProps {
   onSelect: (screen: ScreenId) => void;

@@ -1,9 +1,11 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
+
 import { Box, Text } from "ink";
+
 import { Footer, Header, Loading } from "../components/index.js";
+import { DEFAULT_KEYS } from "../constants.js";
 import { useKeyboard } from "../hooks/index.js";
 import { runListenStep } from "../services/yappr.js";
-import { DEFAULT_KEYS } from "../constants.js";
 
 export interface ListenScreenProps {
   onBack: () => void;
@@ -16,7 +18,7 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
   const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [deviceIndex, setDeviceIndex] = useState(0);
+  const [deviceIndex, _setDeviceIndex] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   const startRecording = () => {
@@ -69,14 +71,17 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
         subtitle="Enter = start recording, Enter again = stop & process"
       />
       {phase === "idle" && (
-        <Text dimColor>Press Enter to start recording. (Device: {deviceIndex})</Text>
+        <Text dimColor>
+          Press Enter to start recording. (Device: {deviceIndex})
+        </Text>
       )}
       {phase === "recording" && (
         <Box>
           <Text color="yellow">Recording... Press Enter to stop.</Text>
         </Box>
       )}
-      {(phase === "processing" || (phase === "result" && !transcript && !error)) && (
+      {(phase === "processing" ||
+        (phase === "result" && !transcript && !error)) && (
         <Loading message="Transcribing..." />
       )}
       {phase === "result" && transcript && (
@@ -92,12 +97,14 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
         </Box>
       )}
       {phase === "result" && error && <Text color="red">{error}</Text>}
-      {phase === "result" && (
-        <Text dimColor>
-          Press Enter to record again.
-        </Text>
-      )}
-      <Footer items={[{ key: "Enter", label: phase === "recording" ? "stop" : "start" }, { key: "b", label: "back" }, { key: "q", label: "quit" }]} />
+      {phase === "result" && <Text dimColor>Press Enter to record again.</Text>}
+      <Footer
+        items={[
+          { key: "Enter", label: phase === "recording" ? "stop" : "start" },
+          { key: "b", label: "back" },
+          { key: "q", label: "quit" },
+        ]}
+      />
     </Box>
   );
 }

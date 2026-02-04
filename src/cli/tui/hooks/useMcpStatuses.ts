@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { McpManager, type ServerStatus } from "../../../sdk/mcp.js";
 
 export interface UseMcpStatusesOptions {
@@ -12,7 +13,9 @@ export interface UseMcpStatusesResult {
   refresh: () => Promise<void>;
 }
 
-export function useMcpStatuses({ configPath }: UseMcpStatusesOptions): UseMcpStatusesResult {
+export function useMcpStatuses({
+  configPath,
+}: UseMcpStatusesOptions): UseMcpStatusesResult {
   const [statuses, setStatuses] = useState<ServerStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,14 +1,15 @@
 import { Box, Text } from "ink";
+
 import {
   Footer,
+  getSummaryCounts,
   Header,
   Loading,
   StatusTable,
   Summary,
-  getSummaryCounts,
 } from "../components/index.js";
+import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "../constants.js";
 import { useKeyboard, useMcpStatuses } from "../hooks/index.js";
-import { MCP_CONFIG_PATH, DEFAULT_KEYS } from "../constants.js";
 
 export interface McpStatusScreenProps {
   onBack: () => void;
@@ -30,10 +31,7 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header
-        title="MCP servers"
-        subtitle={MCP_CONFIG_PATH}
-      />
+      <Header title="MCP servers" subtitle={MCP_CONFIG_PATH} />
 
       {loading ? (
         <Loading message="Connecting..." />

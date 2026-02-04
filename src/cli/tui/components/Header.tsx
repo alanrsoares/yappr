@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Text } from "ink";
 
 export interface HeaderProps {
@@ -12,9 +11,7 @@ export function Header({ title, subtitle }: HeaderProps) {
       <Text bold color="cyan">
         {title}
       </Text>
-      {subtitle !== undefined && (
-        <Text dimColor>{subtitle}</Text>
-      )}
+      {subtitle !== undefined && <Text dimColor>{subtitle}</Text>}
     </Box>
   );
 }

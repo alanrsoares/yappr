@@ -15,6 +15,7 @@ Designed to run efficiently on Apple Silicon (M-series), Yappr ensures your voic
 ## 🏗️ Architecture
 
 Yappr uses a hybrid architecture for maximum performance:
+
 - **CLI/SDK (Bun + TypeScript):** Handles orchestration, MCP tool execution, and the user interface.
 - **Inference Server (Python + FastAPI):** Wraps the heavy-lifting ML models (Kokoro & Whisper) for high-speed local inference.
 
@@ -32,6 +33,7 @@ Yappr uses a hybrid architecture for maximum performance:
 ### Installation
 
 1. **Clone and Install JS Dependencies:**
+
    ```bash
    bun install
    ```
@@ -46,30 +48,39 @@ Yappr uses a hybrid architecture for maximum performance:
 ## 📖 Usage
 
 ### 1. Start the Inference Server
+
 The server must be running in a separate terminal to handle TTS and STT requests.
+
 ```bash
 bun run serve
 ```
-*(On first run, it will download the Kokoro and Whisper models ~400MB total).*
+
+_(On first run, it will download the Kokoro and Whisper models ~400MB total)._
 
 ### 2. Voice-to-Voice Mode (Recommended)
+
 Start an interactive voice session. It will list your microphones; select one and start yapping!
+
 ```bash
 bun run listen
 ```
 
 ### 3. Text Chat with Voice Output
+
 Chat with Ollama via text and hear the response synthesized.
+
 ```bash
 bun run chat "What is the capital of France?" --model qwen2.5:14b
 ```
 
 ### 4. Simple Text-to-Speech
+
 ```bash
 bun run speak "Hello, I am speaking from your terminal." --voice af_sky --speed 1.1
 ```
 
 ### 5. List Available Voices
+
 ```bash
 bun run voices
 ```
@@ -81,6 +92,7 @@ Yappr automatically detects MCP servers from `~/.cursor/mcp.json`. When using a 
 ## 🔒 Privacy
 
 All processing is local.
+
 - **No** cloud APIs.
 - **No** data collection.
 - **No** subscription fees.

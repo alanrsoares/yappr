@@ -1,14 +1,16 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
   StreamableHTTPClientTransport,
   StreamableHTTPError,
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
+import type { Tool as OllamaTool } from "ollama";
+
 import { renderTable } from "./table.js";
 
 interface McpServerConfig {
@@ -38,7 +40,9 @@ export class McpManager {
   private clients: Map<string, Client> = new Map();
   private tools: Map<string, { server: string; tool: Tool }> = new Map();
 
-  async loadConfig(configPath: string = path.join(os.homedir(), ".cursor", "mcp.json")): Promise<void> {
+  async loadConfig(
+    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
+  ): Promise<void> {
     const results = await this.loadConfigAndGetStatuses(configPath);
     if (results.length > 0) this.printStatusTable(results);
   }
@@ -48,7 +52,7 @@ export class McpManager {
    * Returns [] if config is missing or invalid. Use for TUI or custom output.
    */
   async loadConfigAndGetStatuses(
-    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json")
+    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
   ): Promise<ServerStatus[]> {
     if (!fs.existsSync(configPath)) return [];
 
@@ -77,7 +81,9 @@ export class McpManager {
       r.transport ?? "—",
       r.message,
     ]);
-    renderTable(headers, rows, { align: ["left", "left", "right", "left", "left"] });
+    renderTable(headers, rows, {
+      align: ["left", "left", "right", "left", "left"],
+    });
   }
 
   /**
@@ -92,7 +98,10 @@ export class McpManager {
     return false;
   }
 
-  private async connectToServer(id: string, config: McpServerConfig): Promise<ServerStatus> {
+  private async connectToServer(
+    id: string,
+    config: McpServerConfig,
+  ): Promise<ServerStatus> {
     try {
       if (config.command) {
         return await this.connectWithStdio(id, config);
@@ -100,10 +109,19 @@ export class McpManager {
       if (config.url) {
         return await this.connectWithUrl(id, config.url);
       }
-      return { id, status: "[SKIP] Skipped", tools: 0, message: "No command/url" };
+      return {
+        id,
+        status: "[SKIP] Skipped",
+        tools: 0,
+        message: "No command/url",
+      };
     } catch (error: unknown) {
       let msg = error instanceof Error ? error.message : "Unknown error";
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
         msg = "Command not found";
       } else if (msg.includes("Non-200")) {
         msg = "Auth/Connection Err";
@@ -112,7 +130,10 @@ export class McpManager {
     }
   }
 
-  private async connectWithStdio(id: string, config: McpServerConfig): Promise<ServerStatus> {
+  private async connectWithStdio(
+    id: string,
+    config: McpServerConfig,
+  ): Promise<ServerStatus> {
     const env: Record<string, string> = {};
     const combinedEnv = { ...process.env, ...config.env };
     for (const [key, value] of Object.entries(combinedEnv)) {
@@ -126,7 +147,7 @@ export class McpManager {
     });
     const client = new Client(
       { name: "yappr-client", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
     await client.connect(transport);
     this.clients.set(id, client);
@@ -137,14 +158,17 @@ export class McpManager {
    * Connect to an MCP server by URL. Tries Streamable HTTP first (MCP 2025);
    * if the server returns 4xx (e.g. legacy SSE-only), falls back to SSEClientTransport.
    */
-  private async connectWithUrl(id: string, urlStr: string): Promise<ServerStatus> {
+  private async connectWithUrl(
+    id: string,
+    urlStr: string,
+  ): Promise<ServerStatus> {
     const url = new URL(urlStr);
 
     try {
       const transport = new StreamableHTTPClientTransport(url);
       const client = new Client(
         { name: "yappr-client", version: "1.0.0" },
-        { capabilities: {} }
+        { capabilities: {} },
       );
       await client.connect(transport);
       this.clients.set(id, client);
@@ -156,7 +180,7 @@ export class McpManager {
       const transport = new SSEClientTransport(url, { eventSourceInit: {} });
       const client = new Client(
         { name: "yappr-client", version: "1.0.0" },
-        { capabilities: {} }
+        { capabilities: {} },
       );
       await client.connect(transport);
       this.clients.set(id, client);
@@ -167,7 +191,7 @@ export class McpManager {
   private async registerToolsAndReturnStatus(
     id: string,
     client: Client,
-    transport: TransportKind
+    transport: TransportKind,
   ): Promise<ServerStatus> {
     const result = await client.listTools();
     const toolCount = result.tools?.length ?? 0;
@@ -185,7 +209,7 @@ export class McpManager {
     };
   }
 
-  getOllamaTools() {
+  getOllamaTools(): OllamaTool[] {
     return Array.from(this.tools.values()).map(({ tool }) => ({
       type: "function",
       function: {
@@ -196,7 +220,10 @@ export class McpManager {
     }));
   }
 
-  async callTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
+  async callTool(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     const entry = this.tools.get(name);
     if (!entry) {
       throw new Error(`Tool ${name} not found`);
@@ -210,17 +237,19 @@ export class McpManager {
 
     console.log(`Calling MCP tool '${name}' on server '${server}'...`);
     // Note: The SDK returns CallToolResultSchema which is equivalent to CallToolResult
-    return await client.callTool({
+    return (await client.callTool({
       name,
       arguments: args,
-    }) as CallToolResult;
+    })) as CallToolResult;
   }
 
   async close(): Promise<void> {
     for (const client of this.clients.values()) {
       try {
         await client.close();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
-import React from "react";
+import { Fragment } from "react";
+
 import { Box, Text } from "ink";
 
 export interface FooterItem {
@@ -17,11 +18,11 @@ export function Footer({ items, separator = " · " }: FooterProps) {
     <Box marginTop={2}>
       <Text dimColor>
         {items.map((item, i) => (
-          <React.Fragment key={item.key}>
+          <Fragment key={item.key}>
             {i > 0 && separator}
             <Text bold>{item.key}</Text>
             <Text> {item.label}</Text>
-          </React.Fragment>
+          </Fragment>
         ))}
       </Text>
     </Box>

@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Text } from "ink";
 
 export interface SummaryCounts {
@@ -28,7 +27,7 @@ export function Summary({ counts }: SummaryProps) {
 
 /** Derive summary counts from an array of status-like objects */
 export function getSummaryCounts(
-  items: Array<{ status: string; tools: number }>
+  items: Array<{ status: string; tools: number }>,
 ): SummaryCounts {
   const connected = items.filter((s) => s.status === "[OK] Connected").length;
   const failed = items.filter((s) => s.status === "[FAIL] Failed").length;

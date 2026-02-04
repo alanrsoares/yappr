@@ -1,19 +1,30 @@
 {
   "name": "yappr",
+  "type": "module",
   "scripts": {
+    "lint": "eslint .",
     "tui": "bun run src/cli/mcp-status.tsx",
     "serve": "bun run src/cli/index.ts serve",
     "speak": "bun run src/cli/index.ts speak",
     "chat": "bun run src/cli/index.ts chat",
     "listen": "bun run src/cli/index.ts listen",
     "voices": "bun run src/cli/index.ts voices",
-    "dev": "bun --watch src/cli/index.ts"
+    "dev": "bun --watch src/cli/index.ts",
+    "format": "prettier --write ."
   },
   "private": true,
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/bun": "latest",
     "@types/react": "^19.2.10",
-    "openapi-typescript": "^7.10.1"
+    "eslint": "^9.39.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "jiti": "^2.6.1",
+    "openapi-typescript": "^7.10.1",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.54.0"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -22,6 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "ink": "^6.6.0",
     "ink-text-input": "^6.0.0",
+    "ollama": "^0.6.3",
     "react": "^19.2.4",
     "zod": "^4.3.6"
   }

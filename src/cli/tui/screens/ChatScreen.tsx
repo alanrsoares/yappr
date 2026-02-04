@@ -1,10 +1,12 @@
 import { useState } from "react";
+
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+
 import { Footer, Header, Loading } from "../components/index.js";
+import { DEFAULT_KEYS } from "../constants.js";
 import { useKeyboard } from "../hooks/index.js";
 import { chat, speak } from "../services/yappr.js";
-import { DEFAULT_KEYS } from "../constants.js";
 
 export interface ChatScreenProps {
   onBack: () => void;
@@ -12,7 +14,9 @@ export interface ChatScreenProps {
 
 export function ChatScreen({ onBack }: ChatScreenProps) {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +64,12 @@ export function ChatScreen({ onBack }: ChatScreenProps) {
         </Box>
       )}
       {status === "error" && error && <Text color="red">{error}</Text>}
-      <Footer items={[{ key: "Esc", label: "back" }, { key: "q", label: "quit" }]} />
+      <Footer
+        items={[
+          { key: "Esc", label: "back" },
+          { key: "q", label: "quit" },
+        ]}
+      />
     </Box>
   );
 }

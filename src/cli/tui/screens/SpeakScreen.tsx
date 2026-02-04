@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+
 import { Footer, Header, Loading } from "../components/index.js";
+import { DEFAULT_KEYS } from "../constants.js";
 import { useKeyboard } from "../hooks/index.js";
 import { speak } from "../services/yappr.js";
-import { DEFAULT_KEYS } from "../constants.js";
 
 export interface SpeakScreenProps {
   onBack: () => void;
@@ -12,7 +14,9 @@ export interface SpeakScreenProps {
 
 export function SpeakScreen({ onBack }: SpeakScreenProps) {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (text: string) => {
@@ -38,7 +42,10 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="Speak" subtitle="Type text and press Enter to synthesize" />
+      <Header
+        title="Speak"
+        subtitle="Type text and press Enter to synthesize"
+      />
       <Box>
         <Text color="cyan">Text: </Text>
         <TextInput
@@ -51,7 +58,12 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
       {status === "loading" && <Loading message="Synthesizing..." />}
       {status === "done" && <Text color="green">Done. Playing.</Text>}
       {status === "error" && error && <Text color="red">{error}</Text>}
-      <Footer items={[{ key: "Esc", label: "back" }, { key: "q", label: "quit" }]} />
+      <Footer
+        items={[
+          { key: "Esc", label: "back" },
+          { key: "q", label: "quit" },
+        ]}
+      />
     </Box>
   );
 }

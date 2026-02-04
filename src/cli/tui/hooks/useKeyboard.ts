@@ -9,7 +9,15 @@ export interface UseKeyboardOptions {
   bindings: KeyBinding[];
 }
 
-function getEffectiveKey(input: string, key: { escape?: boolean; return?: boolean; upArrow?: boolean; downArrow?: boolean }): string {
+function getEffectiveKey(
+  input: string,
+  key: {
+    escape?: boolean;
+    return?: boolean;
+    upArrow?: boolean;
+    downArrow?: boolean;
+  },
+): string {
   if (key.escape) return "escape";
   if (key.return) return "return";
   if (key.upArrow) return "upArrow";
@@ -26,7 +34,10 @@ export function useKeyboard({ bindings }: UseKeyboardOptions): void {
   useInput((input, key) => {
     const effectiveKey = getEffectiveKey(input, key);
     for (const { keys, action } of bindings) {
-      if (keys.includes(effectiveKey) || (effectiveKey === "return" && keys.includes("enter"))) {
+      if (
+        keys.includes(effectiveKey) ||
+        (effectiveKey === "return" && keys.includes("enter"))
+      ) {
         action();
         return;
       }

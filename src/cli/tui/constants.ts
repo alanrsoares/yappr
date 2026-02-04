@@ -6,13 +6,7 @@ export const DEFAULT_KEYS = {
   back: ["b", "escape"],
 } as const;
 
-export type ScreenId =
-  | "menu"
-  | "mcp"
-  | "speak"
-  | "chat"
-  | "listen"
-  | "voices";
+export type ScreenId = "menu" | "mcp" | "speak" | "chat" | "listen" | "voices";
 
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "mcp", label: "MCP servers" },

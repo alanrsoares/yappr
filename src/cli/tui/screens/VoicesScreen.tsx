@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+
 import { Box, Text } from "ink";
+
 import { Footer, Header, Loading } from "../components/index.js";
+import { DEFAULT_KEYS } from "../constants.js";
 import { useKeyboard } from "../hooks/index.js";
 import { listVoices } from "../services/yappr.js";
-import { DEFAULT_KEYS } from "../constants.js";
 
 export interface VoicesScreenProps {
   onBack: () => void;
@@ -38,11 +40,16 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
       ) : (
         <Box flexDirection="column">
           {voices.map((v) => (
-            <Text key={v}>  {v}</Text>
+            <Text key={v}> {v}</Text>
           ))}
         </Box>
       )}
-      <Footer items={[{ key: "b", label: "back" }, { key: "q", label: "quit" }]} />
+      <Footer
+        items={[
+          { key: "b", label: "back" },
+          { key: "q", label: "quit" },
+        ]}
+      />
     </Box>
   );
 }
