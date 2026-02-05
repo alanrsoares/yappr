@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { McpManager, type ServerStatus } from "~/sdk/mcp.js";
+import { McpManager } from "~/sdk/mcp.js";
+import type { ServerStatus } from "~/sdk/types.js";
 import { useQuery } from "./useQuery.js";
 
 export interface UseMcpStatusesOptions {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box } from "ink";
 
-import type { ScreenId } from "./constants.js";
+import type { ScreenId } from "./types.js";
 import { ChatScreen } from "./screens/chat/index.js";
 import { ListenScreen } from "./screens/listen/index.js";
 import { MainMenuScreen } from "./screens/main-menu/index.js";

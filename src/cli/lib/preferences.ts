@@ -5,12 +5,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { ResultAsync } from "neverthrow";
 
-export interface Preferences {
-  defaultOllamaModel: string;
-  defaultVoice: string;
-  defaultInputDeviceIndex: number;
-  defaultOutputDeviceIndex: number;
-}
+import type { Preferences } from "../types.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {
   defaultOllamaModel: "qwen2.5:14b",

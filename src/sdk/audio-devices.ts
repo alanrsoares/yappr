@@ -1,13 +1,11 @@
 import { spawn } from "bun";
 import { ResultAsync } from "neverthrow";
 
+import type { AudioDevice } from "./types.js";
+export type { AudioDevice };
+
 function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
-}
-
-export interface AudioDevice {
-  index: number;
-  name: string;
 }
 
 /**

@@ -1,3 +1,5 @@
+import type { ScreenId } from "./types.js";
+
 export const MCP_CONFIG_PATH = `${process.env.HOME ?? ""}/.cursor/mcp.json`;
 
 export const DEFAULT_KEYS = {
@@ -5,15 +7,6 @@ export const DEFAULT_KEYS = {
   refresh: ["r", "R"],
   back: ["b", "escape"],
 } as const;
-
-export type ScreenId =
-  | "menu"
-  | "mcp"
-  | "speak"
-  | "chat"
-  | "listen"
-  | "voices"
-  | "settings";
 
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "mcp", label: "MCP servers" },

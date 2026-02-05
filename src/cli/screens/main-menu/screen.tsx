@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Box, Text } from "ink";
 
 import { Header } from "~/cli/components/index.js";
-import { MENU_ITEMS, type ScreenId } from "~/cli/constants.js";
+import { MENU_ITEMS } from "~/cli/constants.js";
 import { useKeyboard } from "~/cli/hooks/index.js";
+import type { ScreenId } from "~/cli/types.js";
 import { Menu } from "./components/menu.js";
 
 export interface MainMenuScreenProps {

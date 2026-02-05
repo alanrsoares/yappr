@@ -4,8 +4,8 @@ import {
   DEFAULT_PREFERENCES,
   loadPreferences,
   savePreferences as savePreferencesToDisk,
-  type Preferences,
 } from "~/cli/lib/preferences.js";
+import type { Preferences } from "~/cli/types.js";
 import { useQuery } from "./useQuery.js";
 
 export interface UsePreferencesResult {

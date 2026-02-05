@@ -12,31 +12,15 @@ import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
+import type {
+  McpConfig,
+  McpServerConfig,
+  ServerStatus,
+  TransportKind,
+} from "./types.js";
+
 function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
-}
-
-interface McpServerConfig {
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  name?: string;
-}
-
-interface McpConfig {
-  mcpServers: Record<string, McpServerConfig>;
-}
-
-export type TransportKind = "stdio" | "streamable-http" | "sse";
-
-export interface ServerStatus {
-  id: string;
-  status: "[OK] Connected" | "[FAIL] Failed" | "[SKIP] Skipped";
-  tools: number;
-  message: string;
-  /** Set when connected via URL; indicates whether server supports Streamable HTTP or legacy SSE. */
-  transport?: TransportKind;
 }
 
 export class McpManager {

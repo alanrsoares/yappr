@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 
-import type { ServerStatus } from "~/sdk/mcp.js";
+import type { ServerStatus } from "~/sdk/types.js";
 
 const HEADERS = ["Server", "Status", "Tools", "Transport", "Message"] as const;
 

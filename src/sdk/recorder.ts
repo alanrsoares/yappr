@@ -1,13 +1,10 @@
 import { spawn } from "bun";
 import { ResultAsync } from "neverthrow";
 
+import type { RecordOptions } from "./types.js";
+
 function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
-}
-
-export interface RecordOptions {
-  /** When aborted, recording stops. Use for TUI (e.g. Enter to stop) instead of stdin. */
-  signal?: AbortSignal;
 }
 
 export class AudioRecorder {

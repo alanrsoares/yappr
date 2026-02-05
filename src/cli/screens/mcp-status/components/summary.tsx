@@ -1,11 +1,6 @@
 import { Box, Text } from "ink";
 
-export interface SummaryCounts {
-  connected: number;
-  failed: number;
-  skipped: number;
-  totalTools: number;
-}
+import type { SummaryCounts } from "~/cli/types.js";
 
 export interface SummaryProps {
   counts: SummaryCounts;

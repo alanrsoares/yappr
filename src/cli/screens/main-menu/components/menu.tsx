@@ -1,9 +1,6 @@
 import { Box, Text } from "ink";
 
-export interface MenuItem {
-  id: string;
-  label: string;
-}
+import type { MenuItem } from "~/cli/types.js";
 
 export interface MenuProps {
   items: MenuItem[];

@@ -1,8 +1,7 @@
 import { ResultAsync } from "neverthrow";
 
-import type { components } from "./schema";
-
-export type TTSOptions = Partial<components["schemas"]["SynthesizeRequest"]>;
+import type { components } from "./schema.js";
+import type { TTSOptions } from "./types.js";
 
 interface VoicesResponse {
   voices: string[];

@@ -16,6 +16,14 @@ import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { KittenTTSClient } from "~/sdk/tts.js";
 
+import type {
+  ChatMessage,
+  ChatOptions,
+  ListenStepOptions,
+  ListenStepResult,
+  SpeakOptions,
+} from "../types.js";
+
 export type { AudioDevice };
 export { listInputDevices, listOutputDevices };
 
@@ -31,21 +39,6 @@ function toError(e: unknown): Error {
 }
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface ChatMessage {
-  role: string;
-  content: string;
-}
-
-export interface ListenStepResult {
-  transcript: string;
-  response: string | null;
-  error?: string;
-}
-
-// ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
 
@@ -58,12 +51,6 @@ export function listOllamaModels(): ResultAsync<string[], Error> {
     ollama.list().then((res) => res.models.map((m) => m.name)),
     toError,
   );
-}
-
-export interface SpeakOptions {
-  voice?: string;
-  speed?: number;
-  play?: boolean;
 }
 
 export function speak(
@@ -86,11 +73,6 @@ export function speak(
         spawn(["aplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
       }
     });
-}
-
-export interface ChatOptions {
-  model?: string;
-  useTools?: boolean;
 }
 
 /** One-shot Ollama chat with optional MCP tools. Returns assistant text or null. */
@@ -173,13 +155,6 @@ async function runChatLoop(
       return message.content ?? null;
     }
   }
-}
-
-export interface ListenStepOptions {
-  deviceIndex?: number;
-  model?: string;
-  voice?: string;
-  recordSignal?: AbortSignal;
 }
 
 /** One listen cycle: record → transcribe → chat → speak. */
