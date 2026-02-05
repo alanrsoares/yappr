@@ -25,7 +25,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
   const { preferences, savePreferences } = usePreferences();
   const { data: ollamaModels = [], isLoading: modelsLoading } =
     useQuery(listOllamaModels);
-  const { data: voices = [], isLoading: voicesLoading } = useQuery(listVoices);
+  const { data: voices = [] } = useQuery(listVoices);
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
     useQuery(listInputDevices);
   const { data: outputDevices = [], isLoading: outputDevicesLoading } =
@@ -106,50 +106,50 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
     bindings: [
       ...(picker
         ? [
-            {
-              keys: ["upArrow", "k"],
-              action: () => {
-                const len =
-                  picker === "model"
-                    ? ollamaModels.length
-                    : picker === "voice"
-                      ? voices.length
-                      : picker === "input"
-                        ? inputDevices.length
-                        : outputDevices.length;
-                setPickerIndex((i) => (i > 0 ? i - 1 : len - 1));
-              },
+          {
+            keys: ["upArrow", "k"],
+            action: () => {
+              const len =
+                picker === "model"
+                  ? ollamaModels.length
+                  : picker === "voice"
+                    ? voices.length
+                    : picker === "input"
+                      ? inputDevices.length
+                      : outputDevices.length;
+              setPickerIndex((i) => (i > 0 ? i - 1 : len - 1));
             },
-            {
-              keys: ["downArrow", "j"],
-              action: () => {
-                const len =
-                  picker === "model"
-                    ? ollamaModels.length
-                    : picker === "voice"
-                      ? voices.length
-                      : picker === "input"
-                        ? inputDevices.length
-                        : outputDevices.length;
-                setPickerIndex((i) => (i < len - 1 ? i + 1 : 0));
-              },
+          },
+          {
+            keys: ["downArrow", "j"],
+            action: () => {
+              const len =
+                picker === "model"
+                  ? ollamaModels.length
+                  : picker === "voice"
+                    ? voices.length
+                    : picker === "input"
+                      ? inputDevices.length
+                      : outputDevices.length;
+              setPickerIndex((i) => (i < len - 1 ? i + 1 : 0));
             },
-            { keys: ["return", "enter"], action: confirmPicker },
-            { keys: ["escape"], action: () => setPicker(null) },
-          ]
+          },
+          { keys: ["return", "enter"], action: confirmPicker },
+          { keys: ["escape"], action: () => setPicker(null) },
+        ]
         : [
-            {
-              keys: ["upArrow", "k"],
-              action: () =>
-                setSelectedRow((r) => (r > 0 ? r - 1 : rowCount - 1)),
-            },
-            {
-              keys: ["downArrow", "j"],
-              action: () =>
-                setSelectedRow((r) => (r < rowCount - 1 ? r + 1 : 0)),
-            },
-            { keys: ["return", "enter"], action: openPicker },
-          ]),
+          {
+            keys: ["upArrow", "k"],
+            action: () =>
+              setSelectedRow((r) => (r > 0 ? r - 1 : rowCount - 1)),
+          },
+          {
+            keys: ["downArrow", "j"],
+            action: () =>
+              setSelectedRow((r) => (r < rowCount - 1 ? r + 1 : 0)),
+          },
+          { keys: ["return", "enter"], action: openPicker },
+        ]),
       { keys: [...DEFAULT_KEYS.back], action: picker ? () => setPicker(null) : onBack },
       { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
     ],

@@ -157,6 +157,22 @@ async function runChatLoop(
   }
 }
 
+export interface RecordAndTranscribeOptions {
+  deviceIndex?: number;
+  recordSignal: AbortSignal;
+}
+
+/** Record from mic until signal is aborted, then transcribe. Returns transcript text (or ""). */
+export function recordAndTranscribe(
+  options: RecordAndTranscribeOptions,
+): ResultAsync<string, Error> {
+  const { deviceIndex = 0, recordSignal } = options;
+  return defaultRecorder
+    .record(INPUT_WAV, deviceIndex, { signal: recordSignal })
+    .andThen(() => defaultTts.transcribe(INPUT_WAV))
+    .map((t) => t?.trim() ?? "");
+}
+
 /** One listen cycle: record → transcribe → chat → speak. */
 export function runListenStep(
   options: ListenStepOptions = {},
@@ -172,12 +188,13 @@ export function runListenStep(
     return errAsync(new Error("recordSignal (AbortSignal) required for TUI"));
   }
 
-  return defaultRecorder
-    .record(INPUT_WAV, deviceIndex, { signal: recordSignal })
-    .andThen(() => defaultTts.transcribe(INPUT_WAV))
-    .andThen((transcript) => {
-      if (!transcript?.trim() || transcript.length < 2) {
-        return okAsync<ListenStepResult, Error>({ transcript, response: null });
+  return recordAndTranscribe({ deviceIndex, recordSignal }).andThen(
+    (transcript) => {
+      if (!transcript || transcript.length < 2) {
+        return okAsync<ListenStepResult, Error>({
+          transcript,
+          response: null,
+        });
       }
       return chat(transcript, { model }).andThen((response) =>
         response
@@ -187,5 +204,6 @@ export function runListenStep(
             }))
           : okAsync<ListenStepResult, Error>({ transcript, response: null }),
       );
-    });
+    },
+  );
 }
