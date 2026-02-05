@@ -9,20 +9,33 @@ import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { chat, speak } from "~/cli/services/yappr.js";
 
+type ChatPhase = "idle" | "thinking" | "speaking";
+
 export interface ChatScreenProps {
   onBack: () => void;
 }
 
 export function ChatScreen({ onBack }: ChatScreenProps) {
   const [value, setValue] = useState("");
+  const [phase, setPhase] = useState<ChatPhase>("idle");
   const { preferences } = usePreferences();
-  const chatMutation = useMutation<string | null, Error, string>((prompt) =>
-    chat(prompt, { model: preferences.defaultOllamaModel }).andThen((text) =>
-      text
-        ? speak(text, { voice: preferences.defaultVoice }).map(() => text)
-        : okAsync(null),
-    ),
-  );
+  const model = preferences.defaultOllamaModel;
+  const voice = preferences.defaultVoice;
+
+  const chatMutation = useMutation<string | null, Error, string>((prompt) => {
+    setPhase("thinking");
+    return chat(prompt, { model })
+      .andThen((text) => {
+        if (!text) {
+          setPhase("idle");
+          return okAsync(null);
+        }
+        setPhase("speaking");
+        return speak(text, { voice }).map(() => text);
+      })
+      .andTee(() => setPhase("idle"))
+      .orTee(() => setPhase("idle"));
+  });
   const { mutate, data: response, error, isPending } = chatMutation;
 
   const handleSubmit = useCallback(
@@ -41,28 +54,55 @@ export function ChatScreen({ onBack }: ChatScreenProps) {
     ],
   });
 
+  const hasResponse = chatMutation.isSuccess && response !== undefined;
+  const showError = chatMutation.isError && error;
+
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="Chat" subtitle="Prompt Ollama (with MCP tools) + TTS" />
-      <Box>
-        <Text color="cyan">Prompt: </Text>
+      <Header
+        title="Chat"
+        subtitle={`Model: ${model}  ·  Voice: ${voice}`}
+      />
+
+      <Box
+        borderStyle="single"
+        borderColor="cyan"
+        paddingX={1}
+        paddingY={1}
+        minHeight={3}
+        flexDirection="column"
+        marginBottom={1}
+      >
+        {isPending && phase === "thinking" && (
+          <Loading message="Thinking…" />
+        )}
+        {isPending && phase === "speaking" && (
+          <Loading message="Speaking…" />
+        )}
+        {!isPending && hasResponse && (
+          <Box flexDirection="column">
+            <Text dimColor>Response:</Text>
+            <Text>{response ?? "(no response)"}</Text>
+          </Box>
+        )}
+        {!isPending && showError && (
+          <Text color="red">{error?.message}</Text>
+        )}
+        {!isPending && !hasResponse && !showError && (
+          <Text dimColor>Ask anything — reply is read aloud with TTS.</Text>
+        )}
+      </Box>
+
+      <Box flexDirection="row" alignItems="center">
+        <Text color="cyan">› </Text>
         <TextInput
           value={value}
           onChange={setValue}
           onSubmit={handleSubmit}
-          placeholder="Ask something..."
+          placeholder={`Ask ${model}…`}
         />
       </Box>
-      {isPending && <Loading message="Waiting for Ollama..." />}
-      {chatMutation.isSuccess && response !== undefined && (
-        <Box marginTop={1} flexDirection="column">
-          <Text color="green">Ollama:</Text>
-          <Text>{response ?? "(no response)"}</Text>
-        </Box>
-      )}
-      {chatMutation.isError && error && (
-        <Text color="red">{error.message}</Text>
-      )}
+
       <Footer
         items={[
           { key: "Esc", label: "back" },
