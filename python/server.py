@@ -3,8 +3,10 @@ FastAPI server: TTS (Kokoro) + STT (Whisper). Routes delegate to core and map Re
 """
 from __future__ import annotations
 
+import os
 import sys
 import warnings
+from contextlib import asynccontextmanager
 from typing import Any
 
 import uvicorn
@@ -18,8 +20,6 @@ import core
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-app = FastAPI(title="Yappr Kokoro TTS + Whisper STT Server")
-
 # Injected at startup
 _pipeline: Any = None
 
@@ -28,7 +28,6 @@ def get_pipeline() -> Any:
     return _pipeline
 
 
-# --- Startup: load models ---
 def _load_tts() -> Any:
     import kokoro
     print("Loading Kokoro TTS model (82M)...")
@@ -49,22 +48,24 @@ def _load_stt() -> Any:
         return None
 
 
-@app.on_event("startup")
-def startup() -> None:
-    import os
-
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> Any:
     global _pipeline
     if os.environ.get("YAPPR_TEST"):
         _pipeline = None
         core.set_stt_model(None)
+        yield
         return
     try:
         _pipeline = _load_tts()
     except Exception as e:
         print(f"Failed to load Kokoro model: {e}")
         sys.exit(1)
-    stt = _load_stt()
-    core.set_stt_model(stt)
+    core.set_stt_model(_load_stt())
+    yield
+
+
+app = FastAPI(title="Yappr Kokoro TTS + Whisper STT Server", lifespan=lifespan)
 
 
 # --- Request/response models ---
