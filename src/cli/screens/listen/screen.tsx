@@ -29,10 +29,12 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
     setError(null);
     runListenStep({
       deviceIndex: preferences.defaultInputDeviceIndex,
-      model: preferences.defaultOllamaModel,
+      provider: preferences.defaultChatProvider,
+      model: preferences.defaultChatModel,
       voice: preferences.defaultVoice,
       recordSignal: abortRef.current.signal,
       ollamaBaseUrl: preferences.ollamaBaseUrl || undefined,
+      openrouterApiKey: preferences.openrouterApiKey || undefined,
       useNarrationForTTS: preferences.useNarrationForTTS,
       narrationModel: preferences.narrationModel || undefined,
     }).match(

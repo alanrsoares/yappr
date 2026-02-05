@@ -33,13 +33,75 @@ function SettingsScreenContent() {
     ollamaUrlInputValue,
     editingMcpConfigPath,
     mcpConfigPathInputValue,
+    editingChatModel,
+    chatModelInputValue,
+    editingOpenrouterApiKey,
+    openrouterApiKeyInputValue,
   } = state;
   const {
     setOllamaUrlInputValue,
     confirmOllamaUrlEdit,
     setMcpConfigPathInputValue,
     confirmMcpConfigPathEdit,
+    setChatModelInputValue,
+    confirmChatModelEdit,
+    setOpenrouterApiKeyInputValue,
+    confirmOpenrouterApiKeyEdit,
   } = actions;
+
+  if (editingChatModel) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Header title="Settings" subtitle="~/.yappr/settings.json" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text>Chat model (OpenRouter): </Text>
+          <TextInput
+            value={chatModelInputValue}
+            onChange={setChatModelInputValue}
+            onSubmit={confirmChatModelEdit}
+            placeholder="e.g. openai/gpt-4o"
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Enter save · Esc cancel</Text>
+          </Box>
+        </Box>
+        <Footer
+          items={[
+            { key: "Esc", label: "cancel" },
+            { key: "b", label: "back" },
+            { key: "q", label: "quit" },
+          ]}
+        />
+      </Box>
+    );
+  }
+
+  if (editingOpenrouterApiKey) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Header title="Settings" subtitle="~/.yappr/settings.json" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text>OpenRouter API key: </Text>
+          <TextInput
+            value={openrouterApiKeyInputValue}
+            onChange={setOpenrouterApiKeyInputValue}
+            onSubmit={confirmOpenrouterApiKeyEdit}
+            placeholder="sk-or-..."
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Enter save · Esc cancel</Text>
+          </Box>
+        </Box>
+        <Footer
+          items={[
+            { key: "Esc", label: "cancel" },
+            { key: "b", label: "back" },
+            { key: "q", label: "quit" },
+          ]}
+        />
+      </Box>
+    );
+  }
 
   if (editingMcpConfigPath) {
     return (
@@ -105,69 +167,95 @@ function SettingsScreenContent() {
             <Text color={selectedRow === 0 ? "cyan" : undefined}>
               {selectedRow === 0 ? "› " : "  "}
             </Text>
-            <Text>Ollama model: </Text>
+            <Text>Chat provider: </Text>
             <Text dimColor={selectedRow !== 0}>
-              {modelsLoading ? "…" : preferences.defaultOllamaModel}
+              {preferences.defaultChatProvider === "openrouter"
+                ? "OpenRouter"
+                : "Ollama"}
             </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 1 ? "cyan" : undefined}>
               {selectedRow === 1 ? "› " : "  "}
             </Text>
-            <Text>Default voice: </Text>
-            <Text dimColor={selectedRow !== 1}>{preferences.defaultVoice}</Text>
+            <Text>Chat model: </Text>
+            <Text dimColor={selectedRow !== 1}>
+              {preferences.defaultChatProvider === "openrouter"
+                ? preferences.defaultChatModel || "(set model)"
+                : modelsLoading
+                  ? "…"
+                  : preferences.defaultChatModel}
+            </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 2 ? "cyan" : undefined}>
               {selectedRow === 2 ? "› " : "  "}
             </Text>
-            <Text>Input device: </Text>
-            <Text dimColor={selectedRow !== 2}>
-              {inputDevicesLoading ? "…" : inputDeviceLabel}
-            </Text>
+            <Text>Default voice: </Text>
+            <Text dimColor={selectedRow !== 2}>{preferences.defaultVoice}</Text>
           </Box>
           <Box>
             <Text color={selectedRow === 3 ? "cyan" : undefined}>
               {selectedRow === 3 ? "› " : "  "}
             </Text>
-            <Text>Output device: </Text>
+            <Text>Input device: </Text>
             <Text dimColor={selectedRow !== 3}>
-              {outputDevicesLoading ? "…" : outputDeviceLabel}
+              {inputDevicesLoading ? "…" : inputDeviceLabel}
             </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 4 ? "cyan" : undefined}>
               {selectedRow === 4 ? "› " : "  "}
             </Text>
-            <Text>Use narration for TTS: </Text>
+            <Text>Output device: </Text>
             <Text dimColor={selectedRow !== 4}>
-              {preferences.useNarrationForTTS ? "On" : "Off"}
+              {outputDevicesLoading ? "…" : outputDeviceLabel}
             </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 5 ? "cyan" : undefined}>
               {selectedRow === 5 ? "› " : "  "}
             </Text>
-            <Text>Narration model: </Text>
+            <Text>Use narration for TTS: </Text>
             <Text dimColor={selectedRow !== 5}>
-              {preferences.narrationModel || "(same as chat)"}
+              {preferences.useNarrationForTTS ? "On" : "Off"}
             </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 6 ? "cyan" : undefined}>
               {selectedRow === 6 ? "› " : "  "}
             </Text>
-            <Text>Ollama URL: </Text>
+            <Text>Narration model: </Text>
             <Text dimColor={selectedRow !== 6}>
-              {preferences.ollamaBaseUrl}
+              {preferences.narrationModel || "(same as chat)"}
             </Text>
           </Box>
           <Box>
             <Text color={selectedRow === 7 ? "cyan" : undefined}>
               {selectedRow === 7 ? "› " : "  "}
             </Text>
-            <Text>MCP config path: </Text>
+            <Text>Ollama URL: </Text>
             <Text dimColor={selectedRow !== 7}>
+              {preferences.ollamaBaseUrl}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={selectedRow === 8 ? "cyan" : undefined}>
+              {selectedRow === 8 ? "› " : "  "}
+            </Text>
+            <Text>OpenRouter API key: </Text>
+            <Text dimColor={selectedRow !== 8}>
+              {preferences.openrouterApiKey
+                ? `${preferences.openrouterApiKey.slice(0, 8)}…`
+                : "(not set)"}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={selectedRow === 9 ? "cyan" : undefined}>
+              {selectedRow === 9 ? "› " : "  "}
+            </Text>
+            <Text>MCP config path: </Text>
+            <Text dimColor={selectedRow !== 9}>
               {preferences.mcpConfigPath}
             </Text>
           </Box>
@@ -178,15 +266,17 @@ function SettingsScreenContent() {
       ) : (
         <Box flexDirection="column" marginTop={1}>
           <Text dimColor>
-            {picker === "model"
-              ? "Choose Ollama model"
-              : picker === "voice"
-                ? "Choose voice"
-                : picker === "input"
-                  ? "Choose input device"
-                  : picker === "output"
-                    ? "Choose output device"
-                    : "Choose narration model (for TTS)"}
+            {picker === "provider"
+              ? "Choose chat provider"
+              : picker === "model"
+                ? "Choose Ollama model"
+                : picker === "voice"
+                  ? "Choose voice"
+                  : picker === "input"
+                    ? "Choose input device"
+                    : picker === "output"
+                      ? "Choose output device"
+                      : "Choose narration model (for TTS)"}
           </Text>
           {(pickerList ?? []).map((item, i) => (
             <Box key={i}>

@@ -42,7 +42,7 @@ function ChatScreenContent() {
     <Box flexDirection="column" padding={1}>
       <Header
         title="Chat"
-        subtitle={`Model: ${state.model}  ·  Voice: ${state.voice}${state.useNarrationForTTS ? "  ·  Narration: on" : ""}`}
+        subtitle={`${state.provider}: ${state.model}  ·  Voice: ${state.voice}${state.useNarrationForTTS ? "  ·  Narration: on" : ""}`}
       />
 
       <ChatHistory

@@ -19,7 +19,9 @@ export interface ChatStatusProps {
 }
 
 function isAbortError(err: Error): boolean {
-  return err.name === "AbortError" || err.message?.toLowerCase().includes("abort");
+  return (
+    err.name === "AbortError" || err.message?.toLowerCase().includes("abort")
+  );
 }
 
 export function ChatStatus({
@@ -33,9 +35,7 @@ export function ChatStatus({
   activeToolCall,
 }: ChatStatusProps): ReactNode {
   if (isChatPending && activeToolCall) {
-    return (
-      <Text color="cyan">Calling tool: {activeToolCall}…</Text>
-    );
+    return <Text color="cyan">Calling tool: {activeToolCall}…</Text>;
   }
   if (isChatPending && chatPhase === "thinking" && !hasStreamingResponse) {
     return <Loading message="Thinking…" />;

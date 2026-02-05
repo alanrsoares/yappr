@@ -56,6 +56,102 @@ function toError(e: unknown): Error {
 }
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+
+/** Creates an OpenRouter chat adapter (OpenAI-compatible API). Tools not yet supported. */
+function createOpenRouterChat(
+  model: string,
+  apiKey: string,
+): {
+  name: "openrouter";
+  model: string;
+  chatStream: (opts: {
+    messages: Array<{ role: string; content: string }>;
+    request?: RequestInit;
+  }) => AsyncIterable<{
+    type: string;
+    delta?: string;
+    content?: string;
+    error?: { message: string };
+  }>;
+} {
+  return {
+    name: "openrouter",
+    model,
+    async *chatStream({
+      messages,
+      request = {},
+    }: {
+      messages: Array<{ role: string; content: string }>;
+      request?: RequestInit;
+    }) {
+      const body = {
+        model,
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        stream: true,
+      };
+      const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          ...(request.headers as Record<string, string>),
+        },
+        body: JSON.stringify(body),
+        signal: request.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        yield {
+          type: "RUN_ERROR",
+          error: { message: `${res.status}: ${text}` },
+        };
+        return;
+      }
+      let accumulated = "";
+      const reader = res.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
+              try {
+                const json = JSON.parse(data) as {
+                  choices?: Array<{ delta?: { content?: string } }>;
+                };
+                const delta = json.choices?.[0]?.delta?.content ?? "";
+                if (delta) {
+                  accumulated += delta;
+                  yield {
+                    type: "content",
+                    delta,
+                    content: accumulated,
+                  };
+                }
+              } catch {
+                // skip malformed chunk
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    },
+  };
+}
 
 function getOllamaClient(baseUrl?: string): Ollama {
   const url = baseUrl?.trim() || DEFAULT_OLLAMA_URL;
@@ -136,14 +232,16 @@ export function narrateResponse(
   );
 }
 
-/** One-shot Ollama chat with optional MCP tools. Returns assistant text or null. */
+/** One-shot chat with optional MCP tools. Supports Ollama and OpenRouter. Returns assistant text or null. */
 export function chat(
   prompt: string,
   options: ChatOptions = {},
 ): ResultAsync<string | null, Error> {
   const {
+    provider = "ollama",
     model = "qwen2.5:14b",
     ollamaBaseUrl,
+    openrouterApiKey,
     mcpConfigPath,
     useTools = true,
     onUpdate,
@@ -169,13 +267,61 @@ export function chat(
   return mcp
     .loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH)
     .andThen(() => {
-      const tools = useTools ? mcp.getTanStackTools() : [];
+      if (provider === "openrouter") {
+        const openRouterMessages: Array<{ role: string; content: string }> =
+          systemPrompts.length > 0
+            ? [
+                { role: "system", content: systemPrompts.join("\n\n") },
+                ...messages,
+              ]
+            : messages;
+        const openRouterAdapter = createOpenRouterChat(
+          model,
+          openrouterApiKey ?? "",
+        );
+        return ResultAsync.fromPromise(
+          (async () => {
+            try {
+              let finalContent = "";
+              for await (const chunk of openRouterAdapter.chatStream({
+                messages: openRouterMessages,
+                request: abortController
+                  ? { signal: abortController.signal }
+                  : undefined,
+              })) {
+                if (abortController?.signal.aborted) {
+                  const e = new Error("Chat was cancelled.");
+                  (e as Error & { name: string }).name = "AbortError";
+                  throw e;
+                }
+                if (chunk.type === "RUN_ERROR")
+                  throw new Error(chunk.error?.message ?? "OpenRouter error");
+                if (chunk.type === "content" && chunk.delta) {
+                  finalContent += chunk.delta;
+                  onUpdate?.(finalContent);
+                }
+              }
+              if (abortController?.signal.aborted) {
+                const e = new Error("Chat was cancelled.");
+                (e as Error & { name: string }).name = "AbortError";
+                throw e;
+              }
+              return finalContent || null;
+            } finally {
+              await mcp.close();
+            }
+          })(),
+          toError,
+        );
+      }
 
+      const tools = useTools ? mcp.getTanStackTools() : [];
+      const ollamaAdapter = createOllamaChat(model, ollamaBaseUrl);
       return ResultAsync.fromPromise(
         (async () => {
           try {
             const stream = tanstackChat({
-              adapter: createOllamaChat(model, ollamaBaseUrl),
+              adapter: ollamaAdapter,
               messages,
               ...(systemPrompts.length > 0 && { systemPrompts }),
               tools,
@@ -189,13 +335,22 @@ export function chat(
                 (e as Error & { name: string }).name = "AbortError";
                 throw e;
               }
-              if (chunk.type === "content" || chunk.type === "TEXT_MESSAGE_CONTENT") {
+              if (
+                chunk.type === "content" ||
+                chunk.type === "TEXT_MESSAGE_CONTENT"
+              ) {
                 const delta = "delta" in chunk ? chunk.delta : "";
                 finalContent += delta;
                 onUpdate?.(finalContent);
-              } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
+              } else if (
+                chunk.type === "TOOL_CALL_START" &&
+                "toolName" in chunk
+              ) {
                 onToolCall?.(chunk.toolName, "start");
-              } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
+              } else if (
+                chunk.type === "TOOL_CALL_END" &&
+                "toolName" in chunk
+              ) {
                 onToolCall?.(chunk.toolName, "end");
               } else if (chunk.type === "RUN_ERROR") {
                 throw new Error(chunk.error.message);
@@ -238,10 +393,12 @@ export function runListenStep(
 ): ResultAsync<ListenStepResult, Error> {
   const {
     deviceIndex = 0,
+    provider = "ollama",
     model = "qwen2.5:14b",
     voice = "af_bella",
     recordSignal,
     ollamaBaseUrl,
+    openrouterApiKey,
     useNarrationForTTS = false,
     narrationModel,
   } = options;
@@ -258,7 +415,12 @@ export function runListenStep(
           response: null,
         });
       }
-      return chat(transcript, { model, ollamaBaseUrl }).andThen((response) => {
+      return chat(transcript, {
+        provider,
+        model,
+        ollamaBaseUrl,
+        openrouterApiKey,
+      }).andThen((response) => {
         if (!response) {
           return okAsync<ListenStepResult, Error>({
             transcript,

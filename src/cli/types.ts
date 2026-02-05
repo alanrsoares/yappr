@@ -7,19 +7,29 @@ export type ScreenId =
   | "voices"
   | "settings";
 
+/** Chat model provider. */
+export type ChatProvider = "ollama" | "openrouter";
+
 export interface Preferences {
   /** Ollama API base URL (e.g. http://localhost:11434). */
   ollamaBaseUrl: string;
   /** Path to MCP config JSON (e.g. ~/.cursor/mcp.json). */
   mcpConfigPath: string;
-  defaultOllamaModel: string;
+  /** Chat provider (ollama or openrouter). */
+  defaultChatProvider: ChatProvider;
+  /** Model name for the selected provider (e.g. qwen2.5:14b for Ollama, openai/gpt-4o for OpenRouter). */
+  defaultChatModel: string;
+  /** @deprecated Use defaultChatProvider + defaultChatModel. Kept for migration. */
+  defaultOllamaModel?: string;
   defaultVoice: string;
   defaultInputDeviceIndex: number;
   defaultOutputDeviceIndex: number;
   /** When true, a separate model step turns the response into TTS-friendly narration (no code/tables verbatim). */
   useNarrationForTTS: boolean;
-  /** Model used for narration. If unset and useNarrationForTTS is true, the chat model is used. */
+  /** Model used for narration (Ollama model name). If unset and useNarrationForTTS is true, the chat model is used. */
   narrationModel: string;
+  /** OpenRouter API key (required when defaultChatProvider is openrouter). */
+  openrouterApiKey: string;
 }
 
 export interface MenuItem {
@@ -52,9 +62,14 @@ export interface SpeakOptions {
 }
 
 export interface ChatOptions {
+  /** Provider (defaults to ollama). */
+  provider?: ChatProvider;
+  /** Model name for the selected provider. */
   model?: string;
-  /** Ollama server base URL (e.g. http://localhost:11434). */
+  /** Ollama server base URL (e.g. http://localhost:11434). Only used when provider is ollama. */
   ollamaBaseUrl?: string;
+  /** OpenRouter API key. Only used when provider is openrouter. */
+  openrouterApiKey?: string;
   /** Path to MCP config JSON. */
   mcpConfigPath?: string;
   useTools?: boolean;
@@ -71,10 +86,12 @@ export interface ChatOptions {
 
 export interface ListenStepOptions {
   deviceIndex?: number;
+  provider?: ChatProvider;
   model?: string;
   voice?: string;
   recordSignal?: AbortSignal;
   ollamaBaseUrl?: string;
+  openrouterApiKey?: string;
   useNarrationForTTS?: boolean;
   narrationModel?: string;
 }

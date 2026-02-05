@@ -37,7 +37,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const {
     ollamaBaseUrl,
     mcpConfigPath,
-    defaultOllamaModel: model,
+    defaultChatProvider: provider,
+    defaultChatModel: model,
+    openrouterApiKey,
     defaultVoice: voice,
     useNarrationForTTS,
     narrationModel,
@@ -54,8 +56,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       content: m.content,
     }));
     return chat(prompt, {
+      provider,
       model,
       ollamaBaseUrl,
+      openrouterApiKey,
       mcpConfigPath,
       messages: priorMessages,
       onUpdate: (text) => setStreamingResponse(text),
@@ -188,6 +192,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     chatMutation.isError;
 
   const state = {
+    provider,
     model,
     voice,
     useNarrationForTTS,

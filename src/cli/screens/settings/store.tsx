@@ -12,6 +12,7 @@ import {
 import { createContainer } from "~/lib/unstated.js";
 
 export type PickerKind =
+  | "provider"
   | "model"
   | "voice"
   | "input"
@@ -19,11 +20,15 @@ export type PickerKind =
   | "narrationModel"
   | null;
 
+const PROVIDER_LABELS = ["Ollama", "OpenRouter"] as const;
+const PROVIDER_VALUES = ["ollama", "openrouter"] as const;
+type ProviderValue = (typeof PROVIDER_VALUES)[number];
+
 export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-const ROW_COUNT = 8;
+const ROW_COUNT = 10;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
@@ -47,6 +52,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [ollamaUrlInputValue, setOllamaUrlInputValue] = useState("");
   const [editingMcpConfigPath, setEditingMcpConfigPath] = useState(false);
   const [mcpConfigPathInputValue, setMcpConfigPathInputValue] = useState("");
+  const [editingChatModel, setEditingChatModel] = useState(false);
+  const [chatModelInputValue, setChatModelInputValue] = useState("");
+  const [editingOpenrouterApiKey, setEditingOpenrouterApiKey] = useState(false);
+  const [openrouterApiKeyInputValue, setOpenrouterApiKeyInputValue] =
+    useState("");
 
   const narrationModelList = useMemo(
     () => ["(same as chat)", ...ollamaModels],
@@ -54,6 +64,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   );
   const pickerList = picker
     ? {
+        provider: PROVIDER_LABELS as unknown as string[],
         model: ollamaModels,
         voice: voices,
         input: inputDevices,
@@ -73,16 +84,32 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const openPicker = useCallback(() => {
     switch (selectedRow) {
       case 0:
-        setPicker("model");
+        setPicker("provider");
         setPickerIndex(
-          Math.max(0, ollamaModels.indexOf(preferences.defaultOllamaModel)),
+          Math.max(
+            0,
+            PROVIDER_VALUES.indexOf(
+              preferences.defaultChatProvider as ProviderValue,
+            ),
+          ),
         );
         break;
       case 1:
+        if (preferences.defaultChatProvider === "openrouter") {
+          setEditingChatModel(true);
+          setChatModelInputValue(preferences.defaultChatModel);
+        } else {
+          setPicker("model");
+          setPickerIndex(
+            Math.max(0, ollamaModels.indexOf(preferences.defaultChatModel)),
+          );
+        }
+        break;
+      case 2:
         setPicker("voice");
         setPickerIndex(Math.max(0, voices.indexOf(preferences.defaultVoice)));
         break;
-      case 2:
+      case 3:
         setPicker("input");
         setPickerIndex(
           Math.max(
@@ -93,7 +120,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           ),
         );
         break;
-      case 3:
+      case 4:
         setPicker("output");
         setPickerIndex(
           Math.max(
@@ -104,7 +131,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           ),
         );
         break;
-      case 5:
+      case 6:
         setPicker("narrationModel");
         setPickerIndex(
           preferences.narrationModel
@@ -112,25 +139,31 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
             : 0,
         );
         break;
-      case 6:
+      case 7:
         setEditingOllamaUrl(true);
         setOllamaUrlInputValue(preferences.ollamaBaseUrl);
         break;
-      case 7:
+      case 8:
+        setEditingOpenrouterApiKey(true);
+        setOpenrouterApiKeyInputValue(preferences.openrouterApiKey);
+        break;
+      case 9:
         setEditingMcpConfigPath(true);
         setMcpConfigPathInputValue(preferences.mcpConfigPath);
         break;
-      // case 4: narration toggle, no picker
+      // case 5: narration toggle, no picker
     }
   }, [
     selectedRow,
-    preferences.defaultOllamaModel,
+    preferences.defaultChatProvider,
+    preferences.defaultChatModel,
     preferences.defaultVoice,
     preferences.defaultInputDeviceIndex,
     preferences.defaultOutputDeviceIndex,
     preferences.narrationModel,
     preferences.ollamaBaseUrl,
     preferences.mcpConfigPath,
+    preferences.openrouterApiKey,
     ollamaModels,
     voices,
     inputDevices,
@@ -157,11 +190,37 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     setEditingMcpConfigPath(false);
   }, []);
 
+  const confirmChatModelEdit = useCallback(() => {
+    const value = chatModelInputValue.trim();
+    if (value) savePreferences({ defaultChatModel: value });
+    setEditingChatModel(false);
+  }, [chatModelInputValue, savePreferences]);
+
+  const cancelChatModelEdit = useCallback(() => {
+    setEditingChatModel(false);
+  }, []);
+
+  const confirmOpenrouterApiKeyEdit = useCallback(() => {
+    savePreferences({ openrouterApiKey: openrouterApiKeyInputValue.trim() });
+    setEditingOpenrouterApiKey(false);
+  }, [openrouterApiKeyInputValue, savePreferences]);
+
+  const cancelOpenrouterApiKeyEdit = useCallback(() => {
+    setEditingOpenrouterApiKey(false);
+  }, []);
+
   const confirmPicker = useCallback(() => {
     switch (picker) {
+      case "provider":
+        if (PROVIDER_VALUES[pickerIndex]) {
+          savePreferences({
+            defaultChatProvider: PROVIDER_VALUES[pickerIndex] as ProviderValue,
+          });
+        }
+        break;
       case "model":
         if (ollamaModels[pickerIndex]) {
-          savePreferences({ defaultOllamaModel: ollamaModels[pickerIndex]! });
+          savePreferences({ defaultChatModel: ollamaModels[pickerIndex]! });
         }
         break;
       case "voice":
@@ -207,12 +266,18 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
 
   const closePicker = useCallback(() => setPicker(null), []);
 
+  const isEditing =
+    editingOllamaUrl ||
+    editingMcpConfigPath ||
+    editingChatModel ||
+    editingOpenrouterApiKey;
+
   useKeyboard({
     bindings: [
       {
         keys: ["upArrow", "k"],
         action: () =>
-          editingOllamaUrl || editingMcpConfigPath
+          isEditing
             ? undefined
             : picker
               ? setPickerIndex((i) => cycle(i, pickerLen, -1))
@@ -221,7 +286,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       {
         keys: ["downArrow", "j"],
         action: () =>
-          editingOllamaUrl || editingMcpConfigPath
+          isEditing
             ? undefined
             : picker
               ? setPickerIndex((i) => cycle(i, pickerLen, 1))
@@ -233,31 +298,43 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           ? confirmOllamaUrlEdit
           : editingMcpConfigPath
             ? confirmMcpConfigPathEdit
-            : picker
-              ? confirmPicker
-              : selectedRow === 4
-                ? () =>
-                    savePreferences({
-                      useNarrationForTTS: !preferences.useNarrationForTTS,
-                    })
-                : openPicker,
+            : editingChatModel
+              ? confirmChatModelEdit
+              : editingOpenrouterApiKey
+                ? confirmOpenrouterApiKeyEdit
+                : picker
+                  ? confirmPicker
+                  : selectedRow === 5
+                    ? () =>
+                        savePreferences({
+                          useNarrationForTTS: !preferences.useNarrationForTTS,
+                        })
+                    : openPicker,
       },
       ...(editingOllamaUrl
         ? [{ keys: ["escape"], action: cancelOllamaUrlEdit }]
         : editingMcpConfigPath
           ? [{ keys: ["escape"], action: cancelMcpConfigPathEdit }]
-          : picker
-            ? [{ keys: ["escape"], action: closePicker }]
-            : []),
+          : editingChatModel
+            ? [{ keys: ["escape"], action: cancelChatModelEdit }]
+            : editingOpenrouterApiKey
+              ? [{ keys: ["escape"], action: cancelOpenrouterApiKeyEdit }]
+              : picker
+                ? [{ keys: ["escape"], action: closePicker }]
+                : []),
       {
         keys: [...DEFAULT_KEYS.back],
         action: editingOllamaUrl
           ? cancelOllamaUrlEdit
           : editingMcpConfigPath
             ? cancelMcpConfigPathEdit
-            : picker
-              ? closePicker
-              : onBack,
+            : editingChatModel
+              ? cancelChatModelEdit
+              : editingOpenrouterApiKey
+                ? cancelOpenrouterApiKeyEdit
+                : picker
+                  ? closePicker
+                  : onBack,
       },
       { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
@@ -278,6 +355,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     ollamaUrlInputValue,
     editingMcpConfigPath,
     mcpConfigPathInputValue,
+    editingChatModel,
+    chatModelInputValue,
+    editingOpenrouterApiKey,
+    openrouterApiKeyInputValue,
   };
 
   const actions = {
@@ -288,6 +369,12 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     setMcpConfigPathInputValue,
     confirmMcpConfigPathEdit,
     cancelMcpConfigPathEdit,
+    setChatModelInputValue,
+    confirmChatModelEdit,
+    cancelChatModelEdit,
+    setOpenrouterApiKeyInputValue,
+    confirmOpenrouterApiKeyEdit,
+    cancelOpenrouterApiKeyEdit,
   };
 
   return [state, actions] as const;

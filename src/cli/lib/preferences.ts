@@ -11,12 +11,14 @@ import type { Preferences } from "../types.js";
 export const DEFAULT_PREFERENCES: Preferences = {
   ollamaBaseUrl: "http://localhost:11434",
   mcpConfigPath: MCP_CONFIG_PATH,
-  defaultOllamaModel: "qwen2.5:14b",
+  defaultChatProvider: "ollama",
+  defaultChatModel: "qwen2.5:14b",
   defaultVoice: "af_bella",
   defaultInputDeviceIndex: 0,
   defaultOutputDeviceIndex: 0,
   useNarrationForTTS: false,
   narrationModel: "",
+  openrouterApiKey: "",
 };
 
 function getSettingsPath(): string {
@@ -36,13 +38,23 @@ export function loadPreferences(): ResultAsync<Preferences, Error> {
   const filePath = getSettingsPath();
   return ResultAsync.fromPromise(
     readFile(filePath, "utf-8")
-      .then(
-        (raw) =>
-          ({
-            ...DEFAULT_PREFERENCES,
-            ...(JSON.parse(raw) as Partial<Preferences>),
-          }) as Preferences,
-      )
+      .then((raw) => {
+        const partial = JSON.parse(raw) as Partial<Preferences> & {
+          defaultOllamaModel?: string;
+        };
+        const prefs: Preferences = {
+          ...DEFAULT_PREFERENCES,
+          ...partial,
+        };
+        if (
+          partial.defaultOllamaModel != null &&
+          (prefs.defaultChatProvider == null || prefs.defaultChatModel == null)
+        ) {
+          prefs.defaultChatProvider = "ollama";
+          prefs.defaultChatModel = partial.defaultOllamaModel;
+        }
+        return prefs;
+      })
       .catch((e) => {
         if (isENOENT(e)) return { ...DEFAULT_PREFERENCES };
         throw e;
