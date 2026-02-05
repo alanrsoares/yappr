@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Box } from "ink";
 
-import type { ScreenId } from "./types.js";
 import { ChatScreen } from "./screens/chat/index.js";
 import { ListenScreen } from "./screens/listen/index.js";
 import { MainMenuScreen } from "./screens/main-menu/index.js";
@@ -9,6 +8,7 @@ import { McpStatusScreen } from "./screens/mcp-status/index.js";
 import { SettingsScreen } from "./screens/settings/index.js";
 import { SpeakScreen } from "./screens/speak/index.js";
 import { VoicesScreen } from "./screens/voices/index.js";
+import type { ScreenId } from "./types.js";
 
 export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");

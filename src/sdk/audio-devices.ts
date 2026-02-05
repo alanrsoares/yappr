@@ -2,6 +2,7 @@ import { spawn } from "bun";
 import { ResultAsync } from "neverthrow";
 
 import type { AudioDevice } from "./types.js";
+
 export type { AudioDevice };
 
 function toError(e: unknown): Error {

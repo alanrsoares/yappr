@@ -9,6 +9,7 @@ import {
   StreamableHTTPError,
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
+import { toolDefinition, type ServerTool } from "@tanstack/ai";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
@@ -183,6 +184,24 @@ export class McpManager {
         parameters: tool.inputSchema,
       },
     }));
+  }
+
+  getTanStackTools(): ServerTool<any, any>[] {
+    return Array.from(this.tools.values()).map(({ tool }) => {
+      const def = toolDefinition({
+        name: tool.name,
+        description: tool.description || "",
+        inputSchema: tool.inputSchema,
+      });
+
+      return def.server(async (args: any) => {
+        const result = await this.callTool(tool.name, args);
+        if (result.isErr()) {
+          throw result.error;
+        }
+        return result.value.content;
+      });
+    });
   }
 
   callTool(

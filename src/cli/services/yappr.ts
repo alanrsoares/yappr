@@ -3,9 +3,11 @@
  * Public async API returns ResultAsync for consistent, functional error handling.
  */
 import path from "path";
+import { chat as tanstackChat, type ModelMessage } from "@tanstack/ai";
+import { createOllamaChat } from "@tanstack/ai-ollama";
 import { spawn } from "bun";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
-import ollama, { type Tool as OllamaTool } from "ollama";
+import ollama from "ollama";
 
 import {
   listInputDevices,
@@ -15,9 +17,7 @@ import {
 import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { KittenTTSClient } from "~/sdk/tts.js";
-
 import type {
-  ChatMessage,
   ChatOptions,
   ListenStepOptions,
   ListenStepResult,
@@ -80,81 +80,53 @@ export function chat(
   prompt: string,
   options: ChatOptions = {},
 ): ResultAsync<string | null, Error> {
-  const { model = "qwen2.5:14b", useTools = true } = options;
+  const {
+    model = "qwen2.5:14b",
+    useTools = true,
+    onUpdate,
+    messages: priorMessages = [],
+  } = options;
   const mcp = new McpManager();
-  const messages: ChatMessage[] = [{ role: "user", content: prompt }];
 
-  const getTools = useTools
-    ? mcp.loadConfigAndGetStatuses().map(() => mcp.getOllamaTools())
-    : okAsync<OllamaTool[], Error>([]);
+  const messages: ModelMessage<string>[] = [
+    ...priorMessages.map(
+      (m): ModelMessage<string> => ({
+        role: (m.role === "system" ? "user" : m.role) as ModelMessage["role"],
+        content: m.content ?? "",
+      }),
+    ),
+    { role: "user", content: prompt },
+  ];
 
-  return getTools
-    .andThen((tools) =>
-      ResultAsync.fromPromise(
-        runChatLoop(mcp, model, messages, tools),
-        toError,
-      ),
-    )
-    .orElse((e) =>
-      useTools &&
-      e instanceof Error &&
-      e.message.includes("does not support tools")
-        ? chat(prompt, { ...options, useTools: false })
-        : errAsync(e),
+  return mcp.loadConfigAndGetStatuses().andThen(() => {
+    const tools = useTools ? mcp.getTanStackTools() : [];
+
+    return ResultAsync.fromPromise(
+      (async () => {
+        try {
+          const stream = tanstackChat({
+            adapter: createOllamaChat(model),
+            messages: messages,
+            tools,
+          });
+
+          let finalContent = "";
+          for await (const chunk of stream) {
+            if (chunk.type === "content") {
+              finalContent += chunk.delta;
+              onUpdate?.(finalContent);
+            } else if (chunk.type === "RUN_ERROR") {
+              throw new Error(chunk.error.message);
+            }
+          }
+          return finalContent || null;
+        } finally {
+          await mcp.close();
+        }
+      })(),
+      toError,
     );
-}
-
-async function runChatLoop(
-  mcp: McpManager,
-  model: string,
-  messages: ChatMessage[],
-  tools: OllamaTool[],
-): Promise<string | null> {
-  while (true) {
-    const response = await ollama.chat({
-      model,
-      messages,
-      stream: false,
-      tools: tools.length > 0 ? tools : undefined,
-    });
-
-    const message = response.message;
-    messages.push({
-      role: message.role ?? "assistant",
-      content: message.content ?? "",
-    });
-
-    if (message.tool_calls?.length) {
-      for (const call of message.tool_calls) {
-        const name = call.function.name;
-        const rawArgs = call.function.arguments;
-        const args =
-          typeof rawArgs === "string"
-            ? (JSON.parse(rawArgs || "{}") as Record<string, unknown>)
-            : (rawArgs as Record<string, unknown>);
-        const toolResult = await mcp.callTool(name, args);
-        toolResult.match(
-          (result) => {
-            messages.push({
-              role: "tool",
-              content: JSON.stringify(
-                Array.isArray(result?.content) ? result.content : result,
-              ),
-            });
-          },
-          (err) => {
-            messages.push({
-              role: "tool",
-              content: `Error: ${err.message}`,
-            });
-          },
-        );
-      }
-    } else {
-      await mcp.close();
-      return message.content ?? null;
-    }
-  }
+  });
 }
 
 export interface RecordAndTranscribeOptions {

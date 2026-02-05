@@ -46,6 +46,9 @@ export interface SpeakOptions {
 export interface ChatOptions {
   model?: string;
   useTools?: boolean;
+  onUpdate?: (content: string) => void;
+  /** Prior conversation messages for multi-turn chat. */
+  messages?: ChatMessage[];
 }
 
 export interface ListenStepOptions {

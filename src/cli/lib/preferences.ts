@@ -31,7 +31,13 @@ export function loadPreferences(): ResultAsync<Preferences, Error> {
   const filePath = getSettingsPath();
   return ResultAsync.fromPromise(
     readFile(filePath, "utf-8")
-      .then((raw) => ({ ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<Preferences>) } as Preferences))
+      .then(
+        (raw) =>
+          ({
+            ...DEFAULT_PREFERENCES,
+            ...(JSON.parse(raw) as Partial<Preferences>),
+          }) as Preferences,
+      )
       .catch((e) => {
         if (isENOENT(e)) return { ...DEFAULT_PREFERENCES };
         throw e;

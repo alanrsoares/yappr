@@ -34,6 +34,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.3",
+    "@tanstack/ai": "^0.3.0",
+    "@tanstack/ai-ollama": "^0.3.0",
     "ink": "^6.6.0",
     "ink-text-input": "^6.0.0",
     "neverthrow": "^8.2.0",

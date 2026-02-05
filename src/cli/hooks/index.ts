@@ -1,3 +1,4 @@
+export { useVoiceToggle } from "./useVoiceToggle";
 export { useKeyboard } from "./useKeyboard";
 export type { KeyBinding, UseKeyboardOptions } from "./useKeyboard";
 export { useMutation } from "./useMutation";

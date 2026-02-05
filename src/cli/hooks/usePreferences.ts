@@ -22,10 +22,12 @@ export function usePreferences(): UsePreferencesResult {
 
   const savePreferences = useCallback(
     (partial: Partial<Preferences>) => {
-      savePreferencesToDisk(partial).andTee(() => query.refetch()).match(
-        () => {},
-        () => {},
-      );
+      savePreferencesToDisk(partial)
+        .andTee(() => query.refetch())
+        .match(
+          () => {},
+          () => {},
+        );
     },
     [query],
   );
