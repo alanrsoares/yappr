@@ -38,7 +38,7 @@ function getEffectiveKey(input: string, key: ExtendedKey): string {
   ] as const;
 
   for (const fKey of fKeys) {
-    if ((key)[fKey]) return fKey;
+    if (key[fKey]) return fKey;
   }
 
   if (key.ctrl && input) return `ctrl+${input.toLowerCase()}`;

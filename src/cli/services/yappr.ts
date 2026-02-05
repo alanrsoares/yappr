@@ -234,7 +234,10 @@ export function runListenStep(
       }
       return chat(transcript, { model, ollamaBaseUrl }).andThen((response) => {
         if (!response) {
-          return okAsync<ListenStepResult, Error>({ transcript, response: null });
+          return okAsync<ListenStepResult, Error>({
+            transcript,
+            response: null,
+          });
         }
         const modelForNarration = narrationModel || model;
         if (useNarrationForTTS && modelForNarration) {

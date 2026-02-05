@@ -27,7 +27,7 @@ const ROW_COUNT = 7;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
-  const onBack = initialState?.onBack ?? (() => { });
+  const onBack = initialState?.onBack ?? (() => {});
 
   const { preferences, savePreferences } = usePreferences();
   const { data: ollamaModels = [], isLoading: modelsLoading } = useQuery(
@@ -52,12 +52,12 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   );
   const pickerList = picker
     ? {
-      model: ollamaModels,
-      voice: voices,
-      input: inputDevices,
-      output: outputDevices,
-      narrationModel: narrationModelList,
-    }[picker]
+        model: ollamaModels,
+        voice: voices,
+        input: inputDevices,
+        output: outputDevices,
+        narrationModel: narrationModelList,
+      }[picker]
     : null;
   const pickerLen = pickerList?.length ?? 0;
 

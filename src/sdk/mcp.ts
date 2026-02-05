@@ -195,7 +195,10 @@ export class McpManager {
       });
 
       return def.server(async (args: unknown) => {
-        const result = await this.callTool(tool.name, args as Record<string, unknown>);
+        const result = await this.callTool(
+          tool.name,
+          args as Record<string, unknown>,
+        );
         if (result.isErr()) {
           throw result.error;
         }

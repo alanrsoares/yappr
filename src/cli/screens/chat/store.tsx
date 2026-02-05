@@ -63,7 +63,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
             model: modelForNarration,
             ollamaBaseUrl,
           })
-            .map((narration) => (narration.trim() || text))
+            .map((narration) => narration.trim() || text)
             .andThen((toSpeak) => {
               setPhase("speaking");
               return speak(toSpeak, { voice }).map(() => text);

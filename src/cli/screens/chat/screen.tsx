@@ -26,7 +26,13 @@ function ChatScreenContent() {
   useKeyboard({
     bindings: [
       { keys: ["escape"], action: actions.onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => { actions.stopStt(); quit(); } },
+      {
+        keys: [...DEFAULT_KEYS.quit],
+        action: () => {
+          actions.stopStt();
+          quit();
+        },
+      },
     ],
   });
 
