@@ -186,7 +186,7 @@ export class McpManager {
     }));
   }
 
-  getTanStackTools(): ServerTool<any, any>[] {
+  getTanStackTools(): ServerTool<unknown, unknown>[] {
     return Array.from(this.tools.values()).map(({ tool }) => {
       const def = toolDefinition({
         name: tool.name,
@@ -194,8 +194,8 @@ export class McpManager {
         inputSchema: tool.inputSchema,
       });
 
-      return def.server(async (args: any) => {
-        const result = await this.callTool(tool.name, args);
+      return def.server(async (args: unknown) => {
+        const result = await this.callTool(tool.name, args as Record<string, unknown>);
         if (result.isErr()) {
           throw result.error;
         }

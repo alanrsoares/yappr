@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, usePreferences, useQuery } from "~/cli/hooks/index.js";
@@ -27,7 +27,7 @@ const ROW_COUNT = 6;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
-  const onBack = initialState?.onBack ?? (() => {});
+  const onBack = initialState?.onBack ?? (() => { });
 
   const { preferences, savePreferences } = usePreferences();
   const { data: ollamaModels = [], isLoading: modelsLoading } =
@@ -42,15 +42,18 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [picker, setPicker] = useState<PickerKind>(null);
   const [pickerIndex, setPickerIndex] = useState(0);
 
-  const narrationModelList = ["(same as chat)", ...ollamaModels];
+  const narrationModelList = useMemo(
+    () => ["(same as chat)", ...ollamaModels],
+    [ollamaModels],
+  );
   const pickerList = picker
     ? {
-        model: ollamaModels,
-        voice: voices,
-        input: inputDevices,
-        output: outputDevices,
-        narrationModel: narrationModelList,
-      }[picker]
+      model: ollamaModels,
+      voice: voices,
+      input: inputDevices,
+      output: outputDevices,
+      narrationModel: narrationModelList,
+    }[picker]
     : null;
   const pickerLen = pickerList?.length ?? 0;
 
@@ -158,9 +161,9 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           ? confirmPicker
           : selectedRow === 4
             ? () =>
-                savePreferences({
-                  useNarrationForTTS: !preferences.useNarrationForTTS,
-                })
+              savePreferences({
+                useNarrationForTTS: !preferences.useNarrationForTTS,
+              })
             : openPicker,
       },
       ...(picker ? [{ keys: ["escape"], action: closePicker }] : []),
