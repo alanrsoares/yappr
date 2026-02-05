@@ -3,7 +3,12 @@ import { useCallback, useRef, useState } from "react";
 import { okAsync } from "neverthrow";
 
 import { useMutation, usePreferences, useVoiceToggle } from "~/cli/hooks";
-import { chat, recordAndTranscribe, speak } from "~/cli/services/yappr.js";
+import {
+  chat,
+  narrateResponse,
+  recordAndTranscribe,
+  speak,
+} from "~/cli/services/yappr.js";
 import type { ChatMessage } from "~/cli/types.js";
 import { createContainer } from "~/lib/unstated.js";
 import {
@@ -27,7 +32,12 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const abortRef = useRef<AbortController | null>(null);
 
   const { preferences } = usePreferences();
-  const { defaultOllamaModel: model, defaultVoice: voice } = preferences;
+  const {
+    defaultOllamaModel: model,
+    defaultVoice: voice,
+    useNarrationForTTS,
+    narrationModel,
+  } = preferences;
 
   const chatMutation = useMutation<string | null, Error, string>((prompt) => {
     setPhase("thinking");
@@ -44,6 +54,16 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     })
       .andThen((text) => {
         if (!text) return okAsync(null);
+        const modelForNarration = narrationModel || model;
+        if (useNarrationForTTS && modelForNarration) {
+          setPhase("narrating");
+          return narrateResponse(text, { model: modelForNarration })
+            .map((narration) => (narration.trim() || text))
+            .andThen((toSpeak) => {
+              setPhase("speaking");
+              return speak(toSpeak, { voice }).map(() => text);
+            });
+        }
         setPhase("speaking");
         return speak(text, { voice }).map(() => text);
       })
@@ -137,6 +157,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     statusContent !== null ||
     (chatMutation.isPending && !!streamingResponse) ||
     (chatMutation.isPending && phase === "thinking") ||
+    (chatMutation.isPending && phase === "narrating") ||
     (chatMutation.isPending && phase === "speaking") ||
     sttPhase !== "idle" ||
     sttMutation.error !== undefined ||
@@ -152,6 +173,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const state = {
     model,
     voice,
+    useNarrationForTTS,
     value,
     messages,
     streamingResponse,
@@ -164,6 +186,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     onBack,
     handleInputChange,
     handleSubmit,
+    /** Abort in-flight voice recording so quit can exit cleanly. */
+    stopStt,
   };
 
   return [state, actions] as const;

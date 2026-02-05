@@ -12,6 +12,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultVoice: "af_bella",
   defaultInputDeviceIndex: 0,
   defaultOutputDeviceIndex: 0,
+  useNarrationForTTS: false,
+  narrationModel: "",
 };
 
 function getSettingsPath(): string {

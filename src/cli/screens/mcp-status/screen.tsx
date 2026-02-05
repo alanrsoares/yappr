@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { Footer, Header, Loading } from "~/cli/components/index.js";
 import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "~/cli/constants.js";
 import { useKeyboard, useMcpStatuses } from "~/cli/hooks/index.js";
+import { quit } from "~/cli/quit.js";
 import { StatusTable } from "./components/status-table.js";
 import { getSummaryCounts, Summary } from "./components/summary.js";
 
@@ -18,7 +19,7 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
   useKeyboard({
     bindings: [
       { keys: [...DEFAULT_KEYS.back], action: onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      { keys: [...DEFAULT_KEYS.quit], action: quit },
       { keys: [...DEFAULT_KEYS.refresh], action: refresh },
     ],
   });

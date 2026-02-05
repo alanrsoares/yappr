@@ -3,6 +3,7 @@ import { Box } from "ink";
 import { Footer, Header } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard } from "~/cli/hooks";
+import { quit } from "~/cli/quit.js";
 import { ChatHistory } from "./components/chat-history.js";
 import { ChatInput } from "./components/chat-input.js";
 import { ChatProvider, useChatStore } from "./store.js";
@@ -25,7 +26,7 @@ function ChatScreenContent() {
   useKeyboard({
     bindings: [
       { keys: ["escape"], action: actions.onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      { keys: [...DEFAULT_KEYS.quit], action: () => { actions.stopStt(); quit(); } },
     ],
   });
 
@@ -33,7 +34,7 @@ function ChatScreenContent() {
     <Box flexDirection="column" padding={1}>
       <Header
         title="Chat"
-        subtitle={`Model: ${state.model}  ·  Voice: ${state.voice}`}
+        subtitle={`Model: ${state.model}  ·  Voice: ${state.voice}${state.useNarrationForTTS ? "  ·  Narration: on" : ""}`}
       />
 
       <ChatHistory

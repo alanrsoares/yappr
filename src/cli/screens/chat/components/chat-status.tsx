@@ -3,7 +3,7 @@ import { Text } from "ink";
 
 import { Loading } from "~/cli/components/index.js";
 
-export type ChatPhase = "idle" | "thinking" | "speaking";
+export type ChatPhase = "idle" | "thinking" | "narrating" | "speaking";
 export type SttPhase = "idle" | "recording" | "transcribing";
 
 export interface ChatStatusProps {
@@ -27,6 +27,9 @@ export function ChatStatus({
 }: ChatStatusProps): ReactNode {
   if (isChatPending && chatPhase === "thinking" && !hasStreamingResponse) {
     return <Loading message="Thinking…" />;
+  }
+  if (isChatPending && chatPhase === "narrating") {
+    return <Loading message="Narrating…" />;
   }
   if (isChatPending && chatPhase === "speaking") {
     return <Loading message="Speaking…" />;

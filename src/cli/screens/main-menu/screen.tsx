@@ -4,6 +4,7 @@ import { Box, Text } from "ink";
 import { Header } from "~/cli/components/index.js";
 import { MENU_ITEMS } from "~/cli/constants.js";
 import { useKeyboard } from "~/cli/hooks/index.js";
+import { quit } from "~/cli/quit.js";
 import type { ScreenId } from "~/cli/types.js";
 import { Menu } from "./components/menu.js";
 
@@ -30,7 +31,7 @@ export function MainMenuScreen({ onSelect }: MainMenuScreenProps) {
         keys: ["return", "enter"],
         action: () => onSelect(MENU_ITEMS[selectedIndex]!.id),
       },
-      { keys: ["q", "escape"], action: () => process.exit(0) },
+      { keys: ["q", "escape"], action: quit },
     ],
   });
 

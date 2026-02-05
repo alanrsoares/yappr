@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useQuery } from "~/cli/hooks";
+import { quit } from "~/cli/quit.js";
 import { listVoices } from "~/cli/services/yappr.js";
 
 export interface VoicesScreenProps {
@@ -15,7 +16,7 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
   useKeyboard({
     bindings: [
       { keys: [...DEFAULT_KEYS.back], action: onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
   });
 

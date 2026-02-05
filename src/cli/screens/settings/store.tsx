@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, usePreferences, useQuery } from "~/cli/hooks/index.js";
+import { quit } from "~/cli/quit.js";
 import {
   listInputDevices,
   listOllamaModels,
@@ -10,13 +11,19 @@ import {
 } from "~/cli/services/yappr.js";
 import { createContainer } from "~/lib/unstated.js";
 
-export type PickerKind = "model" | "voice" | "input" | "output" | null;
+export type PickerKind =
+  | "model"
+  | "voice"
+  | "input"
+  | "output"
+  | "narrationModel"
+  | null;
 
 export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-const ROW_COUNT = 4;
+const ROW_COUNT = 6;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
@@ -35,12 +42,14 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [picker, setPicker] = useState<PickerKind>(null);
   const [pickerIndex, setPickerIndex] = useState(0);
 
+  const narrationModelList = ["(same as chat)", ...ollamaModels];
   const pickerList = picker
     ? {
         model: ollamaModels,
         voice: voices,
         input: inputDevices,
         output: outputDevices,
+        narrationModel: narrationModelList,
       }[picker]
     : null;
   const pickerLen = pickerList?.length ?? 0;
@@ -67,19 +76,27 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         (d) => d.index === preferences.defaultInputDeviceIndex,
       );
       setPickerIndex(i >= 0 ? i : 0);
-    } else {
+    } else if (selectedRow === 3) {
       setPicker("output");
       const i = outputDevices.findIndex(
         (d) => d.index === preferences.defaultOutputDeviceIndex,
       );
       setPickerIndex(i >= 0 ? i : 0);
+    } else if (selectedRow === 5) {
+      setPicker("narrationModel");
+      const i = preferences.narrationModel
+        ? ollamaModels.indexOf(preferences.narrationModel)
+        : -1;
+      setPickerIndex(i >= 0 ? i + 1 : 0); // 0 = (same as chat)
     }
+    // selectedRow === 4 is the narration toggle, no picker
   }, [
     selectedRow,
     preferences.defaultOllamaModel,
     preferences.defaultVoice,
     preferences.defaultInputDeviceIndex,
     preferences.defaultOutputDeviceIndex,
+    preferences.narrationModel,
     ollamaModels,
     voices,
     inputDevices,
@@ -99,6 +116,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       savePreferences({
         defaultOutputDeviceIndex: outputDevices[pickerIndex]!.index,
       });
+    } else if (picker === "narrationModel" && narrationModelList[pickerIndex]) {
+      const raw = narrationModelList[pickerIndex]!;
+      savePreferences({
+        narrationModel: raw === "(same as chat)" ? "" : raw,
+      });
     }
     setPicker(null);
   }, [
@@ -108,6 +130,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     voices,
     inputDevices,
     outputDevices,
+    narrationModelList,
     savePreferences,
   ]);
 
@@ -131,14 +154,21 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       },
       {
         keys: ["return", "enter"],
-        action: picker ? confirmPicker : openPicker,
+        action: picker
+          ? confirmPicker
+          : selectedRow === 4
+            ? () =>
+                savePreferences({
+                  useNarrationForTTS: !preferences.useNarrationForTTS,
+                })
+            : openPicker,
       },
       ...(picker ? [{ keys: ["escape"], action: closePicker }] : []),
       {
         keys: [...DEFAULT_KEYS.back],
         action: picker ? closePicker : onBack,
       },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
   });
 

@@ -70,6 +70,24 @@ function SettingsScreenContent() {
               {outputDevicesLoading ? "…" : outputDeviceLabel}
             </Text>
           </Box>
+          <Box>
+            <Text color={selectedRow === 4 ? "cyan" : undefined}>
+              {selectedRow === 4 ? "› " : "  "}
+            </Text>
+            <Text>Use narration for TTS: </Text>
+            <Text dimColor={selectedRow !== 4}>
+              {preferences.useNarrationForTTS ? "On" : "Off"}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={selectedRow === 5 ? "cyan" : undefined}>
+              {selectedRow === 5 ? "› " : "  "}
+            </Text>
+            <Text>Narration model: </Text>
+            <Text dimColor={selectedRow !== 5}>
+              {preferences.narrationModel || "(same as chat)"}
+            </Text>
+          </Box>
           <Box marginTop={1}>
             <Text dimColor>Enter to change · b back · q quit</Text>
           </Box>
@@ -83,7 +101,9 @@ function SettingsScreenContent() {
                 ? "Choose voice"
                 : picker === "input"
                   ? "Choose input device"
-                  : "Choose output device"}
+                  : picker === "output"
+                    ? "Choose output device"
+                    : "Choose narration model (for TTS)"}
           </Text>
           {(pickerList ?? []).map((item, i) => (
             <Box key={i}>

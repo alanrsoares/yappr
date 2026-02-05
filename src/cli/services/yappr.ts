@@ -21,6 +21,7 @@ import type {
   ChatOptions,
   ListenStepOptions,
   ListenStepResult,
+  NarrationOptions,
   SpeakOptions,
 } from "../types.js";
 
@@ -33,6 +34,21 @@ const OUTPUT_WAV = path.join(PROJECT_ROOT, "output.wav");
 
 const defaultTts = new KittenTTSClient();
 const defaultRecorder = new AudioRecorder();
+
+/** Current afplay/aplay subprocess, if any. Killed on quit or when starting new playback. */
+let currentPlayback: ReturnType<typeof spawn> | null = null;
+
+/** Stops any in-flight TTS playback (afplay/aplay). Safe to call multiple times. */
+export function stopAudioPlayback(): void {
+  if (currentPlayback) {
+    try {
+      currentPlayback.kill();
+    } catch {
+      // process may already be gone
+    }
+    currentPlayback = null;
+  }
+}
 
 function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
@@ -67,12 +83,42 @@ export function speak(
       ),
     )
     .andTee(() => {
-      if (play && process.platform === "darwin") {
-        spawn(["afplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
-      } else if (play && process.platform === "linux") {
-        spawn(["aplay", OUTPUT_WAV], { stdout: "ignore", stderr: "ignore" });
+      if (!play) return;
+      stopAudioPlayback();
+      if (process.platform === "darwin") {
+        currentPlayback = spawn(["afplay", OUTPUT_WAV], {
+          stdout: "ignore",
+          stderr: "ignore",
+        });
+      } else if (process.platform === "linux") {
+        currentPlayback = spawn(["aplay", OUTPUT_WAV], {
+          stdout: "ignore",
+          stderr: "ignore",
+        });
       }
     });
+}
+
+const NARRATION_SYSTEM = `You are a narrator. Given an assistant's reply that may contain code, tables, diagrams, or markdown, produce a short spoken version suitable for text-to-speech.
+Rules: Output ONLY the narration, no preamble or "Here is the narration". Use plain language. Summarize or describe code blocks, tables, and diagrams instead of reading them verbatim. Keep the same meaning and tone.`;
+
+/** Converts raw assistant text into TTS-friendly narration (summarizes code/tables/diagrams). */
+export function narrateResponse(
+  rawResponse: string,
+  options: NarrationOptions,
+): ResultAsync<string, Error> {
+  const { model } = options;
+  return ResultAsync.fromPromise(
+    ollama.chat({
+      model,
+      messages: [
+        { role: "system", content: NARRATION_SYSTEM },
+        { role: "user", content: rawResponse },
+      ],
+      stream: false,
+    }).then((r) => r.message.content ?? ""),
+    toError,
+  );
 }
 
 /** One-shot Ollama chat with optional MCP tools. Returns assistant text or null. */
@@ -145,7 +191,7 @@ export function recordAndTranscribe(
     .map((t) => t?.trim() ?? "");
 }
 
-/** One listen cycle: record → transcribe → chat → speak. */
+/** One listen cycle: record → transcribe → chat → [narrate] → speak. */
 export function runListenStep(
   options: ListenStepOptions = {},
 ): ResultAsync<ListenStepResult, Error> {
@@ -154,6 +200,8 @@ export function runListenStep(
     model = "qwen2.5:14b",
     voice = "af_bella",
     recordSignal,
+    useNarrationForTTS = false,
+    narrationModel,
   } = options;
 
   if (!recordSignal) {
@@ -168,14 +216,26 @@ export function runListenStep(
           response: null,
         });
       }
-      return chat(transcript, { model }).andThen((response) =>
-        response
-          ? speak(response, { voice }).map(() => ({
-              transcript,
-              response,
-            }))
-          : okAsync<ListenStepResult, Error>({ transcript, response: null }),
-      );
+      return chat(transcript, { model }).andThen((response) => {
+        if (!response) {
+          return okAsync<ListenStepResult, Error>({ transcript, response: null });
+        }
+        const modelForNarration = narrationModel || model;
+        if (useNarrationForTTS && modelForNarration) {
+          return narrateResponse(response, { model: modelForNarration })
+            .map((narration) => narration.trim() || response)
+            .andThen((toSpeak) =>
+              speak(toSpeak, { voice }).map(() => ({
+                transcript,
+                response,
+              })),
+            );
+        }
+        return speak(response, { voice }).map(() => ({
+          transcript,
+          response,
+        }));
+      });
     },
   );
 }

@@ -4,6 +4,7 @@ import { Box, Text } from "ink";
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, usePreferences } from "~/cli/hooks";
+import { quit } from "~/cli/quit.js";
 import { runListenStep } from "~/cli/services/yappr.js";
 
 export interface ListenScreenProps {
@@ -31,6 +32,8 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
       model: preferences.defaultOllamaModel,
       voice: preferences.defaultVoice,
       recordSignal: abortRef.current.signal,
+      useNarrationForTTS: preferences.useNarrationForTTS,
+      narrationModel: preferences.narrationModel || undefined,
     }).match(
       (res) => {
         setTranscript(res.transcript);
@@ -62,7 +65,13 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
         },
       },
       { keys: [...DEFAULT_KEYS.back], action: onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      {
+        keys: [...DEFAULT_KEYS.quit],
+        action: () => {
+          abortRef.current?.abort();
+          quit();
+        },
+      },
     ],
   });
 

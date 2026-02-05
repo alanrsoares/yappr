@@ -5,6 +5,7 @@ import TextInput from "ink-text-input";
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
+import { quit } from "~/cli/quit.js";
 import { speak } from "~/cli/services/yappr.js";
 
 export interface SpeakScreenProps {
@@ -30,7 +31,7 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
   useKeyboard({
     bindings: [
       { keys: ["escape"], action: onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: () => process.exit(0) },
+      { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
   });
 

@@ -12,6 +12,10 @@ export interface Preferences {
   defaultVoice: string;
   defaultInputDeviceIndex: number;
   defaultOutputDeviceIndex: number;
+  /** When true, a separate model step turns the response into TTS-friendly narration (no code/tables verbatim). */
+  useNarrationForTTS: boolean;
+  /** Model used for narration. If unset and useNarrationForTTS is true, the chat model is used. */
+  narrationModel: string;
 }
 
 export interface MenuItem {
@@ -56,4 +60,10 @@ export interface ListenStepOptions {
   model?: string;
   voice?: string;
   recordSignal?: AbortSignal;
+  useNarrationForTTS?: boolean;
+  narrationModel?: string;
+}
+
+export interface NarrationOptions {
+  model: string;
 }
