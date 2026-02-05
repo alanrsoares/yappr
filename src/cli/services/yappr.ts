@@ -16,7 +16,7 @@ import {
 } from "~/sdk/audio-devices.js";
 import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
-import { KittenTTSClient } from "~/sdk/tts.js";
+import { TTSClient } from "~/sdk/tts.js";
 import type {
   ChatOptions,
   ListenStepOptions,
@@ -32,7 +32,7 @@ const PROJECT_ROOT = path.resolve(process.cwd());
 const INPUT_WAV = path.join(PROJECT_ROOT, "input.wav");
 const OUTPUT_WAV = path.join(PROJECT_ROOT, "output.wav");
 
-const defaultTts = new KittenTTSClient();
+const defaultTts = new TTSClient();
 const defaultRecorder = new AudioRecorder();
 
 /** Current afplay/aplay subprocess, if any. Killed on quit or when starting new playback. */
@@ -59,7 +59,7 @@ function toError(e: unknown): Error {
 // ---------------------------------------------------------------------------
 
 export function listVoices(): ResultAsync<string[], Error> {
-  return new KittenTTSClient().listVoices();
+  return new TTSClient().listVoices();
 }
 
 export function listOllamaModels(): ResultAsync<string[], Error> {
@@ -74,7 +74,7 @@ export function speak(
   options: SpeakOptions = {},
 ): ResultAsync<void, Error> {
   const { voice = "af_bella", speed = 1.0, play = true } = options;
-  const client = new KittenTTSClient();
+  const client = new TTSClient();
   return client
     .synthesize(text, { voice, speed })
     .andThen((audioData) =>

@@ -15,7 +15,7 @@ function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
 }
 
-export class KittenTTSClient {
+export class TTSClient {
   private baseUrl: string;
 
   constructor(baseUrl: string = "http://localhost:8000") {
