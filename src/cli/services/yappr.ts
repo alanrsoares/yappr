@@ -17,6 +17,7 @@ import {
 import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { TTSClient } from "~/sdk/tts.js";
+import { MCP_CONFIG_PATH } from "../constants.js";
 import type {
   ChatOptions,
   ListenStepOptions,
@@ -143,6 +144,7 @@ export function chat(
   const {
     model = "qwen2.5:14b",
     ollamaBaseUrl,
+    mcpConfigPath,
     useTools = true,
     onUpdate,
     messages: priorMessages = [],
@@ -159,35 +161,37 @@ export function chat(
     { role: "user", content: prompt },
   ];
 
-  return mcp.loadConfigAndGetStatuses().andThen(() => {
-    const tools = useTools ? mcp.getTanStackTools() : [];
+  return mcp
+    .loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH)
+    .andThen(() => {
+      const tools = useTools ? mcp.getTanStackTools() : [];
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        try {
-          const stream = tanstackChat({
-            adapter: createOllamaChat(model, ollamaBaseUrl),
-            messages: messages,
-            tools,
-          });
+      return ResultAsync.fromPromise(
+        (async () => {
+          try {
+            const stream = tanstackChat({
+              adapter: createOllamaChat(model, ollamaBaseUrl),
+              messages: messages,
+              tools,
+            });
 
-          let finalContent = "";
-          for await (const chunk of stream) {
-            if (chunk.type === "content") {
-              finalContent += chunk.delta;
-              onUpdate?.(finalContent);
-            } else if (chunk.type === "RUN_ERROR") {
-              throw new Error(chunk.error.message);
+            let finalContent = "";
+            for await (const chunk of stream) {
+              if (chunk.type === "content") {
+                finalContent += chunk.delta;
+                onUpdate?.(finalContent);
+              } else if (chunk.type === "RUN_ERROR") {
+                throw new Error(chunk.error.message);
+              }
             }
+            return finalContent || null;
+          } finally {
+            await mcp.close();
           }
-          return finalContent || null;
-        } finally {
-          await mcp.close();
-        }
-      })(),
-      toError,
-    );
-  });
+        })(),
+        toError,
+      );
+    });
 }
 
 export interface RecordAndTranscribeOptions {

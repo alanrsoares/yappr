@@ -23,7 +23,7 @@ export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-const ROW_COUNT = 7;
+const ROW_COUNT = 8;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
@@ -45,6 +45,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [pickerIndex, setPickerIndex] = useState(0);
   const [editingOllamaUrl, setEditingOllamaUrl] = useState(false);
   const [ollamaUrlInputValue, setOllamaUrlInputValue] = useState("");
+  const [editingMcpConfigPath, setEditingMcpConfigPath] = useState(false);
+  const [mcpConfigPathInputValue, setMcpConfigPathInputValue] = useState("");
 
   const narrationModelList = useMemo(
     () => ["(same as chat)", ...ollamaModels],
@@ -114,6 +116,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         setEditingOllamaUrl(true);
         setOllamaUrlInputValue(preferences.ollamaBaseUrl);
         break;
+      case 7:
+        setEditingMcpConfigPath(true);
+        setMcpConfigPathInputValue(preferences.mcpConfigPath);
+        break;
       // case 4: narration toggle, no picker
     }
   }, [
@@ -124,6 +130,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     preferences.defaultOutputDeviceIndex,
     preferences.narrationModel,
     preferences.ollamaBaseUrl,
+    preferences.mcpConfigPath,
     ollamaModels,
     voices,
     inputDevices,
@@ -138,6 +145,16 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
 
   const cancelOllamaUrlEdit = useCallback(() => {
     setEditingOllamaUrl(false);
+  }, []);
+
+  const confirmMcpConfigPathEdit = useCallback(() => {
+    const path = mcpConfigPathInputValue.trim();
+    if (path) savePreferences({ mcpConfigPath: path });
+    setEditingMcpConfigPath(false);
+  }, [mcpConfigPathInputValue, savePreferences]);
+
+  const cancelMcpConfigPathEdit = useCallback(() => {
+    setEditingMcpConfigPath(false);
   }, []);
 
   const confirmPicker = useCallback(() => {
@@ -195,7 +212,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       {
         keys: ["upArrow", "k"],
         action: () =>
-          editingOllamaUrl
+          editingOllamaUrl || editingMcpConfigPath
             ? undefined
             : picker
               ? setPickerIndex((i) => cycle(i, pickerLen, -1))
@@ -204,7 +221,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       {
         keys: ["downArrow", "j"],
         action: () =>
-          editingOllamaUrl
+          editingOllamaUrl || editingMcpConfigPath
             ? undefined
             : picker
               ? setPickerIndex((i) => cycle(i, pickerLen, 1))
@@ -214,27 +231,33 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         keys: ["return", "enter"],
         action: editingOllamaUrl
           ? confirmOllamaUrlEdit
-          : picker
-            ? confirmPicker
-            : selectedRow === 4
-              ? () =>
-                  savePreferences({
-                    useNarrationForTTS: !preferences.useNarrationForTTS,
-                  })
-              : openPicker,
+          : editingMcpConfigPath
+            ? confirmMcpConfigPathEdit
+            : picker
+              ? confirmPicker
+              : selectedRow === 4
+                ? () =>
+                    savePreferences({
+                      useNarrationForTTS: !preferences.useNarrationForTTS,
+                    })
+                : openPicker,
       },
       ...(editingOllamaUrl
         ? [{ keys: ["escape"], action: cancelOllamaUrlEdit }]
-        : picker
-          ? [{ keys: ["escape"], action: closePicker }]
-          : []),
+        : editingMcpConfigPath
+          ? [{ keys: ["escape"], action: cancelMcpConfigPathEdit }]
+          : picker
+            ? [{ keys: ["escape"], action: closePicker }]
+            : []),
       {
         keys: [...DEFAULT_KEYS.back],
         action: editingOllamaUrl
           ? cancelOllamaUrlEdit
-          : picker
-            ? closePicker
-            : onBack,
+          : editingMcpConfigPath
+            ? cancelMcpConfigPathEdit
+            : picker
+              ? closePicker
+              : onBack,
       },
       { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
@@ -256,6 +279,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     setOllamaUrlInputValue,
     confirmOllamaUrlEdit,
     cancelOllamaUrlEdit,
+    editingMcpConfigPath,
+    mcpConfigPathInputValue,
+    setMcpConfigPathInputValue,
+    confirmMcpConfigPathEdit,
+    cancelMcpConfigPathEdit,
   };
 
   const actions = {

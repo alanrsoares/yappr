@@ -1,8 +1,12 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components/index.js";
-import { DEFAULT_KEYS, MCP_CONFIG_PATH } from "~/cli/constants.js";
-import { useKeyboard, useMcpStatuses } from "~/cli/hooks/index.js";
+import { DEFAULT_KEYS } from "~/cli/constants.js";
+import {
+  useKeyboard,
+  useMcpStatuses,
+  usePreferences,
+} from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
 import { StatusTable } from "./components/status-table.js";
 import { getSummaryCounts, Summary } from "./components/summary.js";
@@ -12,8 +16,9 @@ export interface McpStatusScreenProps {
 }
 
 export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
+  const { preferences } = usePreferences();
   const { statuses, loading, error, refresh } = useMcpStatuses({
-    configPath: MCP_CONFIG_PATH,
+    configPath: preferences.mcpConfigPath,
   });
 
   useKeyboard({
@@ -27,16 +32,14 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="MCP servers" subtitle={MCP_CONFIG_PATH} />
+      <Header title="MCP servers" subtitle={preferences.mcpConfigPath} />
 
       {loading ? (
         <Loading message="Connecting..." />
       ) : error ? (
         <Text color="red">{error}</Text>
       ) : statuses.length === 0 ? (
-        <Text dimColor>
-          No config at ~/.cursor/mcp.json or no servers defined.
-        </Text>
+        <Text dimColor>No config at path or no servers defined.</Text>
       ) : (
         <>
           <StatusTable rows={statuses} />

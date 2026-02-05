@@ -34,7 +34,39 @@ function SettingsScreenContent() {
     setOllamaUrlInputValue,
     confirmOllamaUrlEdit,
     cancelOllamaUrlEdit,
+    editingMcpConfigPath,
+    mcpConfigPathInputValue,
+    setMcpConfigPathInputValue,
+    confirmMcpConfigPathEdit,
+    cancelMcpConfigPathEdit,
   } = state;
+
+  if (editingMcpConfigPath) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Header title="Settings" subtitle="~/.yappr/settings.json" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text>MCP config path: </Text>
+          <TextInput
+            value={mcpConfigPathInputValue}
+            onChange={setMcpConfigPathInputValue}
+            onSubmit={confirmMcpConfigPathEdit}
+            placeholder="~/.cursor/mcp.json"
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Enter save · Esc cancel</Text>
+          </Box>
+        </Box>
+        <Footer
+          items={[
+            { key: "Esc", label: "cancel" },
+            { key: "b", label: "back" },
+            { key: "q", label: "quit" },
+          ]}
+        />
+      </Box>
+    );
+  }
 
   if (editingOllamaUrl) {
     return (
@@ -128,6 +160,15 @@ function SettingsScreenContent() {
             <Text>Ollama URL: </Text>
             <Text dimColor={selectedRow !== 6}>
               {preferences.ollamaBaseUrl}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={selectedRow === 7 ? "cyan" : undefined}>
+              {selectedRow === 7 ? "› " : "  "}
+            </Text>
+            <Text>MCP config path: </Text>
+            <Text dimColor={selectedRow !== 7}>
+              {preferences.mcpConfigPath}
             </Text>
           </Box>
           <Box marginTop={1}>

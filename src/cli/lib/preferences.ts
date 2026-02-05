@@ -5,10 +5,12 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { ResultAsync } from "neverthrow";
 
+import { MCP_CONFIG_PATH } from "../constants.js";
 import type { Preferences } from "../types.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {
   ollamaBaseUrl: "http://localhost:11434",
+  mcpConfigPath: MCP_CONFIG_PATH,
   defaultOllamaModel: "qwen2.5:14b",
   defaultVoice: "af_bella",
   defaultInputDeviceIndex: 0,

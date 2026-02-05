@@ -10,6 +10,8 @@ export type ScreenId =
 export interface Preferences {
   /** Ollama API base URL (e.g. http://localhost:11434). */
   ollamaBaseUrl: string;
+  /** Path to MCP config JSON (e.g. ~/.cursor/mcp.json). */
+  mcpConfigPath: string;
   defaultOllamaModel: string;
   defaultVoice: string;
   defaultInputDeviceIndex: number;
@@ -53,6 +55,8 @@ export interface ChatOptions {
   model?: string;
   /** Ollama server base URL (e.g. http://localhost:11434). */
   ollamaBaseUrl?: string;
+  /** Path to MCP config JSON. */
+  mcpConfigPath?: string;
   useTools?: boolean;
   onUpdate?: (content: string) => void;
   /** Prior conversation messages for multi-turn chat. */

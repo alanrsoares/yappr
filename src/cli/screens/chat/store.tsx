@@ -34,6 +34,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const { preferences } = usePreferences();
   const {
     ollamaBaseUrl,
+    mcpConfigPath,
     defaultOllamaModel: model,
     defaultVoice: voice,
     useNarrationForTTS,
@@ -51,6 +52,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     return chat(prompt, {
       model,
       ollamaBaseUrl,
+      mcpConfigPath,
       messages: priorMessages,
       onUpdate: (text) => setStreamingResponse(text),
     })
