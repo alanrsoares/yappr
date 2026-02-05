@@ -33,6 +33,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
 
   const { preferences } = usePreferences();
   const {
+    ollamaBaseUrl,
     defaultOllamaModel: model,
     defaultVoice: voice,
     useNarrationForTTS,
@@ -49,6 +50,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     }));
     return chat(prompt, {
       model,
+      ollamaBaseUrl,
       messages: priorMessages,
       onUpdate: (text) => setStreamingResponse(text),
     })
@@ -57,7 +59,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         const modelForNarration = narrationModel || model;
         if (useNarrationForTTS && modelForNarration) {
           setPhase("narrating");
-          return narrateResponse(text, { model: modelForNarration })
+          return narrateResponse(text, {
+            model: modelForNarration,
+            ollamaBaseUrl,
+          })
             .map((narration) => (narration.trim() || text))
             .andThen((toSpeak) => {
               setPhase("speaking");

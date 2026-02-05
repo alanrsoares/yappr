@@ -1,4 +1,5 @@
 import { Box, Text } from "ink";
+import TextInput from "ink-text-input";
 
 import { Footer, Header } from "~/cli/components";
 import { SettingsProvider, useSettingsStore } from "./store.js";
@@ -28,7 +29,39 @@ function SettingsScreenContent() {
     pickerList,
     inputDeviceLabel,
     outputDeviceLabel,
+    editingOllamaUrl,
+    ollamaUrlInputValue,
+    setOllamaUrlInputValue,
+    confirmOllamaUrlEdit,
+    cancelOllamaUrlEdit,
   } = state;
+
+  if (editingOllamaUrl) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Header title="Settings" subtitle="~/.yappr/settings.json" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text>Ollama URL: </Text>
+          <TextInput
+            value={ollamaUrlInputValue}
+            onChange={setOllamaUrlInputValue}
+            onSubmit={confirmOllamaUrlEdit}
+            placeholder="http://localhost:11434"
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Enter save · Esc cancel</Text>
+          </Box>
+        </Box>
+        <Footer
+          items={[
+            { key: "Esc", label: "cancel" },
+            { key: "b", label: "back" },
+            { key: "q", label: "quit" },
+          ]}
+        />
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -86,6 +119,15 @@ function SettingsScreenContent() {
             <Text>Narration model: </Text>
             <Text dimColor={selectedRow !== 5}>
               {preferences.narrationModel || "(same as chat)"}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={selectedRow === 6 ? "cyan" : undefined}>
+              {selectedRow === 6 ? "› " : "  "}
+            </Text>
+            <Text>Ollama URL: </Text>
+            <Text dimColor={selectedRow !== 6}>
+              {preferences.ollamaBaseUrl}
             </Text>
           </Box>
           <Box marginTop={1}>

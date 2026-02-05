@@ -7,7 +7,7 @@ import { chat as tanstackChat, type ModelMessage } from "@tanstack/ai";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { spawn } from "bun";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
-import ollama from "ollama";
+import ollama, { Ollama } from "ollama";
 
 import {
   listInputDevices,
@@ -54,6 +54,14 @@ function toError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
 }
 
+const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+
+function getOllamaClient(baseUrl?: string): Ollama {
+  const url = baseUrl?.trim() || DEFAULT_OLLAMA_URL;
+  if (url === DEFAULT_OLLAMA_URL) return ollama as Ollama;
+  return new Ollama({ host: url });
+}
+
 // ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
@@ -62,9 +70,12 @@ export function listVoices(): ResultAsync<string[], Error> {
   return new TTSClient().listVoices();
 }
 
-export function listOllamaModels(): ResultAsync<string[], Error> {
+export function listOllamaModels(
+  baseUrl?: string,
+): ResultAsync<string[], Error> {
+  const client = getOllamaClient(baseUrl);
   return ResultAsync.fromPromise(
-    ollama.list().then((res) => res.models.map((m) => m.name)),
+    client.list().then((res) => res.models.map((m) => m.name)),
     toError,
   );
 }
@@ -107,16 +118,19 @@ export function narrateResponse(
   rawResponse: string,
   options: NarrationOptions,
 ): ResultAsync<string, Error> {
-  const { model } = options;
+  const { model, ollamaBaseUrl } = options;
+  const client = getOllamaClient(ollamaBaseUrl);
   return ResultAsync.fromPromise(
-    ollama.chat({
-      model,
-      messages: [
-        { role: "system", content: NARRATION_SYSTEM },
-        { role: "user", content: rawResponse },
-      ],
-      stream: false,
-    }).then((r) => r.message.content ?? ""),
+    client
+      .chat({
+        model,
+        messages: [
+          { role: "system", content: NARRATION_SYSTEM },
+          { role: "user", content: rawResponse },
+        ],
+        stream: false,
+      })
+      .then((r) => r.message.content ?? ""),
     toError,
   );
 }
@@ -128,6 +142,7 @@ export function chat(
 ): ResultAsync<string | null, Error> {
   const {
     model = "qwen2.5:14b",
+    ollamaBaseUrl,
     useTools = true,
     onUpdate,
     messages: priorMessages = [],
@@ -151,7 +166,7 @@ export function chat(
       (async () => {
         try {
           const stream = tanstackChat({
-            adapter: createOllamaChat(model),
+            adapter: createOllamaChat(model, ollamaBaseUrl),
             messages: messages,
             tools,
           });
@@ -200,6 +215,7 @@ export function runListenStep(
     model = "qwen2.5:14b",
     voice = "af_bella",
     recordSignal,
+    ollamaBaseUrl,
     useNarrationForTTS = false,
     narrationModel,
   } = options;
@@ -216,13 +232,16 @@ export function runListenStep(
           response: null,
         });
       }
-      return chat(transcript, { model }).andThen((response) => {
+      return chat(transcript, { model, ollamaBaseUrl }).andThen((response) => {
         if (!response) {
           return okAsync<ListenStepResult, Error>({ transcript, response: null });
         }
         const modelForNarration = narrationModel || model;
         if (useNarrationForTTS && modelForNarration) {
-          return narrateResponse(response, { model: modelForNarration })
+          return narrateResponse(response, {
+            model: modelForNarration,
+            ollamaBaseUrl,
+          })
             .map((narration) => narration.trim() || response)
             .andThen((toSpeak) =>
               speak(toSpeak, { voice }).map(() => ({

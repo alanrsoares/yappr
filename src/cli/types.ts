@@ -8,6 +8,8 @@ export type ScreenId =
   | "settings";
 
 export interface Preferences {
+  /** Ollama API base URL (e.g. http://localhost:11434). */
+  ollamaBaseUrl: string;
   defaultOllamaModel: string;
   defaultVoice: string;
   defaultInputDeviceIndex: number;
@@ -49,6 +51,8 @@ export interface SpeakOptions {
 
 export interface ChatOptions {
   model?: string;
+  /** Ollama server base URL (e.g. http://localhost:11434). */
+  ollamaBaseUrl?: string;
   useTools?: boolean;
   onUpdate?: (content: string) => void;
   /** Prior conversation messages for multi-turn chat. */
@@ -60,10 +64,13 @@ export interface ListenStepOptions {
   model?: string;
   voice?: string;
   recordSignal?: AbortSignal;
+  ollamaBaseUrl?: string;
   useNarrationForTTS?: boolean;
   narrationModel?: string;
 }
 
 export interface NarrationOptions {
   model: string;
+  /** Ollama server base URL. */
+  ollamaBaseUrl?: string;
 }

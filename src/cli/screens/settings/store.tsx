@@ -23,15 +23,17 @@ export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-const ROW_COUNT = 6;
+const ROW_COUNT = 7;
 const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => { });
 
   const { preferences, savePreferences } = usePreferences();
-  const { data: ollamaModels = [], isLoading: modelsLoading } =
-    useQuery(listOllamaModels);
+  const { data: ollamaModels = [], isLoading: modelsLoading } = useQuery(
+    () => listOllamaModels(preferences.ollamaBaseUrl),
+    { deps: [preferences.ollamaBaseUrl] },
+  );
   const { data: voices = [] } = useQuery(listVoices);
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
     useQuery(listInputDevices);
@@ -41,6 +43,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [picker, setPicker] = useState<PickerKind>(null);
   const [pickerIndex, setPickerIndex] = useState(0);
+  const [editingOllamaUrl, setEditingOllamaUrl] = useState(false);
+  const [ollamaUrlInputValue, setOllamaUrlInputValue] = useState("");
 
   const narrationModelList = useMemo(
     () => ["(same as chat)", ...ollamaModels],
@@ -106,6 +110,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
             : 0,
         );
         break;
+      case 6:
+        setEditingOllamaUrl(true);
+        setOllamaUrlInputValue(preferences.ollamaBaseUrl);
+        break;
       // case 4: narration toggle, no picker
     }
   }, [
@@ -115,11 +123,22 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     preferences.defaultInputDeviceIndex,
     preferences.defaultOutputDeviceIndex,
     preferences.narrationModel,
+    preferences.ollamaBaseUrl,
     ollamaModels,
     voices,
     inputDevices,
     outputDevices,
   ]);
+
+  const confirmOllamaUrlEdit = useCallback(() => {
+    const url = ollamaUrlInputValue.trim() || "http://localhost:11434";
+    savePreferences({ ollamaBaseUrl: url });
+    setEditingOllamaUrl(false);
+  }, [ollamaUrlInputValue, savePreferences]);
+
+  const cancelOllamaUrlEdit = useCallback(() => {
+    setEditingOllamaUrl(false);
+  }, []);
 
   const confirmPicker = useCallback(() => {
     switch (picker) {
@@ -176,32 +195,46 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       {
         keys: ["upArrow", "k"],
         action: () =>
-          picker
-            ? setPickerIndex((i) => cycle(i, pickerLen, -1))
-            : setSelectedRow((r) => cycle(r, ROW_COUNT, -1)),
+          editingOllamaUrl
+            ? undefined
+            : picker
+              ? setPickerIndex((i) => cycle(i, pickerLen, -1))
+              : setSelectedRow((r) => cycle(r, ROW_COUNT, -1)),
       },
       {
         keys: ["downArrow", "j"],
         action: () =>
-          picker
-            ? setPickerIndex((i) => cycle(i, pickerLen, 1))
-            : setSelectedRow((r) => cycle(r, ROW_COUNT, 1)),
+          editingOllamaUrl
+            ? undefined
+            : picker
+              ? setPickerIndex((i) => cycle(i, pickerLen, 1))
+              : setSelectedRow((r) => cycle(r, ROW_COUNT, 1)),
       },
       {
         keys: ["return", "enter"],
-        action: picker
-          ? confirmPicker
-          : selectedRow === 4
-            ? () =>
-              savePreferences({
-                useNarrationForTTS: !preferences.useNarrationForTTS,
-              })
-            : openPicker,
+        action: editingOllamaUrl
+          ? confirmOllamaUrlEdit
+          : picker
+            ? confirmPicker
+            : selectedRow === 4
+              ? () =>
+                  savePreferences({
+                    useNarrationForTTS: !preferences.useNarrationForTTS,
+                  })
+              : openPicker,
       },
-      ...(picker ? [{ keys: ["escape"], action: closePicker }] : []),
+      ...(editingOllamaUrl
+        ? [{ keys: ["escape"], action: cancelOllamaUrlEdit }]
+        : picker
+          ? [{ keys: ["escape"], action: closePicker }]
+          : []),
       {
         keys: [...DEFAULT_KEYS.back],
-        action: picker ? closePicker : onBack,
+        action: editingOllamaUrl
+          ? cancelOllamaUrlEdit
+          : picker
+            ? closePicker
+            : onBack,
       },
       { keys: [...DEFAULT_KEYS.quit], action: quit },
     ],
@@ -218,6 +251,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     pickerList,
     inputDeviceLabel,
     outputDeviceLabel,
+    editingOllamaUrl,
+    ollamaUrlInputValue,
+    setOllamaUrlInputValue,
+    confirmOllamaUrlEdit,
+    cancelOllamaUrlEdit,
   };
 
   const actions = {

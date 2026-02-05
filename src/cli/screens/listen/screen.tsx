@@ -32,6 +32,7 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
       model: preferences.defaultOllamaModel,
       voice: preferences.defaultVoice,
       recordSignal: abortRef.current.signal,
+      ollamaBaseUrl: preferences.ollamaBaseUrl || undefined,
       useNarrationForTTS: preferences.useNarrationForTTS,
       narrationModel: preferences.narrationModel || undefined,
     }).match(

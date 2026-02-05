@@ -8,6 +8,7 @@ import { ResultAsync } from "neverthrow";
 import type { Preferences } from "../types.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {
+  ollamaBaseUrl: "http://localhost:11434",
   defaultOllamaModel: "qwen2.5:14b",
   defaultVoice: "af_bella",
   defaultInputDeviceIndex: 0,
