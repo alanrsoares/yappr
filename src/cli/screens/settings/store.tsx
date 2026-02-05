@@ -65,34 +65,49 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       ?.name ?? `Device ${preferences.defaultOutputDeviceIndex}`;
 
   const openPicker = useCallback(() => {
-    if (selectedRow === 0) {
-      setPicker("model");
-      const i = ollamaModels.indexOf(preferences.defaultOllamaModel);
-      setPickerIndex(i >= 0 ? i : 0);
-    } else if (selectedRow === 1) {
-      setPicker("voice");
-      const i = voices.indexOf(preferences.defaultVoice);
-      setPickerIndex(i >= 0 ? i : 0);
-    } else if (selectedRow === 2) {
-      setPicker("input");
-      const i = inputDevices.findIndex(
-        (d) => d.index === preferences.defaultInputDeviceIndex,
-      );
-      setPickerIndex(i >= 0 ? i : 0);
-    } else if (selectedRow === 3) {
-      setPicker("output");
-      const i = outputDevices.findIndex(
-        (d) => d.index === preferences.defaultOutputDeviceIndex,
-      );
-      setPickerIndex(i >= 0 ? i : 0);
-    } else if (selectedRow === 5) {
-      setPicker("narrationModel");
-      const i = preferences.narrationModel
-        ? ollamaModels.indexOf(preferences.narrationModel)
-        : -1;
-      setPickerIndex(i >= 0 ? i + 1 : 0); // 0 = (same as chat)
+    switch (selectedRow) {
+      case 0:
+        setPicker("model");
+        setPickerIndex(
+          Math.max(0, ollamaModels.indexOf(preferences.defaultOllamaModel)),
+        );
+        break;
+      case 1:
+        setPicker("voice");
+        setPickerIndex(Math.max(0, voices.indexOf(preferences.defaultVoice)));
+        break;
+      case 2:
+        setPicker("input");
+        setPickerIndex(
+          Math.max(
+            0,
+            inputDevices.findIndex(
+              (d) => d.index === preferences.defaultInputDeviceIndex,
+            ),
+          ),
+        );
+        break;
+      case 3:
+        setPicker("output");
+        setPickerIndex(
+          Math.max(
+            0,
+            outputDevices.findIndex(
+              (d) => d.index === preferences.defaultOutputDeviceIndex,
+            ),
+          ),
+        );
+        break;
+      case 5:
+        setPicker("narrationModel");
+        setPickerIndex(
+          preferences.narrationModel
+            ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
+            : 0,
+        );
+        break;
+      // case 4: narration toggle, no picker
     }
-    // selectedRow === 4 is the narration toggle, no picker
   }, [
     selectedRow,
     preferences.defaultOllamaModel,
@@ -107,23 +122,40 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   ]);
 
   const confirmPicker = useCallback(() => {
-    if (picker === "model" && ollamaModels[pickerIndex]) {
-      savePreferences({ defaultOllamaModel: ollamaModels[pickerIndex]! });
-    } else if (picker === "voice" && voices[pickerIndex]) {
-      savePreferences({ defaultVoice: voices[pickerIndex]! });
-    } else if (picker === "input" && inputDevices[pickerIndex]) {
-      savePreferences({
-        defaultInputDeviceIndex: inputDevices[pickerIndex]!.index,
-      });
-    } else if (picker === "output" && outputDevices[pickerIndex]) {
-      savePreferences({
-        defaultOutputDeviceIndex: outputDevices[pickerIndex]!.index,
-      });
-    } else if (picker === "narrationModel" && narrationModelList[pickerIndex]) {
-      const raw = narrationModelList[pickerIndex]!;
-      savePreferences({
-        narrationModel: raw === "(same as chat)" ? "" : raw,
-      });
+    switch (picker) {
+      case "model":
+        if (ollamaModels[pickerIndex]) {
+          savePreferences({ defaultOllamaModel: ollamaModels[pickerIndex]! });
+        }
+        break;
+      case "voice":
+        if (voices[pickerIndex]) {
+          savePreferences({ defaultVoice: voices[pickerIndex]! });
+        }
+        break;
+      case "input":
+        if (inputDevices[pickerIndex]) {
+          savePreferences({
+            defaultInputDeviceIndex: inputDevices[pickerIndex]!.index,
+          });
+        }
+        break;
+      case "output":
+        if (outputDevices[pickerIndex]) {
+          savePreferences({
+            defaultOutputDeviceIndex: outputDevices[pickerIndex]!.index,
+          });
+        }
+        break;
+      case "narrationModel": {
+        const raw = narrationModelList[pickerIndex];
+        if (raw) {
+          savePreferences({
+            narrationModel: raw === "(same as chat)" ? "" : raw,
+          });
+        }
+        break;
+      }
     }
     setPicker(null);
   }, [
