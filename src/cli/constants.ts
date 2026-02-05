@@ -5,7 +5,7 @@ export const MCP_CONFIG_PATH = `${process.env.HOME ?? ""}/.cursor/mcp.json`;
 export const DEFAULT_KEYS = {
   quit: ["q", "escape"],
   refresh: ["r", "R"],
-  back: ["b", "escape"],
+  back: ["escape"],
 } as const;
 
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [

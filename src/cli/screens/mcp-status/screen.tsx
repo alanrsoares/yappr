@@ -50,7 +50,7 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
       <Footer
         items={[
           { key: "r", label: "refresh" },
-          { key: "b", label: "back" },
+          { key: "Esc", label: "back" },
           { key: "q", label: "quit" },
         ]}
       />

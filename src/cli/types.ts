@@ -98,6 +98,10 @@ export interface ListenStepOptions {
 
 export interface NarrationOptions {
   model: string;
-  /** Ollama server base URL. */
+  /** Same as chat: ollama vs openrouter. When omitted, defaults to ollama for backwards compatibility. */
+  provider?: ChatProvider;
+  /** Ollama server base URL (used when provider is ollama). */
   ollamaBaseUrl?: string;
+  /** OpenRouter API key (used when provider is openrouter). */
+  openrouterApiKey?: string;
 }

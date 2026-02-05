@@ -58,6 +58,58 @@ function toError(e: unknown): Error {
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
+export interface OpenRouterModelInfo {
+  id: string;
+  name: string;
+}
+
+/** Fetches OpenRouter models that support text input and tools. Requires API key. */
+export function listOpenRouterModels(
+  apiKey: string,
+): ResultAsync<OpenRouterModelInfo[], Error> {
+  if (!apiKey.trim()) {
+    return okAsync([]);
+  }
+  return ResultAsync.fromPromise(
+    (async () => {
+      const res = await fetch(
+        `${OPENROUTER_BASE}/models?supported_parameters=tools`,
+        {
+          headers: { Authorization: `Bearer ${apiKey.trim()}` },
+        },
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${res.status}: ${text}`);
+      }
+      const json = (await res.json()) as {
+        data?: Array<{
+          id?: string;
+          name?: string;
+          architecture?: {
+            input_modalities?: string[];
+          };
+          supported_parameters?: string[];
+        }>;
+      };
+      const list = json.data ?? [];
+      return list
+        .filter((m) => {
+          const hasText =
+            m.architecture?.input_modalities?.includes("text") ?? true;
+          const hasTools = m.supported_parameters?.includes("tools") ?? false;
+          return m.id && hasText && hasTools;
+        })
+        .map((m) => ({
+          id: m.id!,
+          name: m.name ?? m.id!,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    })(),
+    toError,
+  );
+}
+
 /** Creates an OpenRouter chat adapter (OpenAI-compatible API). Tools not yet supported. */
 function createOpenRouterChat(
   model: string,
@@ -210,12 +262,55 @@ export function speak(
 const NARRATION_SYSTEM = `You are a narrator. Given an assistant's reply that may contain code, tables, diagrams, or markdown, produce a short spoken version suitable for text-to-speech.
 Rules: Output ONLY the narration, no preamble or "Here is the narration". Use plain language. Summarize or describe code blocks, tables, and diagrams instead of reading them verbatim. Keep the same meaning and tone.`;
 
-/** Converts raw assistant text into TTS-friendly narration (summarizes code/tables/diagrams). */
+/** One-shot OpenRouter chat (no stream). Returns content or throws. */
+async function openRouterChat(
+  model: string,
+  apiKey: string,
+  messages: Array<{ role: "system" | "user"; content: string }>,
+): Promise<string> {
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text}`);
+  }
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+/** Converts raw assistant text into TTS-friendly narration (summarizes code/tables/diagrams). Uses same provider as chat (Ollama or OpenRouter). */
 export function narrateResponse(
   rawResponse: string,
   options: NarrationOptions,
 ): ResultAsync<string, Error> {
-  const { model, ollamaBaseUrl } = options;
+  const {
+    model,
+    provider = "ollama",
+    ollamaBaseUrl,
+    openrouterApiKey,
+  } = options;
+  const messages = [
+    { role: "system" as const, content: NARRATION_SYSTEM },
+    { role: "user" as const, content: rawResponse },
+  ];
+  if (provider === "openrouter" && openrouterApiKey?.trim()) {
+    return ResultAsync.fromPromise(
+      openRouterChat(model, openrouterApiKey.trim(), messages),
+      toError,
+    );
+  }
   const client = getOllamaClient(ollamaBaseUrl);
   return ResultAsync.fromPromise(
     client
@@ -431,7 +526,9 @@ export function runListenStep(
         if (useNarrationForTTS && modelForNarration) {
           return narrateResponse(response, {
             model: modelForNarration,
+            provider: narrationModel ? "ollama" : provider,
             ollamaBaseUrl,
+            openrouterApiKey: narrationModel ? undefined : openrouterApiKey,
           })
             .map((narration) => narration.trim() || response)
             .andThen((toSpeak) =>

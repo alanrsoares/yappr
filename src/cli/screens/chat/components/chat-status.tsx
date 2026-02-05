@@ -56,7 +56,17 @@ export function ChatStatus({
     return <Text color="red">STT: {sttError.message}</Text>;
   }
   if (chatError && !isAbortError(chatError)) {
-    return <Text color="red">{chatError.message}</Text>;
+    const msg = chatError.message;
+    const isModelNotFound =
+      /not found|unknown model|model .* does not exist/i.test(msg);
+    return (
+      <Text color="red">
+        {msg}
+        {isModelNotFound
+          ? " — Check Settings: Chat provider (Ollama vs OpenRouter) and Chat model."
+          : ""}
+      </Text>
+    );
   }
   if (chatError && isAbortError(chatError)) {
     return <Text dimColor>Cancelled.</Text>;

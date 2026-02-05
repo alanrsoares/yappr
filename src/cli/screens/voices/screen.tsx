@@ -36,7 +36,7 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
       )}
       <Footer
         items={[
-          { key: "b", label: "back" },
+          { key: "Esc", label: "back" },
           { key: "q", label: "quit" },
         ]}
       />

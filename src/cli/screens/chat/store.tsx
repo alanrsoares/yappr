@@ -75,7 +75,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           setPhase("narrating");
           return narrateResponse(text, {
             model: modelForNarration,
+            provider: narrationModel ? "ollama" : provider,
             ollamaBaseUrl,
+            openrouterApiKey: narrationModel ? undefined : openrouterApiKey,
           })
             .map((narration) => narration.trim() || text)
             .andThen((toSpeak) => {

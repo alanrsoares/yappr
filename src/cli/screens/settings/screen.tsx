@@ -21,12 +21,17 @@ function SettingsScreenContent() {
   const {
     preferences,
     modelsLoading,
+    openRouterModelsLoading,
     inputDevicesLoading,
     outputDevicesLoading,
     selectedRow,
     picker,
-    pickerIndex,
-    pickerList,
+    effectivePickerIndex,
+    pickerFilterText,
+    visiblePickerSlice,
+    visiblePickerStart,
+    pickerLen,
+    visiblePickerRows,
     inputDeviceLabel,
     outputDeviceLabel,
     editingOllamaUrl,
@@ -68,7 +73,7 @@ function SettingsScreenContent() {
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "b", label: "back" },
+            { key: "Esc", label: "back" },
             { key: "q", label: "quit" },
           ]}
         />
@@ -95,7 +100,7 @@ function SettingsScreenContent() {
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "b", label: "back" },
+            { key: "Esc", label: "back" },
             { key: "q", label: "quit" },
           ]}
         />
@@ -122,7 +127,7 @@ function SettingsScreenContent() {
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "b", label: "back" },
+            { key: "Esc", label: "back" },
             { key: "q", label: "quit" },
           ]}
         />
@@ -149,7 +154,7 @@ function SettingsScreenContent() {
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "b", label: "back" },
+            { key: "Esc", label: "back" },
             { key: "q", label: "quit" },
           ]}
         />
@@ -181,7 +186,10 @@ function SettingsScreenContent() {
             <Text>Chat model: </Text>
             <Text dimColor={selectedRow !== 1}>
               {preferences.defaultChatProvider === "openrouter"
-                ? preferences.defaultChatModel || "(set model)"
+                ? openRouterModelsLoading
+                  ? "…"
+                  : preferences.defaultChatModel ||
+                    "(set API key, then pick model)"
                 : modelsLoading
                   ? "…"
                   : preferences.defaultChatModel}
@@ -260,7 +268,7 @@ function SettingsScreenContent() {
             </Text>
           </Box>
           <Box marginTop={1}>
-            <Text dimColor>Enter to change · b back · q quit</Text>
+            <Text dimColor>Enter to change · Esc back · q quit</Text>
           </Box>
         </Box>
       ) : (
@@ -270,31 +278,51 @@ function SettingsScreenContent() {
               ? "Choose chat provider"
               : picker === "model"
                 ? "Choose Ollama model"
-                : picker === "voice"
-                  ? "Choose voice"
-                  : picker === "input"
-                    ? "Choose input device"
-                    : picker === "output"
-                      ? "Choose output device"
-                      : "Choose narration model (for TTS)"}
+                : picker === "openRouterModel"
+                  ? "Choose OpenRouter model (text + tools)"
+                  : picker === "voice"
+                    ? "Choose voice"
+                    : picker === "input"
+                      ? "Choose input device"
+                      : picker === "output"
+                        ? "Choose output device"
+                        : "Choose narration model (for TTS)"}
           </Text>
-          {(pickerList ?? []).map((item, i) => (
-            <Box key={i}>
-              <Text color={i === pickerIndex ? "cyan" : undefined}>
-                {i === pickerIndex ? "› " : "  "}
-                {typeof item === "string" ? item : item.name}
-              </Text>
-            </Box>
-          ))}
           <Box marginTop={1}>
-            <Text dimColor>↑/↓ move · Enter confirm · Esc cancel</Text>
+            <Text dimColor>Filter: </Text>
+            <Text>{pickerFilterText || "(type to filter)"}</Text>
+          </Box>
+          {visiblePickerSlice.map((item, i) => {
+            const actualIndex = visiblePickerStart + i;
+            const label =
+              typeof item === "string" ? item : (item as { name: string }).name;
+            return (
+              <Box key={actualIndex}>
+                <Text
+                  color={
+                    actualIndex === effectivePickerIndex ? "cyan" : undefined
+                  }
+                >
+                  {actualIndex === effectivePickerIndex ? "› " : "  "}
+                  {label}
+                </Text>
+              </Box>
+            );
+          })}
+          <Box marginTop={1}>
+            <Text dimColor>
+              {pickerLen > visiblePickerRows
+                ? `${visiblePickerStart + 1}-${Math.min(visiblePickerStart + visiblePickerSlice.length, pickerLen)} of ${pickerLen} · `
+                : ""}
+              ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel
+            </Text>
           </Box>
         </Box>
       )}
 
       <Footer
         items={[
-          { key: "b", label: "back" },
+          { key: "Esc", label: "back" },
           { key: "q", label: "quit" },
         ]}
       />

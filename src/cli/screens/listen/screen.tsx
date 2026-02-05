@@ -116,7 +116,7 @@ export function ListenScreen({ onBack }: ListenScreenProps) {
       <Footer
         items={[
           { key: "Enter", label: phase === "recording" ? "stop" : "start" },
-          { key: "b", label: "back" },
+          { key: "Esc", label: "back" },
           { key: "q", label: "quit" },
         ]}
       />

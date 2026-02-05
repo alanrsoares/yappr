@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
+import { useInput } from "ink";
 
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard, usePreferences, useQuery } from "~/cli/hooks/index.js";
+import { usePreferences, useQuery } from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
 import {
   listInputDevices,
   listOllamaModels,
+  listOpenRouterModels,
   listOutputDevices,
   listVoices,
 } from "~/cli/services/yappr.js";
@@ -14,6 +16,7 @@ import { createContainer } from "~/lib/unstated.js";
 export type PickerKind =
   | "provider"
   | "model"
+  | "openRouterModel"
   | "voice"
   | "input"
   | "output"
@@ -29,7 +32,29 @@ export interface SettingsStoreInitialState {
 }
 
 const ROW_COUNT = 10;
-const cycle = (i: number, n: number, d: number) => (i + n + d) % n;
+const VISIBLE_PICKER_ROWS = 10;
+const cycle = (i: number, n: number, d: number) =>
+  n <= 0 ? 0 : (i + n + d) % n;
+
+function pickerItemLabel(
+  item: string | { name?: string; id?: string },
+): string {
+  if (typeof item === "string") return item;
+  const name = item.name ?? "";
+  const id = item.id ?? "";
+  return id ? `${id} ${name}`.trim() : name;
+}
+
+function filterPickerList(list: unknown[] | null, query: string): unknown[] {
+  if (!list?.length) return [];
+  const q = query.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((item) =>
+    pickerItemLabel(item as string | { name?: string; id?: string })
+      .toLowerCase()
+      .includes(q),
+  );
+}
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => {});
@@ -39,6 +64,13 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     () => listOllamaModels(preferences.ollamaBaseUrl),
     { deps: [preferences.ollamaBaseUrl] },
   );
+  const { data: openRouterModels = [], isLoading: openRouterModelsLoading } =
+    useQuery(() => listOpenRouterModels(preferences.openrouterApiKey), {
+      deps: [preferences.openrouterApiKey],
+      enabled:
+        preferences.defaultChatProvider === "openrouter" &&
+        !!preferences.openrouterApiKey?.trim(),
+    });
   const { data: voices = [] } = useQuery(listVoices);
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
     useQuery(listInputDevices);
@@ -48,6 +80,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [picker, setPicker] = useState<PickerKind>(null);
   const [pickerIndex, setPickerIndex] = useState(0);
+  const [pickerFilterText, setPickerFilterText] = useState("");
+  const [pickerScrollOffset, setPickerScrollOffset] = useState(0);
   const [editingOllamaUrl, setEditingOllamaUrl] = useState(false);
   const [ollamaUrlInputValue, setOllamaUrlInputValue] = useState("");
   const [editingMcpConfigPath, setEditingMcpConfigPath] = useState(false);
@@ -66,13 +100,34 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     ? {
         provider: PROVIDER_LABELS as unknown as string[],
         model: ollamaModels,
+        openRouterModel: openRouterModels,
         voice: voices,
         input: inputDevices,
         output: outputDevices,
         narrationModel: narrationModelList,
       }[picker]
     : null;
-  const pickerLen = pickerList?.length ?? 0;
+  const filteredPickerList = useMemo(
+    () => filterPickerList(pickerList ?? [], pickerFilterText),
+    [pickerList, pickerFilterText],
+  );
+  const pickerLen = filteredPickerList.length;
+
+  const effectivePickerIndex =
+    pickerLen <= 0 ? 0 : Math.min(Math.max(0, pickerIndex), pickerLen - 1);
+
+  const visiblePickerStart = Math.max(
+    0,
+    Math.min(pickerScrollOffset, Math.max(0, pickerLen - VISIBLE_PICKER_ROWS)),
+  );
+  const visiblePickerSlice = useMemo(
+    () =>
+      filteredPickerList.slice(
+        visiblePickerStart,
+        visiblePickerStart + VISIBLE_PICKER_ROWS,
+      ),
+    [filteredPickerList, visiblePickerStart],
+  );
 
   const inputDeviceLabel =
     inputDevices.find((d) => d.index === preferences.defaultInputDeviceIndex)
@@ -85,6 +140,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     switch (selectedRow) {
       case 0:
         setPicker("provider");
+        setPickerFilterText("");
+        setPickerScrollOffset(0);
         setPickerIndex(
           Math.max(
             0,
@@ -94,51 +151,101 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           ),
         );
         break;
-      case 1:
+      case 1: {
         if (preferences.defaultChatProvider === "openrouter") {
-          setEditingChatModel(true);
-          setChatModelInputValue(preferences.defaultChatModel);
+          if (openRouterModels.length > 0) {
+            setPicker("openRouterModel");
+            setPickerFilterText("");
+            const idx = openRouterModels.findIndex(
+              (m) => m.id === preferences.defaultChatModel,
+            );
+            const i = idx >= 0 ? idx : 0;
+            setPickerIndex(i);
+            setPickerScrollOffset(
+              Math.max(
+                0,
+                Math.min(i, openRouterModels.length - VISIBLE_PICKER_ROWS),
+              ),
+            );
+          } else {
+            setEditingChatModel(true);
+            setChatModelInputValue(preferences.defaultChatModel);
+          }
         } else {
           setPicker("model");
-          setPickerIndex(
-            Math.max(0, ollamaModels.indexOf(preferences.defaultChatModel)),
+          setPickerFilterText("");
+          const i = Math.max(
+            0,
+            ollamaModels.indexOf(preferences.defaultChatModel),
+          );
+          setPickerIndex(i);
+          setPickerScrollOffset(
+            Math.max(0, Math.min(i, ollamaModels.length - VISIBLE_PICKER_ROWS)),
           );
         }
         break;
-      case 2:
+      }
+      case 2: {
         setPicker("voice");
-        setPickerIndex(Math.max(0, voices.indexOf(preferences.defaultVoice)));
+        setPickerFilterText("");
+        const voiceIdx = Math.max(0, voices.indexOf(preferences.defaultVoice));
+        setPickerIndex(voiceIdx);
+        setPickerScrollOffset(
+          Math.max(0, Math.min(voiceIdx, voices.length - VISIBLE_PICKER_ROWS)),
+        );
         break;
-      case 3:
+      }
+      case 3: {
         setPicker("input");
-        setPickerIndex(
+        setPickerFilterText("");
+        const inputIdx = Math.max(
+          0,
+          inputDevices.findIndex(
+            (d) => d.index === preferences.defaultInputDeviceIndex,
+          ),
+        );
+        setPickerIndex(inputIdx);
+        setPickerScrollOffset(
           Math.max(
             0,
-            inputDevices.findIndex(
-              (d) => d.index === preferences.defaultInputDeviceIndex,
-            ),
+            Math.min(inputIdx, inputDevices.length - VISIBLE_PICKER_ROWS),
           ),
         );
         break;
-      case 4:
+      }
+      case 4: {
         setPicker("output");
-        setPickerIndex(
+        setPickerFilterText("");
+        const outputIdx = Math.max(
+          0,
+          outputDevices.findIndex(
+            (d) => d.index === preferences.defaultOutputDeviceIndex,
+          ),
+        );
+        setPickerIndex(outputIdx);
+        setPickerScrollOffset(
           Math.max(
             0,
-            outputDevices.findIndex(
-              (d) => d.index === preferences.defaultOutputDeviceIndex,
-            ),
+            Math.min(outputIdx, outputDevices.length - VISIBLE_PICKER_ROWS),
           ),
         );
         break;
-      case 6:
+      }
+      case 6: {
         setPicker("narrationModel");
-        setPickerIndex(
-          preferences.narrationModel
-            ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
-            : 0,
+        setPickerFilterText("");
+        const narrIdx = preferences.narrationModel
+          ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
+          : 0;
+        setPickerIndex(narrIdx);
+        setPickerScrollOffset(
+          Math.max(
+            0,
+            Math.min(narrIdx, narrationModelList.length - VISIBLE_PICKER_ROWS),
+          ),
         );
         break;
+      }
       case 7:
         setEditingOllamaUrl(true);
         setOllamaUrlInputValue(preferences.ollamaBaseUrl);
@@ -165,9 +272,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     preferences.mcpConfigPath,
     preferences.openrouterApiKey,
     ollamaModels,
+    openRouterModels,
     voices,
     inputDevices,
     outputDevices,
+    narrationModelList,
   ]);
 
   const confirmOllamaUrlEdit = useCallback(() => {
@@ -210,61 +319,58 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   }, []);
 
   const confirmPicker = useCallback(() => {
+    const selected = filteredPickerList[effectivePickerIndex];
+    if (selected === undefined) {
+      setPicker(null);
+      return;
+    }
     switch (picker) {
       case "provider":
-        if (PROVIDER_VALUES[pickerIndex]) {
+        if (PROVIDER_VALUES[effectivePickerIndex]) {
           savePreferences({
-            defaultChatProvider: PROVIDER_VALUES[pickerIndex] as ProviderValue,
+            defaultChatProvider: PROVIDER_VALUES[
+              effectivePickerIndex
+            ] as ProviderValue,
           });
         }
         break;
       case "model":
-        if (ollamaModels[pickerIndex]) {
-          savePreferences({ defaultChatModel: ollamaModels[pickerIndex]! });
-        }
+        savePreferences({ defaultChatModel: selected as string });
+        break;
+      case "openRouterModel":
+        savePreferences({
+          defaultChatModel: (selected as { id: string }).id,
+        });
         break;
       case "voice":
-        if (voices[pickerIndex]) {
-          savePreferences({ defaultVoice: voices[pickerIndex]! });
-        }
+        savePreferences({ defaultVoice: selected as string });
         break;
       case "input":
-        if (inputDevices[pickerIndex]) {
-          savePreferences({
-            defaultInputDeviceIndex: inputDevices[pickerIndex]!.index,
-          });
-        }
+        savePreferences({
+          defaultInputDeviceIndex: (selected as { index: number }).index,
+        });
         break;
       case "output":
-        if (outputDevices[pickerIndex]) {
-          savePreferences({
-            defaultOutputDeviceIndex: outputDevices[pickerIndex]!.index,
-          });
-        }
+        savePreferences({
+          defaultOutputDeviceIndex: (selected as { index: number }).index,
+        });
         break;
       case "narrationModel": {
-        const raw = narrationModelList[pickerIndex];
-        if (raw) {
-          savePreferences({
-            narrationModel: raw === "(same as chat)" ? "" : raw,
-          });
-        }
+        const raw = selected as string;
+        savePreferences({
+          narrationModel: raw === "(same as chat)" ? "" : raw,
+        });
         break;
       }
     }
     setPicker(null);
-  }, [
-    picker,
-    pickerIndex,
-    ollamaModels,
-    voices,
-    inputDevices,
-    outputDevices,
-    narrationModelList,
-    savePreferences,
-  ]);
+    setPickerFilterText("");
+  }, [picker, effectivePickerIndex, filteredPickerList, savePreferences]);
 
-  const closePicker = useCallback(() => setPicker(null), []);
+  const closePicker = useCallback(() => {
+    setPicker(null);
+    setPickerFilterText("");
+  }, []);
 
   const isEditing =
     editingOllamaUrl ||
@@ -272,83 +378,117 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     editingChatModel ||
     editingOpenrouterApiKey;
 
-  useKeyboard({
-    bindings: [
-      {
-        keys: ["upArrow", "k"],
-        action: () =>
-          isEditing
-            ? undefined
-            : picker
-              ? setPickerIndex((i) => cycle(i, pickerLen, -1))
-              : setSelectedRow((r) => cycle(r, ROW_COUNT, -1)),
-      },
-      {
-        keys: ["downArrow", "j"],
-        action: () =>
-          isEditing
-            ? undefined
-            : picker
-              ? setPickerIndex((i) => cycle(i, pickerLen, 1))
-              : setSelectedRow((r) => cycle(r, ROW_COUNT, 1)),
-      },
-      {
-        keys: ["return", "enter"],
-        action: editingOllamaUrl
-          ? confirmOllamaUrlEdit
-          : editingMcpConfigPath
-            ? confirmMcpConfigPathEdit
-            : editingChatModel
-              ? confirmChatModelEdit
-              : editingOpenrouterApiKey
-                ? confirmOpenrouterApiKeyEdit
-                : picker
-                  ? confirmPicker
-                  : selectedRow === 5
-                    ? () =>
-                        savePreferences({
-                          useNarrationForTTS: !preferences.useNarrationForTTS,
-                        })
-                    : openPicker,
-      },
-      ...(editingOllamaUrl
-        ? [{ keys: ["escape"], action: cancelOllamaUrlEdit }]
-        : editingMcpConfigPath
-          ? [{ keys: ["escape"], action: cancelMcpConfigPathEdit }]
-          : editingChatModel
-            ? [{ keys: ["escape"], action: cancelChatModelEdit }]
-            : editingOpenrouterApiKey
-              ? [{ keys: ["escape"], action: cancelOpenrouterApiKeyEdit }]
-              : picker
-                ? [{ keys: ["escape"], action: closePicker }]
-                : []),
-      {
-        keys: [...DEFAULT_KEYS.back],
-        action: editingOllamaUrl
-          ? cancelOllamaUrlEdit
-          : editingMcpConfigPath
-            ? cancelMcpConfigPathEdit
-            : editingChatModel
-              ? cancelChatModelEdit
-              : editingOpenrouterApiKey
-                ? cancelOpenrouterApiKeyEdit
-                : picker
-                  ? closePicker
-                  : onBack,
-      },
-      { keys: [...DEFAULT_KEYS.quit], action: quit },
-    ],
+  const movePickerSelection = useCallback(
+    (delta: number) => {
+      const next = cycle(effectivePickerIndex, pickerLen, delta);
+      setPickerIndex(next);
+      setPickerScrollOffset((s) => {
+        const maxScroll = Math.max(0, pickerLen - VISIBLE_PICKER_ROWS);
+        if (next < s) return Math.min(next, maxScroll);
+        if (next >= s + VISIBLE_PICKER_ROWS)
+          return Math.min(next - VISIBLE_PICKER_ROWS + 1, maxScroll);
+        return s;
+      });
+    },
+    [effectivePickerIndex, pickerLen],
+  );
+
+  useInput((input, key) => {
+    if (
+      picker &&
+      !key.ctrl &&
+      !key.meta &&
+      !(key as { alt?: boolean }).alt &&
+      !key.return
+    ) {
+      if (key.backspace) {
+        setPickerFilterText((t) => t.slice(0, -1));
+        return;
+      }
+      if (input.length === 1) {
+        setPickerFilterText((t) => t + input);
+        return;
+      }
+    }
+    const effectiveKey = key.escape
+      ? "escape"
+      : key.return
+        ? "return"
+        : key.upArrow
+          ? "upArrow"
+          : key.downArrow
+            ? "downArrow"
+            : key.tab
+              ? "tab"
+              : key.backspace
+                ? "backspace"
+                : input && key.ctrl
+                  ? `ctrl+${input.toLowerCase()}`
+                  : input;
+    if ((effectiveKey === "upArrow" || effectiveKey === "k") && !isEditing) {
+      if (picker) movePickerSelection(-1);
+      else setSelectedRow((r) => cycle(r, ROW_COUNT, -1));
+      return;
+    }
+    if ((effectiveKey === "downArrow" || effectiveKey === "j") && !isEditing) {
+      if (picker) movePickerSelection(1);
+      else setSelectedRow((r) => cycle(r, ROW_COUNT, 1));
+      return;
+    }
+    if (effectiveKey === "return" || effectiveKey === "enter") {
+      if (editingOllamaUrl) confirmOllamaUrlEdit();
+      else if (editingMcpConfigPath) confirmMcpConfigPathEdit();
+      else if (editingChatModel) confirmChatModelEdit();
+      else if (editingOpenrouterApiKey) confirmOpenrouterApiKeyEdit();
+      else if (picker) confirmPicker();
+      else if (selectedRow === 5)
+        savePreferences({
+          useNarrationForTTS: !preferences.useNarrationForTTS,
+        });
+      else openPicker();
+      return;
+    }
+    if (effectiveKey === "escape") {
+      if (editingOllamaUrl) cancelOllamaUrlEdit();
+      else if (editingMcpConfigPath) cancelMcpConfigPathEdit();
+      else if (editingChatModel) cancelChatModelEdit();
+      else if (editingOpenrouterApiKey) cancelOpenrouterApiKeyEdit();
+      else if (picker) closePicker();
+      else {
+        onBack();
+        return;
+      }
+      return;
+    }
+    if ((DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey)) {
+      if (editingOllamaUrl) cancelOllamaUrlEdit();
+      else if (editingMcpConfigPath) cancelMcpConfigPathEdit();
+      else if (editingChatModel) cancelChatModelEdit();
+      else if (editingOpenrouterApiKey) cancelOpenrouterApiKeyEdit();
+      else if (picker) closePicker();
+      else onBack();
+      return;
+    }
+    if ((DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey)) quit();
   });
 
   const state = {
     preferences,
     modelsLoading,
+    openRouterModelsLoading,
     inputDevicesLoading,
     outputDevicesLoading,
     selectedRow,
     picker,
     pickerIndex,
-    pickerList,
+    effectivePickerIndex,
+    pickerFilterText,
+    setPickerFilterText,
+    filteredPickerList,
+    visiblePickerSlice,
+    visiblePickerStart,
+    pickerLen,
+    visiblePickerRows: VISIBLE_PICKER_ROWS,
     inputDeviceLabel,
     outputDeviceLabel,
     editingOllamaUrl,
