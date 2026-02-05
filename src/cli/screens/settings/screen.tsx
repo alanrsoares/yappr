@@ -17,7 +17,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
 }
 
 function SettingsScreenContent() {
-  const [state] = useSettingsStore();
+  const [state, actions] = useSettingsStore();
   const {
     preferences,
     modelsLoading,
@@ -31,15 +31,15 @@ function SettingsScreenContent() {
     outputDeviceLabel,
     editingOllamaUrl,
     ollamaUrlInputValue,
-    setOllamaUrlInputValue,
-    confirmOllamaUrlEdit,
-    cancelOllamaUrlEdit,
     editingMcpConfigPath,
     mcpConfigPathInputValue,
+  } = state;
+  const {
+    setOllamaUrlInputValue,
+    confirmOllamaUrlEdit,
     setMcpConfigPathInputValue,
     confirmMcpConfigPathEdit,
-    cancelMcpConfigPathEdit,
-  } = state;
+  } = actions;
 
   if (editingMcpConfigPath) {
     return (

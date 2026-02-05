@@ -59,8 +59,14 @@ export interface ChatOptions {
   mcpConfigPath?: string;
   useTools?: boolean;
   onUpdate?: (content: string) => void;
-  /** Prior conversation messages for multi-turn chat. */
+  /** Prior conversation messages for multi-turn chat (user/assistant only; system use systemPrompts). */
   messages?: ChatMessage[];
+  /** System prompt(s) sent as system context. Prefer over putting system in messages. */
+  systemPrompts?: string[];
+  /** AbortController to cancel in-flight chat. */
+  abortController?: AbortController;
+  /** Called when an MCP tool call starts or ends (for UI status). */
+  onToolCall?: (name: string, phase: "start" | "end") => void;
 }
 
 export interface ListenStepOptions {

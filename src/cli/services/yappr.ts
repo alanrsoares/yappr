@@ -148,13 +148,18 @@ export function chat(
     useTools = true,
     onUpdate,
     messages: priorMessages = [],
+    systemPrompts: explicitSystemPrompts,
+    abortController,
+    onToolCall,
   } = options;
   const mcp = new McpManager();
 
+  const systemPrompts: string[] = explicitSystemPrompts ?? [];
+  const priorWithoutSystem = priorMessages.filter((m) => m.role !== "system");
   const messages: ModelMessage<string>[] = [
-    ...priorMessages.map(
+    ...priorWithoutSystem.map(
       (m): ModelMessage<string> => ({
-        role: (m.role === "system" ? "user" : m.role) as ModelMessage["role"],
+        role: m.role as ModelMessage["role"],
         content: m.content ?? "",
       }),
     ),
@@ -171,18 +176,35 @@ export function chat(
           try {
             const stream = tanstackChat({
               adapter: createOllamaChat(model, ollamaBaseUrl),
-              messages: messages,
+              messages,
+              ...(systemPrompts.length > 0 && { systemPrompts }),
               tools,
+              ...(abortController && { abortController }),
             });
 
             let finalContent = "";
             for await (const chunk of stream) {
-              if (chunk.type === "content") {
-                finalContent += chunk.delta;
+              if (abortController?.signal.aborted) {
+                const e = new Error("Chat was cancelled.");
+                (e as Error & { name: string }).name = "AbortError";
+                throw e;
+              }
+              if (chunk.type === "content" || chunk.type === "TEXT_MESSAGE_CONTENT") {
+                const delta = "delta" in chunk ? chunk.delta : "";
+                finalContent += delta;
                 onUpdate?.(finalContent);
+              } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
+                onToolCall?.(chunk.toolName, "start");
+              } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
+                onToolCall?.(chunk.toolName, "end");
               } else if (chunk.type === "RUN_ERROR") {
                 throw new Error(chunk.error.message);
               }
+            }
+            if (abortController?.signal.aborted) {
+              const e = new Error("Chat was cancelled.");
+              (e as Error & { name: string }).name = "AbortError";
+              throw e;
             }
             return finalContent || null;
           } finally {

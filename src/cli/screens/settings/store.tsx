@@ -276,18 +276,18 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     outputDeviceLabel,
     editingOllamaUrl,
     ollamaUrlInputValue,
-    setOllamaUrlInputValue,
-    confirmOllamaUrlEdit,
-    cancelOllamaUrlEdit,
     editingMcpConfigPath,
     mcpConfigPathInputValue,
-    setMcpConfigPathInputValue,
-    confirmMcpConfigPathEdit,
-    cancelMcpConfigPathEdit,
   };
 
   const actions = {
     onBack,
+    setOllamaUrlInputValue,
+    confirmOllamaUrlEdit,
+    cancelOllamaUrlEdit,
+    setMcpConfigPathInputValue,
+    confirmMcpConfigPathEdit,
+    cancelMcpConfigPathEdit,
   };
 
   return [state, actions] as const;

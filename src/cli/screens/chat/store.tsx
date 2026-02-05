@@ -28,8 +28,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [phase, setPhase] = useState<ChatPhase>("idle");
   const [streamingResponse, setStreamingResponse] = useState("");
+  const [activeToolCall, setActiveToolCall] = useState<string | null>(null);
   const [hasStoppedRecording, setHasStoppedRecording] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const chatAbortRef = useRef<AbortController | null>(null);
 
   const { preferences } = usePreferences();
   const {
@@ -44,7 +46,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const chatMutation = useMutation<string | null, Error, string>((prompt) => {
     setPhase("thinking");
     setStreamingResponse("");
+    setActiveToolCall(null);
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    chatAbortRef.current = new AbortController();
     const priorMessages: ChatMessage[] = messages.map((m) => ({
       role: m.role,
       content: m.content,
@@ -55,6 +59,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       mcpConfigPath,
       messages: priorMessages,
       onUpdate: (text) => setStreamingResponse(text),
+      abortController: chatAbortRef.current,
+      onToolCall: (name, phase) => {
+        setActiveToolCall(phase === "start" ? name : null);
+      },
     })
       .andThen((text) => {
         if (!text) return okAsync(null);
@@ -85,9 +93,16 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       .mapErr((err) => {
         setPhase("idle");
         setStreamingResponse("");
+        setActiveToolCall(null);
         return err;
       });
   });
+
+  const stopChat = useCallback(() => {
+    if (chatAbortRef.current && chatMutation.isPending) {
+      chatAbortRef.current.abort();
+    }
+  }, [chatMutation.isPending]);
 
   const sttMutation = useMutation<string, Error, AbortSignal>(
     (signal) =>
@@ -157,6 +172,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       messageCount={messages.length}
       sttError={sttMutation.error ?? null}
       chatError={chatMutation.error ?? null}
+      activeToolCall={activeToolCall}
     />
   );
 
@@ -166,16 +182,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     (chatMutation.isPending && phase === "thinking") ||
     (chatMutation.isPending && phase === "narrating") ||
     (chatMutation.isPending && phase === "speaking") ||
+    (chatMutation.isPending && !!activeToolCall) ||
     sttPhase !== "idle" ||
     sttMutation.error !== undefined ||
     chatMutation.isError;
-
-  const footerItems = [
-    { key: "ctrl+t", label: "voice" },
-    { key: "Esc", label: "back" },
-    { key: "q", label: "quit" },
-    ...(value.trim() ? [{ key: "Enter", label: "submit" }] : []),
-  ];
 
   const state = {
     model,
@@ -186,7 +196,13 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     streamingResponse,
     statusContent,
     showStatusLine,
-    footerItems,
+    footerItems: [
+      { key: "ctrl+t", label: "voice" },
+      { key: "Esc", label: "back" },
+      { key: "q", label: "quit" },
+      ...(chatMutation.isPending ? [{ key: "ctrl+c", label: "stop" }] : []),
+      ...(value.trim() ? [{ key: "Enter", label: "submit" }] : []),
+    ],
   };
 
   const actions = {
@@ -195,6 +211,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     handleSubmit,
     /** Abort in-flight voice recording so quit can exit cleanly. */
     stopStt,
+    /** Abort in-flight chat generation. */
+    stopChat,
   };
 
   return [state, actions] as const;

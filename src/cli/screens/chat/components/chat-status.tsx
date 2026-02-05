@@ -14,6 +14,12 @@ export interface ChatStatusProps {
   messageCount: number;
   sttError: Error | null;
   chatError: Error | null;
+  /** When set, an MCP tool is currently being called (show "Calling &lt;name&gt;…"). */
+  activeToolCall?: string | null;
+}
+
+function isAbortError(err: Error): boolean {
+  return err.name === "AbortError" || err.message?.toLowerCase().includes("abort");
 }
 
 export function ChatStatus({
@@ -24,7 +30,13 @@ export function ChatStatus({
   messageCount,
   sttError,
   chatError,
+  activeToolCall,
 }: ChatStatusProps): ReactNode {
+  if (isChatPending && activeToolCall) {
+    return (
+      <Text color="cyan">Calling tool: {activeToolCall}…</Text>
+    );
+  }
   if (isChatPending && chatPhase === "thinking" && !hasStreamingResponse) {
     return <Loading message="Thinking…" />;
   }
@@ -43,8 +55,11 @@ export function ChatStatus({
   if (sttError) {
     return <Text color="red">STT: {sttError.message}</Text>;
   }
-  if (chatError) {
+  if (chatError && !isAbortError(chatError)) {
     return <Text color="red">{chatError.message}</Text>;
+  }
+  if (chatError && isAbortError(chatError)) {
+    return <Text dimColor>Cancelled.</Text>;
   }
   if (messageCount === 0 && !hasStreamingResponse && !isChatPending) {
     return (
