@@ -9,11 +9,11 @@ export interface UseKeyboardOptions {
   bindings: KeyBinding[];
 }
 
-type ExtendedKey = Key & {
+export type ExtendedKey = Key & {
   [K in `f${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12}`]?: boolean;
 };
 
-function getEffectiveKey(input: string, key: ExtendedKey): string {
+export function getEffectiveKey(input: string, key: ExtendedKey): string {
   if (key.escape) return "escape";
   if (key.return) return "return";
   if (key.upArrow) return "upArrow";

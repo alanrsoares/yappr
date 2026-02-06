@@ -6,6 +6,7 @@
     "openapi:export": "python/venv/bin/python python/export_openapi.py",
     "lint": "eslint .",
     "test:py": "cd python && python -m pytest tests/ -v",
+    "test": "bun test",
     "tui": "bun run src/cli/app.tsx",
     "serve": "bun run src/cli/index.ts serve",
     "speak": "bun run src/cli/index.ts speak",
