@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "start:py": "python/venv/bin/python python/server.py",
+    "openapi:export": "python/venv/bin/python python/export_openapi.py",
     "lint": "eslint .",
     "test:py": "cd python && python -m pytest tests/ -v",
     "tui": "bun run src/cli/app.tsx",
