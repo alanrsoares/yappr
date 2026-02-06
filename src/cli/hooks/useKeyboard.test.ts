@@ -30,7 +30,7 @@ function key(overrides: Partial<ExtendedKey> = {}): ExtendedKey {
     f11: false,
     f12: false,
     ...overrides,
-  };
+  } as ExtendedKey;
 }
 
 test("getEffectiveKey maps special keys", () => {
