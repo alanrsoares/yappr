@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-
 import { expect, test } from "bun:test";
 
 import {
@@ -14,11 +13,10 @@ function withTempHome<T>(fn: (homeDir: string) => Promise<T>): Promise<T> {
   const originalHome = process.env.HOME;
   const homeDir = mkdtempSync(path.join(tmpdir(), "yappr-test-"));
   process.env.HOME = homeDir;
-  return fn(homeDir)
-    .finally(() => {
-      process.env.HOME = originalHome;
-      rmSync(homeDir, { recursive: true, force: true });
-    });
+  return fn(homeDir).finally(() => {
+    process.env.HOME = originalHome;
+    rmSync(homeDir, { recursive: true, force: true });
+  });
 }
 
 test("loadPreferences returns defaults when settings file does not exist", async () => {
@@ -96,4 +94,3 @@ test("loadPreferences migrates legacy defaultOllamaModel into chat defaults", as
     expect(prefs.defaultChatModel).toBe(DEFAULT_PREFERENCES.defaultChatModel);
   });
 });
-

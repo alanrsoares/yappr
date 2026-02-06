@@ -3,7 +3,6 @@ export type ScreenId =
   | "mcp"
   | "speak"
   | "chat"
-  | "listen"
   | "voices"
   | "settings";
 
@@ -49,12 +48,6 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface ListenStepResult {
-  transcript: string;
-  response: string | null;
-  error?: string;
-}
-
 export interface SpeakOptions {
   voice?: string;
   speed?: number;
@@ -82,18 +75,6 @@ export interface ChatOptions {
   abortController?: AbortController;
   /** Called when an MCP tool call starts or ends (for UI status). */
   onToolCall?: (name: string, phase: "start" | "end") => void;
-}
-
-export interface ListenStepOptions {
-  deviceIndex?: number;
-  provider?: ChatProvider;
-  model?: string;
-  voice?: string;
-  recordSignal?: AbortSignal;
-  ollamaBaseUrl?: string;
-  openrouterApiKey?: string;
-  useNarrationForTTS?: boolean;
-  narrationModel?: string;
 }
 
 export interface NarrationOptions {

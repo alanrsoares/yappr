@@ -58,4 +58,3 @@ test("getEffectiveKey falls back to raw input when no special mapping", () => {
   expect(getEffectiveKey("a", key())).toBe("a");
   expect(getEffectiveKey("Z", key())).toBe("Z");
 });
-

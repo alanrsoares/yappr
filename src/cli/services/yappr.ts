@@ -19,13 +19,7 @@ import { McpManager } from "~/sdk/mcp.js";
 import { AudioRecorder } from "~/sdk/recorder.js";
 import { TTSClient } from "~/sdk/tts.js";
 import { MCP_CONFIG_PATH } from "../constants.js";
-import type {
-  ChatOptions,
-  ListenStepOptions,
-  ListenStepResult,
-  NarrationOptions,
-  SpeakOptions,
-} from "../types.js";
+import type { ChatOptions, NarrationOptions, SpeakOptions } from "../types.js";
 
 export type { AudioDevice };
 export { listInputDevices, listOutputDevices };
@@ -484,69 +478,4 @@ export function recordAndTranscribe(
     .record(INPUT_WAV, deviceIndex, { signal: recordSignal })
     .andThen(() => defaultTts.transcribe(INPUT_WAV))
     .map((t) => t?.trim() ?? "");
-}
-
-/** One listen cycle: record → transcribe → chat → [narrate] → speak. */
-export function runListenStep(
-  options: ListenStepOptions = {},
-): ResultAsync<ListenStepResult, Error> {
-  const {
-    deviceIndex = 0,
-    provider = "ollama",
-    model = "qwen2.5:14b",
-    voice = "af_bella",
-    recordSignal,
-    ollamaBaseUrl,
-    openrouterApiKey,
-    useNarrationForTTS = false,
-    narrationModel,
-  } = options;
-
-  if (!recordSignal) {
-    return errAsync(new Error("recordSignal (AbortSignal) required for TUI"));
-  }
-
-  return recordAndTranscribe({ deviceIndex, recordSignal }).andThen(
-    (transcript) => {
-      if (!transcript || transcript.length < 2) {
-        return okAsync<ListenStepResult, Error>({
-          transcript,
-          response: null,
-        });
-      }
-      return chat(transcript, {
-        provider,
-        model,
-        ollamaBaseUrl,
-        openrouterApiKey,
-      }).andThen((response) => {
-        if (!response) {
-          return okAsync<ListenStepResult, Error>({
-            transcript,
-            response: null,
-          });
-        }
-        const modelForNarration = narrationModel || model;
-        if (useNarrationForTTS && modelForNarration) {
-          return narrateResponse(response, {
-            model: modelForNarration,
-            provider: narrationModel ? "ollama" : provider,
-            ollamaBaseUrl,
-            openrouterApiKey: narrationModel ? undefined : openrouterApiKey,
-          })
-            .map((narration) => narration.trim() || response)
-            .andThen((toSpeak) =>
-              speak(toSpeak, { voice }).map(() => ({
-                transcript,
-                response,
-              })),
-            );
-        }
-        return speak(response, { voice }).map(() => ({
-          transcript,
-          response,
-        }));
-      });
-    },
-  );
 }

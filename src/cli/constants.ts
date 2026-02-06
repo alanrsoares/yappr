@@ -11,8 +11,7 @@ export const DEFAULT_KEYS = {
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "mcp", label: "MCP servers" },
   { id: "speak", label: "Speak (text → speech)" },
-  { id: "chat", label: "Chat (prompt → Ollama + TTS)" },
-  { id: "listen", label: "Listen (voice → transcribe → chat → TTS)" },
+  { id: "chat", label: "Chat (interactive + voice mode)" },
   { id: "voices", label: "List voices" },
   { id: "settings", label: "Settings" },
 ];

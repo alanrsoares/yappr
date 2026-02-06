@@ -57,29 +57,31 @@ bun run serve
 
 _(On first run, it will download the Kokoro and Whisper models ~400MB total)._
 
-### 2. Voice-to-Voice Mode (Recommended)
+### 2. Interactive TUI (Recommended)
 
-Start an interactive voice session. It will list your microphones; select one and start yapping!
-
-```bash
-bun run listen
-```
-
-### 3. Text Chat with Voice Output
-
-Chat with Ollama via text and hear the response synthesized.
+Start the full interactive terminal interface. From here you can access chat, voice mode, settings, and MCP status.
 
 ```bash
-bun run chat "What is the capital of France?" --model qwen2.5:14b
+bun run tui
 ```
 
-### 4. Simple Text-to-Speech
+### 3. Quick CLI Commands
+
+Yappr also supports one-shot commands directly from your shell:
+
+#### Text-to-Speech
 
 ```bash
 bun run speak "Hello, I am speaking from your terminal." --voice af_sky --speed 1.1
 ```
 
-### 5. List Available Voices
+#### Text Chat
+
+```bash
+bun run chat "What is the capital of France?" --model qwen2.5:14b
+```
+
+#### List Voices
 
 ```bash
 bun run voices
