@@ -45,5 +45,6 @@ __pycache__
 *.egg-info
 *.egg
 
-# Audio Artifacts
+# Audio Artifacts / tmp
+tmp
 *.wav

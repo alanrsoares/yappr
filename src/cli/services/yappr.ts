@@ -2,6 +2,7 @@
  * Shared yappr actions for the TUI (and optionally CLI). Uses SDK + Ollama.
  * Public async API returns ResultAsync for consistent, functional error handling.
  */
+import { mkdirSync } from "fs";
 import path from "path";
 import { chat as tanstackChat, type ModelMessage } from "@tanstack/ai";
 import { createOllamaChat } from "@tanstack/ai-ollama";
@@ -30,8 +31,11 @@ export type { AudioDevice };
 export { listInputDevices, listOutputDevices };
 
 const PROJECT_ROOT = path.resolve(process.cwd());
-const INPUT_WAV = path.join(PROJECT_ROOT, "input.wav");
-const OUTPUT_WAV = path.join(PROJECT_ROOT, "output.wav");
+const TMP_DIR = path.join(PROJECT_ROOT, "tmp");
+const INPUT_WAV = path.join(TMP_DIR, "input.wav");
+const OUTPUT_WAV = path.join(TMP_DIR, "output.wav");
+
+mkdirSync(TMP_DIR, { recursive: true });
 
 const defaultTts = new TTSClient();
 const defaultRecorder = new AudioRecorder();
