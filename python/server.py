@@ -105,7 +105,7 @@ def synthesize(request: SynthesizeRequest) -> Response:
 
 
 @app.post("/transcribe")
-async def transcribe(file: UploadFile = File(...)) -> Response:
+async def transcribe(file: UploadFile = File(...)) -> Response:  # noqa: B008
     """Transcribe uploaded audio file."""
     content = await file.read()
     result = await core.transcribe_upload(content, filename=file.filename)

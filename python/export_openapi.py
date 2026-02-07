@@ -1,4 +1,5 @@
 import json
+
 from server import app
 
 # Ensure the OpenAPI schema is generated
