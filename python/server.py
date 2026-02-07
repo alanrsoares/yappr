@@ -49,7 +49,7 @@ def _load_stt() -> Any:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> Any:
+async def lifespan(_app: FastAPI) -> Any:
     global _pipeline
     if os.environ.get("YAPPR_TEST"):
         _pipeline = None

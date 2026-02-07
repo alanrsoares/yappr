@@ -42,7 +42,7 @@ class Ok(Generic[T, E]):
     def match(self, ok: Callable[[T], U], _err: Callable[[E], U]) -> U:
         return ok(self._value)
 
-    def unwrap_or(self, default: U) -> T | U:
+    def unwrap_or(self, _default: U) -> T | U:
         return self._value
 
 
