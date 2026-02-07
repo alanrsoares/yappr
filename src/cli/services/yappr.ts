@@ -7,7 +7,7 @@ import path from "path";
 import { chat as tanstackChat, type ModelMessage } from "@tanstack/ai";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { spawn } from "bun";
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync } from "neverthrow";
 import ollama, { Ollama } from "ollama";
 
 import {
