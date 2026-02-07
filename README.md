@@ -32,18 +32,18 @@ Yappr uses a hybrid architecture for maximum performance:
 
 ### Installation
 
-1. **Clone and Install JS Dependencies:**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/yappr.git
+cd yappr
 
-   ```bash
-   bun install
-   ```
+# Run the unified setup script
+./setup.sh
+```
 
-2. **Setup Python Environment:**
-   ```bash
-   python3 -m venv python/venv
-   source python/venv/bin/activate
-   pip install -r python/requirements.txt
-   ```
+### Manual Installation (Alternative)
+
+If you prefer to set up components individually:
 
 ## 📖 Usage
 
