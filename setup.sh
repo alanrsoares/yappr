@@ -3,6 +3,9 @@
 # Yappr Unified Setup Script
 set -e
 
+# Ensure we are in the project root
+cd "$(dirname "$0")"
+
 echo "🎙️ Setting up Yappr..."
 
 # 1. Check for system dependencies
