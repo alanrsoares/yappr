@@ -1,4 +1,4 @@
-import { Box, Text, useStdout } from "ink";
+import { Box, Text } from "ink";
 
 export interface FooterItem {
   key: string;
@@ -10,20 +10,15 @@ export interface FooterProps {
 }
 
 export function Footer({ items }: FooterProps) {
-  const { stdout } = useStdout();
-  const terminalWidth = stdout.columns ?? 80;
-  // Account for screen padding (1 each side)
-  const width = Math.max(0, terminalWidth - 2);
-
   return (
-    <Box marginTop={1} width={width}>
+    <Box marginTop={1} flexDirection="row" flexWrap="wrap">
       {items.map((item, i) => (
-        <Box key={item.key} marginRight={i < items.length - 1 ? 2 : 0}>
-          <Text dimColor inverse>
-            {" "}
-            {item.key}{" "}
+        <Box key={item.key}>
+          <Text dimColor>
+            <Text bold>{item.key}</Text>
+            <Text> {item.label}</Text>
+            {i < items.length - 1 && <Text>  ·  </Text>}
           </Text>
-          <Text dimColor> {item.label}</Text>
         </Box>
       ))}
     </Box>
