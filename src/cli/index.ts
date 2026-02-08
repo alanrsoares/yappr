@@ -28,55 +28,58 @@ async function run() {
         "Please use 'bun run start:py' to start the python inference server.",
       );
       break;
-    case "voices": {
-      const voices = await listVoices();
-      voices.match(
-        (v) => console.log(v.join("\n")),
-        (e) => console.error("Error listing voices:", e.message),
-      );
-    }
-      break;
-    case "speak": {
-      const text = positionals.slice(1).join(" ");
-      if (!text) {
-        console.error(
-          'Usage: bun run speak "text to speak" [--voice af_sky] [--speed 1.0]',
+    case "voices":
+      {
+        const voices = await listVoices();
+        voices.match(
+          (v) => console.log(v.join("\n")),
+          (e) => console.error("Error listing voices:", e.message),
         );
-        return;
       }
-      const speakRes = await speak(text, {
-        voice: values.voice,
-        speed: values.speed ? parseFloat(values.speed) : 1.0,
-      });
-      speakRes.match(
-        () => { },
-        (e) => console.error("Error:", e.message),
-      );
-    }
       break;
-    case "chat": {
-      const prompt = positionals.slice(1).join(" ");
-      if (!prompt) {
-        console.error(
-          'Usage: bun run chat "your prompt" [--model qwen2.5:14b]',
+    case "speak":
+      {
+        const text = positionals.slice(1).join(" ");
+        if (!text) {
+          console.error(
+            'Usage: bun run speak "text to speak" [--voice af_sky] [--speed 1.0]',
+          );
+          return;
+        }
+        const speakRes = await speak(text, {
+          voice: values.voice,
+          speed: values.speed ? parseFloat(values.speed) : 1.0,
+        });
+        speakRes.match(
+          () => {},
+          (e) => console.error("Error:", e.message),
         );
-        return;
       }
-      console.log(`Asking ${values.model || "default model"}...`);
-      let lastLength = 0;
-      const chatRes = await chat(prompt, {
-        model: values.model,
-        onUpdate: (content) => {
-          process.stdout.write(content.slice(lastLength));
-          lastLength = content.length;
-        },
-      });
-      console.log(""); // newline
-      chatRes.match(
-        () => { },
-        (e) => console.error("Error:", e.message),
-      );
-    }
+      break;
+    case "chat":
+      {
+        const prompt = positionals.slice(1).join(" ");
+        if (!prompt) {
+          console.error(
+            'Usage: bun run chat "your prompt" [--model qwen2.5:14b]',
+          );
+          return;
+        }
+        console.log(`Asking ${values.model || "default model"}...`);
+        let lastLength = 0;
+        const chatRes = await chat(prompt, {
+          model: values.model,
+          onUpdate: (content) => {
+            process.stdout.write(content.slice(lastLength));
+            lastLength = content.length;
+          },
+        });
+        console.log(""); // newline
+        chatRes.match(
+          () => {},
+          (e) => console.error("Error:", e.message),
+        );
+      }
       break;
     default:
       console.log(`
