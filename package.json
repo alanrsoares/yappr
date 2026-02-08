@@ -38,6 +38,7 @@
     "@tanstack/ai": "^0.3.0",
     "@tanstack/ai-ollama": "^0.3.0",
     "ink": "^6.6.0",
+    "ink-markdown": "^1.0.4",
     "ink-text-input": "^6.0.0",
     "neverthrow": "^8.2.0",
     "ollama": "^0.6.3",

@@ -1,4 +1,5 @@
 import { Box, Text } from "ink";
+import Markdown from "ink-markdown";
 
 export interface MessageBubbleProps {
   role: "user" | "assistant";
@@ -25,7 +26,7 @@ export function MessageBubble({
         paddingX={1}
         paddingY={0}
       >
-        <Text>{content}</Text>
+        <Markdown>{content}</Markdown>
       </Box>
     </Box>
   );
