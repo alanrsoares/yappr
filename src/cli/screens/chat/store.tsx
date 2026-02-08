@@ -182,17 +182,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     />
   );
 
-  const showStatusLine =
-    statusContent !== null ||
-    (chatMutation.isPending && !!streamingResponse) ||
-    (chatMutation.isPending && phase === "thinking") ||
-    (chatMutation.isPending && phase === "narrating") ||
-    (chatMutation.isPending && phase === "speaking") ||
-    (chatMutation.isPending && !!activeToolCall) ||
-    sttPhase !== "idle" ||
-    sttMutation.error !== undefined ||
-    chatMutation.isError;
-
   const state = {
     provider,
     model,
@@ -202,7 +191,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     messages,
     streamingResponse,
     statusContent,
-    showStatusLine,
     footerItems: [
       { key: "ctrl+t", label: "voice" },
       { key: "Esc", label: "back" },

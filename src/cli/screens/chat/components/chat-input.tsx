@@ -15,8 +15,18 @@ export function ChatInput({
   placeholder,
 }: ChatInputProps) {
   return (
-    <Box flexDirection="row" alignItems="center">
-      <Text color="cyan">› </Text>
+    <Box
+      borderStyle="round"
+      borderColor="gray"
+      paddingX={1}
+      flexDirection="row"
+      alignItems="center"
+    >
+      <Box marginRight={1}>
+        <Text color="green" bold>
+          ›
+        </Text>
+      </Box>
       <TextInput
         value={value}
         onChange={onChange}

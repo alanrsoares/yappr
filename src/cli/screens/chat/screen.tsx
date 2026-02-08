@@ -1,6 +1,6 @@
-import { Box } from "ink";
+import { Box, Text } from "ink";
 
-import { Footer, Header } from "~/cli/components";
+import { Footer } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
@@ -39,19 +39,27 @@ function ChatScreenContent() {
   });
 
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header
-        title="Chat"
-        subtitle={`${state.provider}: ${state.model}  ·  Voice: ${state.voice}${state.useNarrationForTTS ? "  ·  Narration: on" : ""}`}
-      />
-
+    <Box flexDirection="column" paddingX={1} paddingTop={1}>
       <ChatHistory
         messages={state.messages}
         streamingResponse={state.streamingResponse}
         modelName={state.model}
-        statusContent={state.statusContent}
-        showStatusLine={state.showStatusLine}
       />
+
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        height={1}
+        marginBottom={0}
+      >
+        <Box>{state.statusContent}</Box>
+        <Box>
+          <Text dimColor>
+            {state.model} ({state.provider})
+          </Text>
+        </Box>
+      </Box>
 
       <ChatInput
         value={state.value}

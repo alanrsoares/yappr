@@ -13,14 +13,17 @@ export function MessageBubble({
   borderColor,
 }: MessageBubbleProps) {
   return (
-    <Box marginBottom={1} flexDirection="column">
-      <Text dimColor>{label}</Text>
+    <Box flexDirection="column" marginBottom={1}>
+      <Box marginBottom={0} marginLeft={1}>
+        <Text bold color={borderColor}>
+          {label}
+        </Text>
+      </Box>
       <Box
-        borderStyle="single"
+        borderStyle="round"
         borderColor={borderColor}
         paddingX={1}
-        paddingY={1}
-        flexDirection="column"
+        paddingY={0}
       >
         <Text>{content}</Text>
       </Box>
