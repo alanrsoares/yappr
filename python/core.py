@@ -10,7 +10,7 @@ import tempfile
 from typing import Any
 
 import numpy as np
-import soundfile as sf
+import soundfile as sf  # type: ignore[import-untyped]
 
 from result import Err, Ok, Result
 
