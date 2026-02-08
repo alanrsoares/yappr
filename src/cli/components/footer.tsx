@@ -7,11 +7,9 @@ export interface FooterItem {
 
 export interface FooterProps {
   items: FooterItem[];
-  /** Gap between items, e.g. "  " */
-  separator?: string;
 }
 
-export function Footer({ items, separator = "  " }: FooterProps) {
+export function Footer({ items }: FooterProps) {
   const { stdout } = useStdout();
   const terminalWidth = stdout.columns ?? 80;
   // Account for screen padding (1 each side)

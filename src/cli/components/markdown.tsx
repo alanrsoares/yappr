@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { highlight } from "cli-highlight";
 import { Text } from "ink";
-import { marked } from "marked";
+import { marked, type Renderer } from "marked";
 import TerminalRenderer from "marked-terminal";
 
 export interface MarkdownProps {
@@ -21,14 +21,14 @@ const renderer = new TerminalRenderer({
 });
 
 marked.setOptions({
-  renderer: renderer as any,
+  renderer: renderer as unknown as Renderer,
 });
 
 export function Markdown({ children }: MarkdownProps) {
   const content = useMemo(() => {
     try {
       return marked.parse(children) as string;
-    } catch (e) {
+    } catch (_) {
       return children;
     }
   }, [children]);
