@@ -2,7 +2,6 @@
 Result type for explicit error handling (neverthrow-style).
 Use Ok(value) / Err(error) and .map(), .and_then(), .match() for fluent, type-safe flows.
 """
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -37,13 +36,13 @@ class Ok(Generic[T, E]):
     def and_then(self, f: Callable[[T], Result[U, E]]) -> Result[U, E]:
         return f(self._value)
 
-    def map_err(self, _f: Callable[[E], E]) -> Result[T, E]:
+    def map_err(self, f: Callable[[E], E]) -> Result[T, E]:  # noqa: ARG002
         return self
 
-    def match(self, ok: Callable[[T], U], _err: Callable[[E], U]) -> U:
+    def match(self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:  # noqa: ARG002
         return ok(self._value)
 
-    def unwrap_or(self, _default: U) -> T | U:
+    def unwrap_or(self, default: U) -> T | U:  # noqa: ARG002
         return self._value
 
 
@@ -65,16 +64,16 @@ class Err(Generic[T, E]):
     def is_err(self) -> bool:
         return True
 
-    def map(self, _f: Callable[[T], U]) -> Result[U, E]:
+    def map(self, f: Callable[[T], U]) -> Result[U, E]:  # noqa: ARG002
         return self  # type: ignore[return-value]
 
-    def and_then(self, _f: Callable[[T], Result[U, E]]) -> Result[U, E]:
+    def and_then(self, f: Callable[[T], Result[U, E]]) -> Result[U, E]:  # noqa: ARG002
         return self  # type: ignore[return-value]
 
     def map_err(self, f: Callable[[E], E]) -> Result[T, E]:
         return Err(f(self._error))
 
-    def match(self, _ok: Callable[[T], U], err: Callable[[E], U]) -> U:
+    def match(self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:  # noqa: ARG002
         return err(self._error)
 
     def unwrap_or(self, default: U) -> T | U:

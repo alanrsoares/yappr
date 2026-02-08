@@ -85,7 +85,7 @@ def get_voices() -> Response:
     result = core.get_voices()
     return result.match(
         ok=lambda voices: JSONResponse(content={"voices": voices}),
-        _err=lambda e: _err_response(500, str(e)),
+        err=lambda e: _err_response(500, str(e)),
     )
 
 
@@ -103,7 +103,7 @@ def synthesize(request: SynthesizeRequest) -> Response:
     )
     return result.match(
         ok=lambda body: Response(content=body, media_type="audio/wav"),
-        _err=lambda e: _err_response(500, str(e)),
+        err=lambda e: _err_response(500, str(e)),
     )
 
 
@@ -116,7 +116,7 @@ async def transcribe(file: UploadFile = File(...)) -> Response:  # noqa: B008
         ok=lambda t: JSONResponse(
             content={"text": t[0], "language": t[1], "probability": t[2]},
         ),
-        _err=lambda e: _err_response(
+        err=lambda e: _err_response(
             503 if "not loaded" in str(e) else 500,
             str(e),
         ),
