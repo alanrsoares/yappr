@@ -1,3 +1,4 @@
+import { highlight } from "cli-highlight";
 import { Box, Text } from "ink";
 import Markdown from "ink-markdown";
 
@@ -26,7 +27,19 @@ export function MessageBubble({
         paddingX={1}
         paddingY={0}
       >
-        <Markdown>{content}</Markdown>
+        <Markdown
+          code={(code: string, lang?: string) => {
+            // Check if lang is valid string, otherwise undefined to let auto-detect or default
+            const language = lang && lang.trim() ? lang.trim() : undefined;
+            try {
+              return highlight(code, { language, ignoreIllegals: true });
+            } catch {
+              return code;
+            }
+          }}
+        >
+          {content}
+        </Markdown>
       </Box>
     </Box>
   );
