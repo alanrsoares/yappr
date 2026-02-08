@@ -435,7 +435,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       else setSelectedRow((r) => cycle(r, ROW_COUNT, 1));
       return;
     }
-    if (effectiveKey === "return" || effectiveKey === "enter") {
+    if (effectiveKey === "return" || effectiveKey === "enter" || effectiveKey === "ctrl+s") {
       if (editingOllamaUrl) confirmOllamaUrlEdit();
       else if (editingMcpConfigPath) confirmMcpConfigPathEdit();
       else if (editingChatModel) confirmChatModelEdit();
@@ -469,7 +469,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       else onBack();
       return;
     }
-    if ((DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey)) quit();
+    if ((DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey) || effectiveKey === "ctrl+q") quit();
   });
 
   const state = {

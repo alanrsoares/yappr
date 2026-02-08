@@ -67,14 +67,14 @@ function SettingsScreenContent() {
             placeholder="e.g. openai/gpt-4o"
           />
           <Box marginTop={1}>
-            <Text dimColor>Enter save · Esc cancel</Text>
+            <Text dimColor>Enter or ^S save · Esc cancel</Text>
           </Box>
         </Box>
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "Esc", label: "back" },
-            { key: "q", label: "quit" },
+            { key: "Ctrl+s", label: "save" },
+            { key: "Ctrl+q", label: "quit" },
           ]}
         />
       </Box>
@@ -94,14 +94,14 @@ function SettingsScreenContent() {
             placeholder="sk-or-..."
           />
           <Box marginTop={1}>
-            <Text dimColor>Enter save · Esc cancel</Text>
+            <Text dimColor>Enter or ^S save · Esc cancel</Text>
           </Box>
         </Box>
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "Esc", label: "back" },
-            { key: "q", label: "quit" },
+            { key: "Ctrl+s", label: "save" },
+            { key: "Ctrl+q", label: "quit" },
           ]}
         />
       </Box>
@@ -121,14 +121,14 @@ function SettingsScreenContent() {
             placeholder="~/.cursor/mcp.json"
           />
           <Box marginTop={1}>
-            <Text dimColor>Enter save · Esc cancel</Text>
+            <Text dimColor>Enter or ^S save · Esc cancel</Text>
           </Box>
         </Box>
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "Esc", label: "back" },
-            { key: "q", label: "quit" },
+            { key: "Ctrl+s", label: "save" },
+            { key: "Ctrl+q", label: "quit" },
           ]}
         />
       </Box>
@@ -148,14 +148,14 @@ function SettingsScreenContent() {
             placeholder="http://localhost:11434"
           />
           <Box marginTop={1}>
-            <Text dimColor>Enter save · Esc cancel</Text>
+            <Text dimColor>Enter or ^S save · Esc cancel</Text>
           </Box>
         </Box>
         <Footer
           items={[
             { key: "Esc", label: "cancel" },
-            { key: "Esc", label: "back" },
-            { key: "q", label: "quit" },
+            { key: "Ctrl+s", label: "save" },
+            { key: "Ctrl+q", label: "quit" },
           ]}
         />
       </Box>
@@ -268,7 +268,7 @@ function SettingsScreenContent() {
             </Text>
           </Box>
           <Box marginTop={1}>
-            <Text dimColor>Enter to change · Esc back · q quit</Text>
+            <Text dimColor>Enter to change · Esc back · ^Q quit</Text>
           </Box>
         </Box>
       ) : (
@@ -314,7 +314,7 @@ function SettingsScreenContent() {
               {pickerLen > visiblePickerRows
                 ? `${visiblePickerStart + 1}-${Math.min(visiblePickerStart + visiblePickerSlice.length, pickerLen)} of ${pickerLen} · `
                 : ""}
-              ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel
+              ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel · ^Q quit
             </Text>
           </Box>
         </Box>
@@ -323,7 +323,7 @@ function SettingsScreenContent() {
       <Footer
         items={[
           { key: "Esc", label: "back" },
-          { key: "q", label: "quit" },
+          { key: "Ctrl+q", label: "quit" },
         ]}
       />
     </Box>
