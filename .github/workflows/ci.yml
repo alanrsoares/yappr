@@ -43,7 +43,7 @@ jobs:
           cache-dependency-glob: "python/pyproject.toml"
 
       - name: Set up Python
-        run: uv python install 3.10
+        run: uv python install 3.11
 
       - name: Install dependencies
         run: |

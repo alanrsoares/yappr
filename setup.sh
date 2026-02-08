@@ -7,7 +7,7 @@ echo "🎙️ Setting up Yappr..."
 
 # 1. Check for system dependencies
 command -v bun >/dev/null 2>&1 || { echo >&2 "❌ Bun is not installed. Visit https://bun.sh"; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo >&2 "❌ Python 3 is not installed."; exit 1; }
+python3 -c 'import sys; exit(0 if sys.version_info >= (3, 11) else 1)' || { echo >&2 "❌ Python 3.11+ is required."; exit 1; }
 command -v brew >/dev/null 2>&1 || { echo >&2 "⚠️ Homebrew not found. Ensure sox, ffmpeg, and ollama are installed manually."; }
 
 if command -v brew >/dev/null 2>&1; then

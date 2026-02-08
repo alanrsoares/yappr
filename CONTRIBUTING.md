@@ -9,7 +9,7 @@ Yappr is a hybrid project (Bun/TypeScript + Python).
 ### Prerequisites
 
 - [Bun](https://bun.sh/)
-- [Python 3.10+](https://www.python.org/)
+- [Python 3.11+](https://www.python.org/)
 - `sox`, `ffmpeg`, `ollama` (available via Homebrew)
 
 ### 1. TypeScript Setup

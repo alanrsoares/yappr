@@ -24,7 +24,7 @@ Yappr uses a hybrid architecture for maximum performance:
 ### Prerequisites
 
 - **Bun:** `curl -fsSL https://bun.sh/install | bash`
-- **Python 3.10+**
+- **Python 3.11+**
 - **System Dependencies:**
   ```bash
   brew install sox ffmpeg ollama
