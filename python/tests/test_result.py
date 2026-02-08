@@ -1,4 +1,5 @@
 """Tests for Result type (neverthrow-style)."""
+
 from __future__ import annotations
 
 from result import Err, Ok, err, ok

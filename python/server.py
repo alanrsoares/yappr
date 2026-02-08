@@ -1,6 +1,7 @@
 """
 FastAPI server: TTS (Kokoro) + STT (Whisper). Routes delegate to core and map Result to HTTP.
 """
+
 from __future__ import annotations
 
 import os
@@ -30,6 +31,7 @@ def get_pipeline() -> Any:
 
 def _load_tts() -> Any:
     import kokoro
+
     print("Loading Kokoro TTS model (82M)...")
     pipeline = kokoro.KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
     print("Kokoro model loaded successfully.")
@@ -38,6 +40,7 @@ def _load_tts() -> Any:
 
 def _load_stt() -> Any:
     from faster_whisper import WhisperModel
+
     print("Loading Whisper STT model (base.en)...")
     try:
         model = WhisperModel("base.en", device="cpu", compute_type="int8")

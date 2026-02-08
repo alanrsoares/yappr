@@ -2,6 +2,7 @@
 Result type for explicit error handling (neverthrow-style).
 Use Ok(value) / Err(error) and .map(), .and_then(), .match() for fluent, type-safe flows.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

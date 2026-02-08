@@ -1,4 +1,5 @@
 """API route tests. /voices does not require loaded models."""
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

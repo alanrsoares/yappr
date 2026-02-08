@@ -1,6 +1,7 @@
 """
 Pure TTS/STT business logic. Returns Result types; no HTTP or I/O policy here.
 """
+
 from __future__ import annotations
 
 import io
