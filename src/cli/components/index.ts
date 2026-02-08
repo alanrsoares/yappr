@@ -4,3 +4,5 @@ export { Header } from "./header";
 export type { HeaderProps } from "./header";
 export { Loading } from "./loading";
 export type { LoadingProps } from "./loading";
+export { Markdown } from "./markdown";
+export type { MarkdownProps } from "./markdown";
