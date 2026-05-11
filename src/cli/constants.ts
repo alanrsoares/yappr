@@ -1,6 +1,16 @@
+import os from "node:os";
+import path from "node:path";
+
 import type { ScreenId } from "./types.js";
 
-export const MCP_CONFIG_PATH = `${process.env.HOME ?? ""}/.cursor/mcp.json`;
+/** Prefer env (tests patch `HOME`; Windows uses `USERPROFILE`), then `os.homedir()`. */
+export function userHomeDir(): string {
+  if (process.env.HOME) return process.env.HOME;
+  if (process.env.USERPROFILE) return process.env.USERPROFILE;
+  return os.homedir();
+}
+
+export const MCP_CONFIG_PATH = path.join(userHomeDir(), ".cursor", "mcp.json");
 
 export const DEFAULT_KEYS = {
   quit: ["q", "escape"],

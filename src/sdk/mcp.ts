@@ -26,7 +26,11 @@ export class McpManager {
   private tools: Map<string, { server: string; tool: Tool }> = new Map();
 
   loadConfigAndGetStatuses(
-    configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
+    configPath: string = path.join(
+      process.env.HOME || process.env.USERPROFILE || os.homedir(),
+      ".cursor",
+      "mcp.json",
+    ),
   ): ResultAsync<ServerStatus[], Error> {
     if (!fs.existsSync(configPath)) return okAsync([]);
 

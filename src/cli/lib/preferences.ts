@@ -3,7 +3,7 @@ import path from "path";
 import { ResultAsync } from "neverthrow";
 
 import { toError } from "~/lib/result.js";
-import { MCP_CONFIG_PATH } from "../constants.js";
+import { MCP_CONFIG_PATH, userHomeDir } from "../constants.js";
 import type { Preferences } from "../types.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -20,8 +20,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 function getSettingsPath(): string {
-  const home = process.env.HOME ?? "";
-  return path.join(home, ".yappr", "settings.json");
+  return path.join(userHomeDir(), ".yappr", "settings.json");
 }
 
 function isENOENT(e: unknown): boolean {
