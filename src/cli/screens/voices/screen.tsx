@@ -1,42 +1,95 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
-import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { useKeyboard, useQuery } from "~/cli/hooks";
-import { quit } from "~/cli/quit.js";
-import { listVoices } from "~/cli/services/yappr";
+import { useVoicesStore, VoicesProvider } from "./store.js";
 
 export interface VoicesScreenProps {
   onBack: () => void;
 }
 
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
-  const { data: voices = [], error, isLoading } = useQuery(listVoices);
+  return (
+    <VoicesProvider initialState={{ onBack }}>
+      <VoicesScreenContent />
+    </VoicesProvider>
+  );
+}
 
-  useKeyboard({
-    bindings: [
-      { keys: [...DEFAULT_KEYS.back], action: onBack },
-      { keys: [...DEFAULT_KEYS.quit], action: quit },
-    ],
-  });
+function VoicesScreenContent() {
+  const [state] = useVoicesStore();
+  const {
+    voices,
+    error,
+    isLoading,
+    phraseCustom,
+    phrase,
+    previewStatus,
+    previewError,
+    filtered,
+    len,
+    effectiveIndex,
+    filterText,
+  } = state;
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="Voices" subtitle="TTS voices from server" />
+      <Header
+        title="Voices"
+        subtitle="TTS from server — ↑/↓ select · Ctrl+p sample · Ctrl+e custom phrase · Enter play"
+      />
       {isLoading ? (
         <Loading message="Loading voices..." />
       ) : error ? (
         <Text color="red">{error.message}</Text>
+      ) : len === 0 ? (
+        <Text dimColor>
+          {voices.length === 0
+            ? "No voices returned."
+            : "No voices match filter."}
+        </Text>
       ) : (
-        <Box flexDirection="column">
-          {voices.map((v) => (
-            <Text key={v}> {v}</Text>
-          ))}
+        <Box flexDirection="column" marginTop={1}>
+          {phraseCustom ? (
+            <Box flexDirection="column" marginBottom={1}>
+              <Text dimColor>
+                Preview phrase (↑/↓ change voice). Enter plays, Esc leaves
+                phrase mode, Ctrl+e closes editor.
+              </Text>
+              <Text>{phrase}</Text>
+            </Box>
+          ) : (
+            <Text dimColor>
+              Ctrl+p fixed sample · Ctrl+e type your own · Enter plays sample
+              for selection
+            </Text>
+          )}
+          <Box marginTop={phraseCustom ? 0 : 1}>
+            <Text dimColor>Filter: </Text>
+            <Text>{filterText || "(type to filter)"}</Text>
+          </Box>
+          {previewStatus === "loading" ? (
+            <Text dimColor>Synthesizing…</Text>
+          ) : null}
+          {previewStatus === "error" && previewError ? (
+            <Text color="red">{previewError}</Text>
+          ) : null}
+          {previewStatus === "ok" ? <Text color="green">Playing.</Text> : null}
+          <Box flexDirection="column" marginTop={1}>
+            {filtered.map((v, i) => (
+              <Text key={v} color={i === effectiveIndex ? "cyan" : undefined}>
+                {i === effectiveIndex ? "› " : "  "}
+                {v}
+              </Text>
+            ))}
+          </Box>
         </Box>
       )}
       <Footer
         items={[
-          { key: "Esc", label: "back" },
+          { key: "Esc", label: phraseCustom ? "phrase" : "back" },
+          { key: "Ctrl+p", label: "sample" },
+          { key: "Ctrl+e", label: "phrase" },
+          { key: "Enter", label: "play" },
           { key: "q", label: "quit" },
         ]}
       />
