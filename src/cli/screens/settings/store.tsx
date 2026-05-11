@@ -2,7 +2,12 @@ import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
 import { DEFAULT_KEYS } from "~/cli/constants.js";
-import { usePreferences, useQuery } from "~/cli/hooks/index.js";
+import {
+  getEffectiveKey,
+  usePreferences,
+  useQuery,
+  type ExtendedKey,
+} from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
 import {
   listInputDevices,
@@ -11,6 +16,7 @@ import {
   listOutputDevices,
   listVoices,
 } from "~/cli/services/yappr";
+import type { ChatProvider } from "~/cli/types.js";
 import { createContainer } from "~/lib/unstated.js";
 
 export type PickerKind =
@@ -33,44 +39,65 @@ export interface SettingsStoreInitialState {
 
 const ROW_COUNT = 10;
 const VISIBLE_PICKER_ROWS = 10;
+
 const cycle = (i: number, n: number, d: number) =>
   n <= 0 ? 0 : (i + n + d) % n;
 
-function pickerItemLabel(
-  item: string | { name?: string; id?: string },
-): string {
+function clampPickerScrollOffset(index: number, listLength: number): number {
+  return Math.max(
+    0,
+    Math.min(index, Math.max(0, listLength - VISIBLE_PICKER_ROWS)),
+  );
+}
+
+/** Row value in any settings picker list (provider strings, Ollama ids, HF-style models, devices). */
+export type PickerListItem =
+  | string
+  | { name?: string; id?: string; index?: number };
+
+export const CHAT_PROVIDER_LABEL: Record<ChatProvider, string> = {
+  ollama: PROVIDER_LABELS[0],
+  openrouter: PROVIDER_LABELS[1],
+};
+
+export function pickerItemLabel(item: PickerListItem): string {
   if (typeof item === "string") return item;
   const name = item.name ?? "";
   const id = item.id ?? "";
   return id ? `${id} ${name}`.trim() : name;
 }
 
-function filterPickerList(list: unknown[] | null, query: string): unknown[] {
+function filterPickerList(
+  list: readonly PickerListItem[] | null,
+  query: string,
+): PickerListItem[] {
   if (!list?.length) return [];
   const q = query.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter((item) =>
-    pickerItemLabel(item as string | { name?: string; id?: string })
-      .toLowerCase()
-      .includes(q),
-  );
+  if (!q) return [...list];
+  return list.filter((item) => pickerItemLabel(item).toLowerCase().includes(q));
 }
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => {});
 
   const { preferences, savePreferences } = usePreferences();
-  const { data: ollamaModels = [], isLoading: modelsLoading } = useQuery(
-    () => listOllamaModels(preferences.ollamaBaseUrl),
-    { deps: [preferences.ollamaBaseUrl] },
-  );
-  const { data: openRouterModels = [], isLoading: openRouterModelsLoading } =
-    useQuery(() => listOpenRouterModels(preferences.openrouterApiKey), {
-      deps: [preferences.openrouterApiKey],
-      enabled:
-        preferences.defaultChatProvider === "openrouter" &&
-        !!preferences.openrouterApiKey?.trim(),
-    });
+  const {
+    data: ollamaModels = [],
+    isLoading: modelsLoading,
+    error: ollamaModelsError,
+  } = useQuery(() => listOllamaModels(preferences.ollamaBaseUrl), {
+    deps: [preferences.ollamaBaseUrl],
+  });
+  const {
+    data: openRouterModels = [],
+    isLoading: openRouterModelsLoading,
+    error: openRouterModelsError,
+  } = useQuery(() => listOpenRouterModels(preferences.openrouterApiKey), {
+    deps: [preferences.openrouterApiKey],
+    enabled:
+      preferences.defaultChatProvider === "openrouter" &&
+      !!preferences.openrouterApiKey?.trim(),
+  });
   const { data: voices = [] } = useQuery(listVoices);
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
     useQuery(listInputDevices);
@@ -96,19 +123,32 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     () => ["(same as chat)", ...ollamaModels],
     [ollamaModels],
   );
-  const pickerList = picker
-    ? {
-        provider: PROVIDER_LABELS as unknown as string[],
-        model: ollamaModels,
-        openRouterModel: openRouterModels,
-        voice: voices,
-        input: inputDevices,
-        output: outputDevices,
-        narrationModel: narrationModelList,
-      }[picker]
-    : null;
+  const pickerList = useMemo((): readonly PickerListItem[] | null => {
+    if (!picker) return null;
+    const lists: Record<
+      Exclude<PickerKind, null>,
+      readonly PickerListItem[]
+    > = {
+      provider: [...PROVIDER_LABELS],
+      model: ollamaModels,
+      openRouterModel: openRouterModels,
+      voice: voices,
+      input: inputDevices,
+      output: outputDevices,
+      narrationModel: narrationModelList,
+    };
+    return lists[picker];
+  }, [
+    picker,
+    ollamaModels,
+    openRouterModels,
+    voices,
+    inputDevices,
+    outputDevices,
+    narrationModelList,
+  ]);
   const filteredPickerList = useMemo(
-    () => filterPickerList(pickerList ?? [], pickerFilterText),
+    () => filterPickerList(pickerList, pickerFilterText),
     [pickerList, pickerFilterText],
   );
   const pickerLen = filteredPickerList.length;
@@ -137,113 +177,85 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       ?.name ?? `Device ${preferences.defaultOutputDeviceIndex}`;
 
   const openPicker = useCallback(() => {
+    const beginList = (
+      kind: Exclude<PickerKind, null>,
+      index: number,
+      listLength: number,
+      scroll: "clamp" | "zero" = "clamp",
+    ) => {
+      setPicker(kind);
+      setPickerFilterText("");
+      setPickerIndex(index);
+      setPickerScrollOffset(
+        scroll === "zero" ? 0 : clampPickerScrollOffset(index, listLength),
+      );
+    };
+
     switch (selectedRow) {
       case 0:
-        setPicker("provider");
-        setPickerFilterText("");
-        setPickerScrollOffset(0);
-        setPickerIndex(
+        beginList(
+          "provider",
           Math.max(
             0,
             PROVIDER_VALUES.indexOf(
               preferences.defaultChatProvider as ProviderValue,
             ),
           ),
+          PROVIDER_VALUES.length,
+          "zero",
         );
         break;
       case 1: {
         if (preferences.defaultChatProvider === "openrouter") {
           if (openRouterModels.length > 0) {
-            setPicker("openRouterModel");
-            setPickerFilterText("");
             const idx = openRouterModels.findIndex(
               (m) => m.id === preferences.defaultChatModel,
             );
             const i = idx >= 0 ? idx : 0;
-            setPickerIndex(i);
-            setPickerScrollOffset(
-              Math.max(
-                0,
-                Math.min(i, openRouterModels.length - VISIBLE_PICKER_ROWS),
-              ),
-            );
+            beginList("openRouterModel", i, openRouterModels.length);
           } else {
             setEditingChatModel(true);
             setChatModelInputValue(preferences.defaultChatModel);
           }
         } else {
-          setPicker("model");
-          setPickerFilterText("");
           const i = Math.max(
             0,
             ollamaModels.indexOf(preferences.defaultChatModel),
           );
-          setPickerIndex(i);
-          setPickerScrollOffset(
-            Math.max(0, Math.min(i, ollamaModels.length - VISIBLE_PICKER_ROWS)),
-          );
+          beginList("model", i, ollamaModels.length);
         }
         break;
       }
       case 2: {
-        setPicker("voice");
-        setPickerFilterText("");
         const voiceIdx = Math.max(0, voices.indexOf(preferences.defaultVoice));
-        setPickerIndex(voiceIdx);
-        setPickerScrollOffset(
-          Math.max(0, Math.min(voiceIdx, voices.length - VISIBLE_PICKER_ROWS)),
-        );
+        beginList("voice", voiceIdx, voices.length);
         break;
       }
       case 3: {
-        setPicker("input");
-        setPickerFilterText("");
         const inputIdx = Math.max(
           0,
           inputDevices.findIndex(
             (d) => d.index === preferences.defaultInputDeviceIndex,
           ),
         );
-        setPickerIndex(inputIdx);
-        setPickerScrollOffset(
-          Math.max(
-            0,
-            Math.min(inputIdx, inputDevices.length - VISIBLE_PICKER_ROWS),
-          ),
-        );
+        beginList("input", inputIdx, inputDevices.length);
         break;
       }
       case 4: {
-        setPicker("output");
-        setPickerFilterText("");
         const outputIdx = Math.max(
           0,
           outputDevices.findIndex(
             (d) => d.index === preferences.defaultOutputDeviceIndex,
           ),
         );
-        setPickerIndex(outputIdx);
-        setPickerScrollOffset(
-          Math.max(
-            0,
-            Math.min(outputIdx, outputDevices.length - VISIBLE_PICKER_ROWS),
-          ),
-        );
+        beginList("output", outputIdx, outputDevices.length);
         break;
       }
       case 6: {
-        setPicker("narrationModel");
-        setPickerFilterText("");
         const narrIdx = preferences.narrationModel
           ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
           : 0;
-        setPickerIndex(narrIdx);
-        setPickerScrollOffset(
-          Math.max(
-            0,
-            Math.min(narrIdx, narrationModelList.length - VISIBLE_PICKER_ROWS),
-          ),
-        );
+        beginList("narrationModel", narrIdx, narrationModelList.length);
         break;
       }
       case 7:
@@ -258,7 +270,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         setEditingMcpConfigPath(true);
         setMcpConfigPathInputValue(preferences.mcpConfigPath);
         break;
-      // case 5: narration toggle, no picker
     }
   }, [
     selectedRow,
@@ -322,6 +333,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     const selected = filteredPickerList[effectivePickerIndex];
     if (selected === undefined) {
       setPicker(null);
+      setPickerFilterText("");
       return;
     }
     switch (picker) {
@@ -410,21 +422,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         return;
       }
     }
-    const effectiveKey = key.escape
-      ? "escape"
-      : key.return
-        ? "return"
-        : key.upArrow
-          ? "upArrow"
-          : key.downArrow
-            ? "downArrow"
-            : key.tab
-              ? "tab"
-              : key.backspace
-                ? "backspace"
-                : input && key.ctrl
-                  ? `ctrl+${input.toLowerCase()}`
-                  : input;
+    const effectiveKey = getEffectiveKey(input, key as ExtendedKey);
     if ((effectiveKey === "upArrow" || effectiveKey === "k") && !isEditing) {
       if (picker) movePickerSelection(-1);
       else setSelectedRow((r) => cycle(r, ROW_COUNT, -1));
@@ -452,19 +450,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       else openPicker();
       return;
     }
-    if (effectiveKey === "escape") {
-      if (editingOllamaUrl) cancelOllamaUrlEdit();
-      else if (editingMcpConfigPath) cancelMcpConfigPathEdit();
-      else if (editingChatModel) cancelChatModelEdit();
-      else if (editingOpenrouterApiKey) cancelOpenrouterApiKeyEdit();
-      else if (picker) closePicker();
-      else {
-        onBack();
-        return;
-      }
-      return;
-    }
-    if ((DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey)) {
+    const wantsBack =
+      effectiveKey === "escape" ||
+      (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
+    if (wantsBack) {
       if (editingOllamaUrl) cancelOllamaUrlEdit();
       else if (editingMcpConfigPath) cancelMcpConfigPathEdit();
       else if (editingChatModel) cancelChatModelEdit();
@@ -483,16 +472,15 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const state = {
     preferences,
     modelsLoading,
+    ollamaModelsError,
     openRouterModelsLoading,
+    openRouterModelsError,
     inputDevicesLoading,
     outputDevicesLoading,
     selectedRow,
     picker,
-    pickerIndex,
     effectivePickerIndex,
     pickerFilterText,
-    setPickerFilterText,
-    filteredPickerList,
     visiblePickerSlice,
     visiblePickerStart,
     pickerLen,
