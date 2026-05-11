@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "yappr-server"
 version = "0.1.0"
-description = "TTS/STT inference server for Yappr (Kokoro v1 weights + Whisper)"
+description = "TTS/STT inference server for Yappr (Kokoro hexgrad/Kokoro-82M + Whisper)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

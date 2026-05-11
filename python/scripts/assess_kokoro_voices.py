@@ -70,6 +70,7 @@ def _load_pipeline() -> tuple[object, str]:
     import kokoro
 
     version = getattr(kokoro, "__version__", "unknown")
+    # Explicit repo_id matches HF card https://huggingface.co/hexgrad/Kokoro-82M and silences upstream default warning.
     pipeline = kokoro.KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
     return pipeline, version
 

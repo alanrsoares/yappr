@@ -1,6 +1,6 @@
 # Yappr inference server (Python)
 
-TTS (**Kokoro** `hexgrad/Kokoro-82M` v1 weights via `kokoro>=0.9.4`) and STT (Whisper) FastAPI server. Kept to the same standards as the Bun/TS side: **type safety**, **explicit error handling**, **clear separation of side effects**.
+TTS (**Kokoro** [`hexgrad/Kokoro-82M`](https://huggingface.co/hexgrad/Kokoro-82M) v1 weights via latest `kokoro` on PyPI, currently `>=0.9.4`) and STT (Whisper) FastAPI server. Kept to the same standards as the Bun/TS side: **type safety**, **explicit error handling**, **clear separation of side effects**.
 
 ## Standards
 
@@ -30,5 +30,5 @@ python -m pytest tests/ -v
 ```bash
 pip install -e .
 python server.py
-# or: uvicorn server:app --host 0.0.0.0 --port 8000
+# loopback only; for LAN: uvicorn server:app --host 0.0.0.0 --port 8000
 ```
