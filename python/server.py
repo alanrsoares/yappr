@@ -8,11 +8,12 @@ schema docstrings below are the **source of truth** for OpenAPI (see
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import warnings
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Annotated, Any, NoReturn
 
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -24,6 +25,8 @@ import core
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+_log = logging.getLogger(__name__)
+
 _pipeline: Any = None
 
 
@@ -34,7 +37,9 @@ def get_pipeline() -> Any:
 def _load_tts() -> Any:
     import kokoro
 
-    print("Loading Kokoro 82M (hexgrad/Kokoro-82M v1 weights, lang=a)...")
+    # hexgrad/Kokoro-82M is the v1.0 release on HF; upstream KModel loads kokoro-v1_0.pth from it
+    # (see https://huggingface.co/hexgrad/Kokoro-82M — not v0.19 / kLegacy). Explicit repo_id silences the library warning.
+    print("Loading Kokoro 82M (hexgrad/Kokoro-82M v1.0 weights, lang=a)...")
     pipeline = kokoro.KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
     print("Kokoro TTS ready.")
     return pipeline
@@ -108,7 +113,7 @@ def get_voices() -> Response:
     result = core.get_voices()
     return result.match(
         ok=lambda voices: JSONResponse(content={"voices": voices}),
-        err=lambda e: _err_response(500, str(e)),
+        err=_raise_internal_server_error,
     )
 
 
@@ -130,7 +135,7 @@ def synthesize(request: SynthesizeRequest) -> Response:
     )
     return result.match(
         ok=lambda body: Response(content=body, media_type="audio/wav"),
-        err=lambda e: _err_response(500, str(e)),
+        err=_raise_internal_server_error,
     )
 
 
@@ -157,16 +162,27 @@ async def transcribe(
         ok=lambda t: JSONResponse(
             content={"text": t[0], "language": t[1], "probability": t[2]},
         ),
-        err=lambda e: _err_response(
-            503 if "not loaded" in str(e) else 500,
-            str(e),
-        ),
+        err=_raise_transcribe_error,
     )
 
 
-def _err_response(status_code: int, detail: str) -> Response:
-    raise HTTPException(status_code=status_code, detail=detail)
+def _raise_internal_server_error(exc: Exception) -> NoReturn:
+    """Log *exc* and return a generic 500 (never echo exception text to clients)."""
+    _log.exception("Request failed", exc_info=exc)
+    raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def _raise_transcribe_error(exc: Exception) -> NoReturn:
+    if isinstance(exc, RuntimeError) and "not loaded" in str(exc):
+        _log.info("STT model not loaded")
+        raise HTTPException(
+            status_code=503,
+            detail="Speech-to-text is unavailable.",
+        )
+    _log.exception("Transcription failed", exc_info=exc)
+    raise HTTPException(status_code=500, detail="Internal server error")
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Loopback by default; use `uvicorn server:app --host 0.0.0.0` for LAN access.
+    uvicorn.run(app, host="127.0.0.1", port=8000)
