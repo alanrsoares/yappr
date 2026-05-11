@@ -1,20 +1,64 @@
 import fs from "node:fs";
 
+/** xterm-style alternate screen: preserve main-buffer scrollback while the TUI runs. */
+const ENTER_ALTERNATE_SCREEN = "\x1b[?1049h";
+const LEAVE_ALTERNATE_SCREEN = "\x1b[?1049l";
+
+let alternateScreenActive = false;
+
+/**
+ * `YAPPR_ALT_SCREEN=0|false|no|off` disables alternate buffer (broken SSH/tmux).
+ * When unset, alternate screen is used on TTY (gemini-cli-style scrollback preservation).
+ */
+export function alternateScreenAllowedByEnv(): boolean {
+  const v = process.env.YAPPR_ALT_SCREEN?.trim().toLowerCase();
+  return !(
+    v === "0" ||
+    v === "false" ||
+    v === "no" ||
+    v === "off"
+  );
+}
+
+/**
+ * Switch to the alternate screen buffer before Ink paints (TTY only).
+ * Pair with {@link cleanupTerminalModesSync} on exit so scrollback is restored.
+ */
+export function enterAlternateScreenSync(): void {
+  try {
+    if (
+      !process.stdout.isTTY ||
+      process.stdout.fd === undefined ||
+      !alternateScreenAllowedByEnv()
+    ) {
+      return;
+    }
+    fs.writeSync(process.stdout.fd, ENTER_ALTERNATE_SCREEN);
+    alternateScreenActive = true;
+  } catch {
+    // ignore — non-interactive or teardown
+  }
+}
+
 /**
  * Best-effort reset of common interactive terminal modes before exit.
- * Avoids leaving bracketed paste, mouse tracking, or attributes stuck on.
+ * Leaves alternate screen first, then bracketed paste / mouse / SGR reset.
  */
-const TERMINAL_CLEANUP_SEQUENCE =
+const AFTER_ALT_BUFFER_CLEANUP =
   "\x1b[?2004l" + // bracketed paste off
   "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l" + // mouse off
   "\x1b[0m"; // SGR reset
 
 export function cleanupTerminalModesSync(): void {
   try {
-    if (process.stdout?.fd !== undefined) {
-      fs.writeSync(process.stdout.fd, TERMINAL_CLEANUP_SEQUENCE);
-      return;
+    if (process.stdout?.fd === undefined) return;
+    let seq = "";
+    if (alternateScreenActive) {
+      seq += LEAVE_ALTERNATE_SCREEN;
+      alternateScreenActive = false;
     }
+    seq += AFTER_ALT_BUFFER_CLEANUP;
+    fs.writeSync(process.stdout.fd, seq);
   } catch {
     // ignore — process may be tearing down
   }

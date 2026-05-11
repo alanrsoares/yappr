@@ -1,8 +1,7 @@
 import { stopAudioPlayback } from "./services/yappr";
-import { cleanupTerminalModesSync } from "./terminal-cleanup.js";
 
+/** Terminal cleanup (`cleanupTerminalModesSync`) is registered on `process.on("exit")` in `app.tsx`; keep `quit()` to stopping audio then exiting so cleanup runs once. */
 export function quit(): never {
   stopAudioPlayback();
-  cleanupTerminalModesSync();
   process.exit(0);
 }

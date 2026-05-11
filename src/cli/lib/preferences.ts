@@ -6,6 +6,11 @@ import { toError } from "~/lib/result.js";
 import { MCP_CONFIG_PATH, userHomeDir } from "../constants.js";
 import type { Preferences } from "../types.js";
 
+import {
+  type PreferencesJsonPartial,
+  parsePreferencesJson,
+} from "./preferences-schema.js";
+
 export const DEFAULT_PREFERENCES: Preferences = {
   ollamaBaseUrl: "http://localhost:11434",
   mcpConfigPath: MCP_CONFIG_PATH,
@@ -32,20 +37,39 @@ export function loadPreferences(): ResultAsync<Preferences, Error> {
   return ResultAsync.fromPromise(
     readFile(filePath, "utf-8")
       .then((raw) => {
-        const partial = JSON.parse(raw) as Partial<Preferences> & {
-          defaultOllamaModel?: string;
-        };
+        const parsed: unknown = JSON.parse(raw);
+        const partial: PreferencesJsonPartial = parsePreferencesJson(parsed);
+        const rawRecord =
+          typeof parsed === "object" &&
+          parsed !== null &&
+          !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : {};
+        const hasExplicitChatModel = Object.prototype.hasOwnProperty.call(
+          rawRecord,
+          "defaultChatModel",
+        );
+        const hasExplicitChatProvider = Object.prototype.hasOwnProperty.call(
+          rawRecord,
+          "defaultChatProvider",
+        );
+
         const prefs: Preferences = {
           ...DEFAULT_PREFERENCES,
           ...partial,
         };
+
+        // Legacy: migrate defaultOllamaModel when chat defaults were never written explicitly.
         if (
-          partial.defaultOllamaModel != null &&
-          (prefs.defaultChatProvider == null || prefs.defaultChatModel == null)
+          typeof partial.defaultOllamaModel === "string" &&
+          partial.defaultOllamaModel !== "" &&
+          !hasExplicitChatModel &&
+          !hasExplicitChatProvider
         ) {
           prefs.defaultChatProvider = "ollama";
           prefs.defaultChatModel = partial.defaultOllamaModel;
         }
+
         return prefs;
       })
       .catch((e) => {

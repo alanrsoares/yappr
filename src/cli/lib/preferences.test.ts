@@ -88,9 +88,39 @@ test("loadPreferences migrates legacy defaultOllamaModel into chat defaults", as
       },
     );
 
-    expect(prefs.defaultChatProvider).toBe(
-      DEFAULT_PREFERENCES.defaultChatProvider,
+    expect(prefs.defaultChatProvider).toBe("ollama");
+    expect(prefs.defaultChatModel).toBe("llama3.1:8b");
+  });
+});
+
+test("loadPreferences skips invalid fields and keeps valid ones", async () => {
+  await withTempHome(async (homeDir) => {
+    const settingsDir = path.join(homeDir, ".yappr");
+    const settingsPath = path.join(settingsDir, "settings.json");
+
+    mkdirSync(settingsDir, { recursive: true });
+    writeFileSync(
+      settingsPath,
+      JSON.stringify(
+        {
+          defaultVoice: 999,
+          defaultChatModel: "kept-model",
+          notARealKey: "ignored",
+        },
+        null,
+        2,
+      ),
+      "utf-8",
     );
-    expect(prefs.defaultChatModel).toBe(DEFAULT_PREFERENCES.defaultChatModel);
+
+    const prefs = await loadPreferences().match(
+      (value) => value,
+      (err) => {
+        throw err;
+      },
+    );
+
+    expect(prefs.defaultVoice).toBe(DEFAULT_PREFERENCES.defaultVoice);
+    expect(prefs.defaultChatModel).toBe("kept-model");
   });
 });

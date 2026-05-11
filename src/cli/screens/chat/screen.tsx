@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 
 import { Footer, Header } from "~/cli/components";
 import { useKeyboard, useTerminalWidth } from "~/cli/hooks";
+import { truncateDisplayWidth } from "~/cli/string-display.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import type { ScreenId } from "~/cli/types.js";
 import { ChatHistory } from "./components/chat-history.js";
@@ -32,7 +33,9 @@ function ChatScreenContent() {
     ],
   });
 
-  const subtitle = `${state.model} · ${state.provider} · TTS: ${state.voice}`;
+  const subtitleRaw = `${state.model} · ${state.provider} · TTS: ${state.voice}`;
+  const innerCols = Math.max(8, terminalWidth - 2);
+  const subtitle = truncateDisplayWidth(subtitleRaw, innerCols);
 
   return (
     <Box flexDirection="column" padding={1} height="100%" width={terminalWidth}>
