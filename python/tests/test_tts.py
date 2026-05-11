@@ -105,3 +105,28 @@ def test_post_synthesize_route_503_when_pipeline_unloaded(client: TestClient) ->
     with patch("server.get_pipeline", return_value=None):
         response = client.post("/synthesize", json={"text": "x"})
     assert response.status_code == 503
+
+
+def test_post_synthesize_route_500_hides_pipeline_exception_message(
+    client: TestClient,
+) -> None:
+    """HTTP clients must not see raw exception strings (may contain local paths)."""
+    with patch("server.get_pipeline", return_value=RaisingPipeline()):
+        response = client.post(
+            "/synthesize",
+            json={"text": "x", "voice": "af_bella", "speed": 1.0},
+        )
+    assert response.status_code == 500
+    body = response.json()
+    assert body["detail"] == "Internal server error"
+    assert "boom" not in str(body)
+
+
+def test_post_transcribe_503_when_stt_unavailable(client: TestClient) -> None:
+    """YAPPR_TEST=1 leaves STT unloaded; response must not echo internal error text."""
+    response = client.post(
+        "/transcribe",
+        files={"file": ("x.wav", b"\x00\x00", "audio/wav")},
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Speech-to-text is unavailable."
