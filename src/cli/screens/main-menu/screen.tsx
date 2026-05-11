@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 
-import { Header } from "~/cli/components/index.js";
+import { Footer, Header } from "~/cli/components/index.js";
+import { FOOTER_MAIN_MENU } from "~/cli/footer-items.js";
 import { MENU_ITEMS } from "~/cli/constants.js";
 import { useKeyboard } from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
@@ -39,9 +40,7 @@ export function MainMenuScreen({ onSelect }: MainMenuScreenProps) {
     <Box flexDirection="column" padding={1}>
       <Header title="yappr" subtitle="Voice & tools" />
       <Menu items={MENU_ITEMS} selectedIndex={selectedIndex} />
-      <Box marginTop={2}>
-        <Text dimColor>↑/↓ select · Enter open · q quit</Text>
-      </Box>
+      <Footer items={FOOTER_MAIN_MENU} marginTop={2} />
     </Box>
   );
 }

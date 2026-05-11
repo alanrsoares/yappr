@@ -6,7 +6,6 @@ import { semantic } from "~/cli/theme/semantic.js";
 const ARROW_UP = "↑";
 const ARROW_DOWN = "↓";
 const ARROW_KEY_SPLIT = /(↑|↓)/;
-/** Long enough to read; arrows use strong green vs muted peer. */
 const ARROW_PULSE_MS = 320;
 
 export interface FooterItem {
@@ -16,6 +15,7 @@ export interface FooterItem {
 
 export interface FooterProps {
   items: FooterItem[];
+  marginTop?: number;
 }
 
 type ArrowPulse = "up" | "down" | null;
@@ -61,7 +61,32 @@ function FooterKeyPart(props: { part: string; pulse: ArrowPulse }) {
   );
 }
 
-export function Footer({ items }: FooterProps) {
+function FooterKeyCell(props: { item: FooterItem; pulse: ArrowPulse }) {
+  const { item, pulse } = props;
+  if (!footerKeyHasArrows(item.key)) {
+    return (
+      <Text bold color={semantic.accent}>
+        {item.key}
+      </Text>
+    );
+  }
+  return (
+    <>
+      {item.key
+        .split(ARROW_KEY_SPLIT)
+        .filter((p) => p.length > 0)
+        .map((part, j) => (
+          <FooterKeyPart
+            key={`${item.key}-${j}-${part}`}
+            part={part}
+            pulse={pulse}
+          />
+        ))}
+    </>
+  );
+}
+
+export function Footer({ items, marginTop = 1 }: FooterProps) {
   const [arrowPulse, setArrowPulse] = useState<ArrowPulse>(null);
   const pulseClearRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -99,29 +124,15 @@ export function Footer({ items }: FooterProps) {
   );
 
   return (
-    <Box marginTop={1} flexDirection="row" flexWrap="wrap">
+    <Box marginTop={marginTop} flexDirection="row" flexWrap="wrap">
       {items.map((item, i) => (
         <Box key={`${i}-${item.key}-${item.label}`} flexDirection="row">
+          <FooterKeyCell item={item} pulse={arrowPulse} />
           <Text dimColor>
-            {footerKeyHasArrows(item.key)
-              ? item.key
-                  .split(ARROW_KEY_SPLIT)
-                  .filter((p) => p.length > 0)
-                  .map((part, j) => (
-                    <FooterKeyPart
-                      key={`${item.key}-${j}-${part}`}
-                      part={part}
-                      pulse={arrowPulse}
-                    />
-                  ))
-              : (
-                  <Text bold color={semantic.accent}>
-                    {item.key}
-                  </Text>
-                )}
-            <Text> {item.label}</Text>
-            {i < items.length - 1 && <Text> · </Text>}
+            {" "}
+            {item.label}
           </Text>
+          {i < items.length - 1 && <Text dimColor> · </Text>}
         </Box>
       ))}
     </Box>

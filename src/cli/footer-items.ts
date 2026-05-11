@@ -1,5 +1,12 @@
 import type { FooterItem } from "~/cli/components/index.js";
 
+/** Matches chat slash footer (`↑↓` + Footer arrow pulse). */
+export const FOOTER_MAIN_MENU: FooterItem[] = [
+  { key: "↑↓", label: "select" },
+  { key: "Enter", label: "open" },
+  { key: "q", label: "quit" },
+];
+
 export const footerQuit = () => ({ key: "q", label: "quit" });
 
 export const footerEscBack = () => ({ key: "Esc", label: "back" });
