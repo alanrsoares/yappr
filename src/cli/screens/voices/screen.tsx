@@ -3,10 +3,31 @@ import { Box, Text } from "ink";
 import { Footer, Header, Loading } from "~/cli/components";
 import { footerVoices } from "~/cli/footer-items.js";
 import { semantic } from "~/cli/theme/semantic.js";
-import { useVoicesStore, VoicesProvider } from "./store.js";
+import {
+  useVoicesStore,
+  VoicesProvider,
+  type VoicePreviewStatus,
+} from "./store.js";
 
 export interface VoicesScreenProps {
   onBack: () => void;
+}
+
+interface VoicesPreviewStatusLineProps {
+  status: VoicePreviewStatus;
+  previewError: string | null;
+}
+
+function VoicesPreviewStatusLine({
+  status,
+  previewError,
+}: VoicesPreviewStatusLineProps) {
+  if (status === "loading") return <Text dimColor>Synthesizing…</Text>;
+  if (status === "error" && previewError)
+    return <Text color={semantic.error}>{previewError}</Text>;
+  if (status === "ok")
+    return <Text color={semantic.success}>Playing.</Text>;
+  return null;
 }
 
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
@@ -69,15 +90,10 @@ function VoicesScreenContent() {
             <Text dimColor>Filter: </Text>
             <Text>{filterText || "(type to filter)"}</Text>
           </Box>
-          {previewStatus === "loading" ? (
-            <Text dimColor>Synthesizing…</Text>
-          ) : null}
-          {previewStatus === "error" && previewError ? (
-            <Text color={semantic.error}>{previewError}</Text>
-          ) : null}
-          {previewStatus === "ok" ? (
-            <Text color={semantic.success}>Playing.</Text>
-          ) : null}
+          <VoicesPreviewStatusLine
+            status={previewStatus}
+            previewError={previewError}
+          />
           <Box flexDirection="column" marginTop={1}>
             {filtered.map((v, i) => (
               <Text

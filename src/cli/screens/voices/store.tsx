@@ -27,6 +27,8 @@ export interface VoicesStoreInitialState {
   onBack: () => void;
 }
 
+export type VoicePreviewStatus = "idle" | "loading" | "ok" | "error";
+
 function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => {});
 
@@ -35,9 +37,8 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [phraseCustom, setPhraseCustom] = useState(false);
   const [phrase, setPhrase] = useState("");
-  const [previewStatus, setPreviewStatus] = useState<
-    "idle" | "loading" | "ok" | "error"
-  >("idle");
+  const [previewStatus, setPreviewStatus] =
+    useState<VoicePreviewStatus>("idle");
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const filtered = useMemo(
