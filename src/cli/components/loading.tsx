@@ -1,11 +1,13 @@
+import type { ComponentProps } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
-import type { ComponentProps } from "react";
 
 import { semantic } from "~/cli/theme/semantic.js";
 
 /** Matches ink-spinner / its bundled cli-spinners names (may differ from root `cli-spinners` types). */
-export type LoadingSpinnerName = NonNullable<ComponentProps<typeof Spinner>["type"]>;
+export type LoadingSpinnerName = NonNullable<
+  ComponentProps<typeof Spinner>["type"]
+>;
 
 export interface LoadingProps {
   message?: string;

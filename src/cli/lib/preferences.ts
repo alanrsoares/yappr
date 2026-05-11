@@ -5,7 +5,6 @@ import { ResultAsync } from "neverthrow";
 import { toError } from "~/lib/result.js";
 import { MCP_CONFIG_PATH, userHomeDir } from "../constants.js";
 import type { Preferences } from "../types.js";
-
 import { mergeStoredPreferences } from "./preferences-merge.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {

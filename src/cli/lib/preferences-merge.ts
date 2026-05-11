@@ -1,7 +1,7 @@
 import type { Preferences } from "../types.js";
 import {
-  type PreferencesJsonPartial,
   parsePreferencesJson,
+  type PreferencesJsonPartial,
 } from "./preferences-schema.js";
 
 function asRecord(parsed: unknown): Record<string, unknown> {

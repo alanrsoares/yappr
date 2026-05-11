@@ -12,12 +12,7 @@ let alternateScreenActive = false;
  */
 export function alternateScreenAllowedByEnv(): boolean {
   const v = process.env.YAPPR_ALT_SCREEN?.trim().toLowerCase();
-  return !(
-    v === "0" ||
-    v === "false" ||
-    v === "no" ||
-    v === "off"
-  );
+  return !(v === "0" || v === "false" || v === "no" || v === "off");
 }
 
 /**

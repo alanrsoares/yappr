@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { DEFAULT_PREFERENCES } from "./preferences.js";
 import { mergeStoredPreferences } from "./preferences-merge.js";
+import { DEFAULT_PREFERENCES } from "./preferences.js";
 
 test("mergeStoredPreferences uses defaults for empty / invalid root", () => {
   expect(mergeStoredPreferences(null, DEFAULT_PREFERENCES)).toEqual(
