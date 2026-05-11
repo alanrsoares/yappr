@@ -1,8 +1,3 @@
-/**
- * CLI Entry Point / Dispatcher
- * This allows running specific commands like 'speak', 'chat', etc.
- * directly from the command line without entering the full TUI.
- */
 import { parseArgs } from "util";
 
 import { chat, listVoices, speak } from "./services/yappr.js";

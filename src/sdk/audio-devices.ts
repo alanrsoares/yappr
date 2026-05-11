@@ -1,18 +1,12 @@
 import { spawn } from "bun";
 import { ResultAsync } from "neverthrow";
 
+import { toError } from "~/lib/result.js";
+
 import type { AudioDevice } from "./types.js";
 
 export type { AudioDevice };
 
-function toError(e: unknown): Error {
-  return e instanceof Error ? e : new Error(String(e));
-}
-
-/**
- * List audio capture devices (e.g. microphones) via ffmpeg avfoundation.
- * On macOS this is the standard way to get device indices for recording.
- */
 export function listInputDevices(): ResultAsync<AudioDevice[], Error> {
   return ResultAsync.fromPromise(
     new Promise<AudioDevice[]>((resolve, reject) => {
@@ -48,10 +42,6 @@ export function listInputDevices(): ResultAsync<AudioDevice[], Error> {
   );
 }
 
-/**
- * Parse ffmpeg -list_devices avfoundation stderr output.
- * Looks for "AVFoundation audio devices:" then "[index] name" until "AVFoundation video devices:".
- */
 function parseAvFoundationDevices(output: string): AudioDevice[] {
   const lines = output.split("\n");
   const devices: AudioDevice[] = [];
@@ -79,7 +69,6 @@ function parseAvFoundationDevices(output: string): AudioDevice[] {
   return devices;
 }
 
-/** System default playback. Device-specific output can be added later (e.g. aplay -D on Linux). */
 const OUTPUT_SYSTEM_DEFAULT: AudioDevice[] = [
   { index: 0, name: "System default" },
 ];

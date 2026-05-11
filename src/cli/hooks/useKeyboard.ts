@@ -45,11 +45,6 @@ export function getEffectiveKey(input: string, key: ExtendedKey): string {
   return input;
 }
 
-/**
- * Composable keyboard handler. Each binding maps a list of keys to an action.
- * Keys: chars ("q", "k", "j"), "escape", "return", "upArrow", "downArrow", "f1"..."f12", "ctrl+v", etc.
- * "enter" is treated as "return".
- */
 export function useKeyboard({ bindings }: UseKeyboardOptions): void {
   useInput((input, key) => {
     const effectiveKey = getEffectiveKey(input, key as ExtendedKey);

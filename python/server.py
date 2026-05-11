@@ -1,5 +1,9 @@
 """
-FastAPI server: TTS (Kokoro) + STT (Whisper). Routes delegate to core and map Result to HTTP.
+FastAPI server: **Kokoro** text-to-speech and **Whisper** speech-to-text.
+
+HTTP routes map ``core`` ``Result`` values to JSON or binary responses. Route and
+schema docstrings below are the **source of truth** for OpenAPI (see
+``python/export_openapi.py`` and generated ``src/sdk/schema.d.ts``).
 """
 
 from __future__ import annotations
@@ -8,20 +12,18 @@ import os
 import sys
 import warnings
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Annotated, Any
 
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import core
 
-# Suppress library warnings for cleaner logs
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# Injected at startup
 _pipeline: Any = None
 
 
@@ -71,17 +73,38 @@ async def lifespan(_app: FastAPI) -> Any:
 app = FastAPI(title="Yappr Kokoro v1 TTS + Whisper STT Server", lifespan=lifespan)
 
 
-# --- Request/response models ---
 class SynthesizeRequest(BaseModel):
-    text: str
-    voice: str = "af_bella"
-    speed: float = 1.0
+    """
+    JSON body for ``POST /synthesize``.
+
+    Produces linear PCM in a WAV container via Kokoro 82M (``hexgrad/Kokoro-82M``, ``lang_code=a``).
+    """
+
+    text: str = Field(
+        ...,
+        description="Plain text to speak.",
+    )
+    voice: str = Field(
+        default="af_bella",
+        description=(
+            "Kokoro v1 voice id (American English: ``af_*`` / ``am_*``). "
+            "See ``GET /voices`` for the supported list."
+        ),
+    )
+    speed: float = Field(
+        default=1.0,
+        description="Speaking-rate multiplier (1.0 = model default).",
+    )
 
 
-# --- Routes: core returns Result, we map to HTTP ---
 @app.get("/voices")
 def get_voices() -> Response:
-    """American English Kokoro v1 voice IDs (af_*, am_* for hexgrad/Kokoro-82M)."""
+    """
+    List American English Kokoro v1 voice ids.
+
+    Returns ``application/json`` with a ``voices`` array of strings (``af_*``, ``am_*``)
+    for **hexgrad/Kokoro-82M** when using ``lang_code=a`` in the pipeline.
+    """
     result = core.get_voices()
     return result.match(
         ok=lambda voices: JSONResponse(content={"voices": voices}),
@@ -91,7 +114,11 @@ def get_voices() -> Response:
 
 @app.post("/synthesize")
 def synthesize(request: SynthesizeRequest) -> Response:
-    """Synthesize text to speech (Kokoro 82M v1 weights, WAV)."""
+    """
+    Synthesize speech from text using the loaded Kokoro pipeline.
+
+    **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 if the TTS model failed to load.
+    """
     pipeline = get_pipeline()
     if pipeline is None:
         raise HTTPException(status_code=503, detail="TTS not loaded")
@@ -108,8 +135,22 @@ def synthesize(request: SynthesizeRequest) -> Response:
 
 
 @app.post("/transcribe")
-async def transcribe(file: UploadFile = File(...)) -> Response:  # noqa: B008
-    """Transcribe uploaded audio file."""
+async def transcribe(
+    file: Annotated[
+        UploadFile,
+        File(
+            description=(
+                "Audio upload (e.g. WAV). Transcribed with faster-whisper ``base.en`` "
+                "when the STT model loaded at startup."
+            ),
+        ),
+    ],
+) -> Response:
+    """
+    Transcribe uploaded audio to text (and language metadata).
+
+    **Response:** JSON with ``text``, ``language``, and ``probability``. Returns 503 if STT is unavailable.
+    """
     content = await file.read()
     result = await core.transcribe_upload(content, filename=file.filename)
     return result.match(

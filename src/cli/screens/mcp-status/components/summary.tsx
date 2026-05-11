@@ -20,7 +20,6 @@ export function Summary({ counts }: SummaryProps) {
   );
 }
 
-/** Derive summary counts from an array of status-like objects */
 export function getSummaryCounts(
   items: Array<{ status: string; tools: number }>,
 ): SummaryCounts {

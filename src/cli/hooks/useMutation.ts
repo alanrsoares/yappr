@@ -3,16 +3,13 @@ import { useCallback, useState } from "react";
 import { ok, type Result, type ResultAsync } from "neverthrow";
 
 export interface UseMutationResult<T, E, V> {
-  /** Trigger the mutation (fire-and-forget). Returns Result for sync validation / fluent composition. */
   mutate: (variables: V) => Result<void, E>;
-  /** Trigger and get back ResultAsync for chaining: .map(), .match(), .andThen(), etc. */
   mutateAsync: (variables: V) => ResultAsync<T, E>;
   data: T | undefined;
   error: E | null;
   isPending: boolean;
   isError: boolean;
   isSuccess: boolean;
-  /** Clear data and error. */
   reset: () => void;
 }
 
@@ -20,11 +17,6 @@ export interface UseMutationOptions<T> {
   onSuccess?: (data: T) => void;
 }
 
-/**
- * Lightweight mutation hook for ResultAsync. Does not run automatically; call mutate() or mutateAsync() to run.
- * Type-safe: T = success data, E = error (default Error), V = variables (default void).
- * mutate returns Result for sync/fluent use; mutateAsync returns ResultAsync for chaining and awaiting.
- */
 export function useMutation<T, E = Error, V = void>(
   mutationFn: (variables: V) => ResultAsync<T, E>,
   options?: UseMutationOptions<T>,

@@ -204,9 +204,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     onBack,
     handleInputChange,
     handleSubmit,
-    /** Abort in-flight voice recording so quit can exit cleanly. */
     stopStt,
-    /** Abort in-flight chat generation. */
     stopChat,
   };
 

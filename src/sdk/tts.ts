@@ -1,5 +1,7 @@
 import { ResultAsync } from "neverthrow";
 
+import { toError } from "~/lib/result.js";
+
 import type { components } from "./schema.js";
 import type { TTSOptions } from "./types.js";
 
@@ -9,10 +11,6 @@ interface VoicesResponse {
 
 interface TranscribeResponse {
   text: string;
-}
-
-function toError(e: unknown): Error {
-  return e instanceof Error ? e : new Error(String(e));
 }
 
 export class TTSClient {

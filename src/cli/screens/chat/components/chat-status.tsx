@@ -14,7 +14,6 @@ export interface ChatStatusProps {
   messageCount: number;
   sttError: Error | null;
   chatError: Error | null;
-  /** When set, an MCP tool is currently being called (show "Calling &lt;name&gt;…"). */
   activeToolCall?: string | null;
 }
 

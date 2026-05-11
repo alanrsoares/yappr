@@ -1,17 +1,11 @@
 import { spawn } from "bun";
 import { ResultAsync } from "neverthrow";
 
+import { toError } from "~/lib/result.js";
+
 import type { RecordOptions } from "./types.js";
 
-function toError(e: unknown): Error {
-  return e instanceof Error ? e : new Error(String(e));
-}
-
 export class AudioRecorder {
-  /**
-   * Record from microphone. With signal: stops when signal is aborted (TUI-friendly).
-   * Without signal: blocks on stdin until Enter (CLI-friendly).
-   */
   record(
     outputPath: string,
     deviceIndex: number = 0,

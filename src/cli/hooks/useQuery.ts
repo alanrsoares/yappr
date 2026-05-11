@@ -3,9 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResultAsync } from "neverthrow";
 
 export interface UseQueryOptions {
-  /** If false, the query will not run automatically. Default true. */
   enabled?: boolean;
-  /** Optional refetch when dependencies change. Default []. */
   deps?: unknown[];
 }
 
@@ -18,10 +16,6 @@ export interface UseQueryResult<T, E> {
   refetch: () => void;
 }
 
-/**
- * Lightweight query hook for ResultAsync. Runs queryFn on mount and when deps change.
- * Type-safe: T = success data, E = error (default Error).
- */
 export function useQuery<T, E = Error>(
   queryFn: () => ResultAsync<T, E>,
   options: UseQueryOptions = {},

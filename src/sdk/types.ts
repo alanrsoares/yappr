@@ -6,7 +6,6 @@ export interface AudioDevice {
 }
 
 export interface RecordOptions {
-  /** When aborted, recording stops. Use for TUI (e.g. Enter to stop) instead of stdin. */
   signal?: AbortSignal;
 }
 
@@ -31,6 +30,5 @@ export interface ServerStatus {
   status: "[OK] Connected" | "[FAIL] Failed" | "[SKIP] Skipped";
   tools: number;
   message: string;
-  /** Set when connected via URL; indicates whether server supports Streamable HTTP or legacy SSE. */
   transport?: TransportKind;
 }

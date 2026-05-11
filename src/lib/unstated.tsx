@@ -12,10 +12,6 @@ export interface Container<Value, State = void> {
   useContainer: () => Value;
 }
 
-/**
- * Creates a React context-based container that holds state from a custom hook.
- * Use the returned Provider to wrap a subtree and useContainer() to read state.
- */
 export function createContainer<Value, State = void>(
   useHook: (initialState?: State) => Value,
 ): Container<Value, State> {
@@ -39,9 +35,6 @@ export function createContainer<Value, State = void>(
   return { Provider, useContainer };
 }
 
-/**
- * Convenience hook to use a container by reference.
- */
 export function useContainer<Value, State = void>(
   container: Container<Value, State>,
 ): Value {

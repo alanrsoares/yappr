@@ -1,11 +1,17 @@
+"""
+Export OpenAPI JSON for TS codegen (`bun run openapi:export`).
+
+Route handlers and Pydantic models in ``server.py`` own summaries/descriptions;
+keep those docstrings and ``Field`` / ``File`` descriptions—they flow into
+``openapi.json`` and ``src/sdk/schema.d.ts``.
+"""
+
 import json
 
 from server import app
 
-# Ensure the OpenAPI schema is generated
 schema = app.openapi()
 
-# Write to file
 with open("openapi.json", "w") as f:
     json.dump(schema, f, indent=2)
 

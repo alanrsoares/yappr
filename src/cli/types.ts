@@ -1,3 +1,5 @@
+import type { ChatRuntime } from "./services/yappr/chat/runtime.js";
+
 export type ScreenId =
   | "menu"
   | "mcp"
@@ -6,7 +8,6 @@ export type ScreenId =
   | "voices"
   | "settings";
 
-/** Chat model provider. */
 export type ChatProvider = "ollama" | "openrouter";
 
 export interface Preferences {
@@ -14,7 +15,6 @@ export interface Preferences {
   ollamaBaseUrl: string;
   /** Path to MCP config JSON (e.g. ~/.cursor/mcp.json). */
   mcpConfigPath: string;
-  /** Chat provider (ollama or openrouter). */
   defaultChatProvider: ChatProvider;
   /** Model name for the selected provider (e.g. qwen2.5:14b for Ollama, openai/gpt-4o for OpenRouter). */
   defaultChatModel: string;
@@ -55,7 +55,6 @@ export interface SpeakOptions {
 }
 
 export interface ChatOptions {
-  /** Provider (defaults to ollama). */
   provider?: ChatProvider;
   /** Model name for the selected provider. */
   model?: string;
@@ -75,14 +74,13 @@ export interface ChatOptions {
   abortController?: AbortController;
   /** Called when an MCP tool call starts or ends (for UI status). */
   onToolCall?: (name: string, phase: "start" | "end") => void;
+  runtime?: ChatRuntime;
 }
 
 export interface NarrationOptions {
   model: string;
-  /** Same as chat: ollama vs openrouter. When omitted, defaults to ollama for backwards compatibility. */
   provider?: ChatProvider;
-  /** Ollama server base URL (used when provider is ollama). */
   ollamaBaseUrl?: string;
-  /** OpenRouter API key (used when provider is openrouter). */
   openrouterApiKey?: string;
+  runtime?: ChatRuntime;
 }

@@ -9,9 +9,6 @@ interface UseVoiceToggleOptions {
   onValueChange: (updater: (prev: string) => string) => void;
 }
 
-/**
- * Encapsulates the Talk hotkey (ctrl+t) logic, including character leakage prevention.
- */
 export function useVoiceToggle({
   onStart,
   onStop,
@@ -27,7 +24,6 @@ export function useVoiceToggle({
     } else {
       onStart();
     }
-    // Immediate cleanup if character 't' leaked into state
     onValueChange((prev) => (prev.endsWith("t") ? prev.slice(0, -1) : prev));
   }, [isRecording, onStart, onStop, onValueChange]);
 

@@ -1,6 +1,4 @@
-"""
-Pure TTS/STT business logic. Returns Result types; no HTTP or I/O policy here.
-"""
+"""TTS/STT helpers; Result types only."""
 
 from __future__ import annotations
 
@@ -14,7 +12,6 @@ import soundfile as sf  # type: ignore[import-untyped]
 
 from result import Err, Ok, Result
 
-# Optional STT model; set by server at startup
 _stt_model: Any = None
 
 
@@ -28,11 +25,7 @@ def get_stt_model() -> Any:
 
 
 def get_voices() -> Result[list[str], Exception]:
-    """List American English voice IDs for lang_code='a' (hexgrad/Kokoro-82M v1).
-
-    Voices are loaded from HF as voices/<id>.pt; only af_* / am_* match the
-    American English pipeline (British bf_/bm_* belong to lang_code='b').
-    """
+    """Kokoro v1 American English voice IDs (lang_code=a, af_* / am_*)."""
     voices = [
         "af_alloy",
         "af_aoede",
@@ -65,7 +58,6 @@ def synthesize(
     speed: float = 1.0,
     sample_rate: int = 24000,
 ) -> Result[bytes, Exception]:
-    """Synthesize text to WAV bytes. Returns Result[bytes, Exception]."""
     try:
         generator = pipeline(text, voice=voice, speed=speed)
         all_audio: list[np.ndarray] = []
@@ -83,7 +75,6 @@ def synthesize(
 
 
 def transcribe(audio_path: str) -> Result[str, Exception]:
-    """Transcribe audio file to text. Returns Result[str, Exception]."""
     model = get_stt_model()
     if model is None:
         return Err(RuntimeError("STT model not loaded"))
@@ -99,10 +90,6 @@ async def transcribe_upload(
     file_content: bytes,
     filename: str | None = None,
 ) -> Result[tuple[str, str, float], Exception]:
-    """
-    Transcribe uploaded file content. Writes to a temp file, transcribes, cleans up.
-    Returns Result[(text, language, probability), Exception].
-    """
     model = get_stt_model()
     if model is None:
         return Err(RuntimeError("STT model not loaded"))

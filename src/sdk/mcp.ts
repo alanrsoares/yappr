@@ -13,6 +13,8 @@ import { toolDefinition, type ServerTool } from "@tanstack/ai";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
+import { toError } from "~/lib/result.js";
+
 import type {
   McpConfig,
   McpServerConfig,
@@ -20,18 +22,10 @@ import type {
   TransportKind,
 } from "./types.js";
 
-function toError(e: unknown): Error {
-  return e instanceof Error ? e : new Error(String(e));
-}
-
 export class McpManager {
   private clients: Map<string, Client> = new Map();
   private tools: Map<string, { server: string; tool: Tool }> = new Map();
 
-  /**
-   * Load MCP config, connect to each server, and return statuses without printing.
-   * Returns Ok([]) if config is missing. Use for TUI or custom output.
-   */
   loadConfigAndGetStatuses(
     configPath: string = path.join(os.homedir(), ".cursor", "mcp.json"),
   ): ResultAsync<ServerStatus[], Error> {
@@ -52,10 +46,7 @@ export class McpManager {
     );
   }
 
-  /**
-   * Returns true if the error indicates the server likely does not support Streamable HTTP
-   * (e.g. 4xx on POST or GET), so we should try legacy SSE.
-   */
+  /** True when Streamable HTTP failed with 4xx — retry with SSE. */
   private isStreamableHttpUnsupported(error: unknown): boolean {
     if (error instanceof StreamableHTTPError && error.code !== undefined) {
       const code = error.code;
@@ -120,10 +111,7 @@ export class McpManager {
     return this.registerToolsAndReturnStatus(id, client, "stdio");
   }
 
-  /**
-   * Connect to an MCP server by URL. Tries Streamable HTTP first (MCP 2025);
-   * if the server returns 4xx (e.g. legacy SSE-only), falls back to SSEClientTransport.
-   */
+  /** URL: Streamable HTTP first, then SSE fallback. */
   private async connectWithUrl(
     id: string,
     urlStr: string,

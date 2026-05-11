@@ -1,9 +1,8 @@
-/**
- * User preferences persisted to ~/.yappr/settings.json
- */
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { ResultAsync } from "neverthrow";
+
+import { toError } from "~/lib/result.js";
 
 import { MCP_CONFIG_PATH } from "../constants.js";
 import type { Preferences } from "../types.js";
@@ -24,10 +23,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
 function getSettingsPath(): string {
   const home = process.env.HOME ?? "";
   return path.join(home, ".yappr", "settings.json");
-}
-
-function toError(e: unknown): Error {
-  return e instanceof Error ? e : new Error(String(e));
 }
 
 function isENOENT(e: unknown): boolean {
