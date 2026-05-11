@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Box } from "ink";
 
 import { Footer, Header } from "~/cli/components/index.js";
-import { FOOTER_MAIN_MENU } from "~/cli/footer-items.js";
 import { MENU_ITEMS } from "~/cli/constants.js";
+import { FOOTER_MAIN_MENU } from "~/cli/footer-items.js";
 import { useKeyboard } from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
 import type { ScreenId } from "~/cli/types.js";

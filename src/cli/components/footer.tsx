@@ -128,10 +128,7 @@ export function Footer({ items, marginTop = 1 }: FooterProps) {
       {items.map((item, i) => (
         <Box key={`${i}-${item.key}-${item.label}`} flexDirection="row">
           <FooterKeyCell item={item} pulse={arrowPulse} />
-          <Text dimColor>
-            {" "}
-            {item.label}
-          </Text>
+          <Text dimColor> {item.label}</Text>
           {i < items.length - 1 && <Text dimColor> · </Text>}
         </Box>
       ))}

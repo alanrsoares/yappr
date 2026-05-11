@@ -497,9 +497,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     ) {
       if (picker) movePickerSelection(-1);
       else
-        setSelectedRow((r) =>
-          cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, -1),
-        );
+        setSelectedRow((r) => cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, -1));
       return;
     }
     if (
@@ -508,9 +506,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     ) {
       if (picker) movePickerSelection(1);
       else
-        setSelectedRow((r) =>
-          cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, 1),
-        );
+        setSelectedRow((r) => cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, 1));
       return;
     }
     if (
