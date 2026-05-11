@@ -16,7 +16,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Box marginBottom={0} marginLeft={1}>
+      <Box marginBottom={0} marginLeft={0}>
         <Text bold color={borderColor}>
           {label}
         </Text>
@@ -26,6 +26,7 @@ export function MessageBubble({
         borderColor={borderColor}
         paddingX={1}
         paddingY={0}
+        marginTop={0}
       >
         <Markdown>{content}</Markdown>
       </Box>

@@ -17,10 +17,13 @@ export function ChatHistory({
   const isEmpty = messages.length === 0 && !streamingResponse;
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection="column" marginBottom={0}>
       {isEmpty && (
-        <Box paddingY={1}>
-          <Text dimColor>No messages yet. Send a message below.</Text>
+        <Box flexDirection="column" paddingY={1} gap={0}>
+          <Text bold>No messages yet</Text>
+          <Text dimColor>
+            Type below or use ctrl+t for voice. Replies are read aloud (TTS).
+          </Text>
         </Box>
       )}
 

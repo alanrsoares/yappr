@@ -73,7 +73,21 @@ export function ChatStatus({
   if (messageCount === 0 && !hasStreamingResponse && !isChatPending) {
     return (
       <Text dimColor>
-        Type or press ctrl+t for voice — reply is read aloud with TTS.
+        Type or ctrl+t for voice — assistant replies are spoken with TTS.
+      </Text>
+    );
+  }
+  if (
+    !isChatPending &&
+    sttPhase === "idle" &&
+    !sttError &&
+    !(chatError && !isAbortError(chatError)) &&
+    messageCount > 0 &&
+    !hasStreamingResponse
+  ) {
+    return (
+      <Text dimColor>
+        Ready — Enter sends · ctrl+t voice · Esc back · /quit exit
       </Text>
     );
   }

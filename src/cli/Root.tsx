@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Box } from "ink";
 
 import { ChatScreen } from "./screens/chat/index.js";
@@ -12,14 +12,18 @@ import type { ScreenId } from "./types.js";
 export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");
 
-  const goBack = () => setScreen("menu");
+  const goBack = useCallback(() => {
+    setScreen("menu");
+  }, []);
 
   return (
     <Box flexDirection="column">
       {screen === "menu" && <MainMenuScreen onSelect={(id) => setScreen(id)} />}
       {screen === "mcp" && <McpStatusScreen onBack={goBack} />}
       {screen === "speak" && <SpeakScreen onBack={goBack} />}
-      {screen === "chat" && <ChatScreen onBack={goBack} />}
+      {screen === "chat" && (
+        <ChatScreen onBack={goBack} onNavigate={setScreen} />
+      )}
       {screen === "voices" && <VoicesScreen onBack={goBack} />}
       {screen === "settings" && <SettingsScreen onBack={goBack} />}
     </Box>

@@ -3,28 +3,37 @@ import { useCallback, useRef, useState } from "react";
 import { okAsync } from "neverthrow";
 
 import { useMutation, usePreferences, useVoiceToggle } from "~/cli/hooks";
+import { quit } from "~/cli/quit.js";
 import {
   chat,
   narrateResponse,
   recordAndTranscribe,
   speak,
 } from "~/cli/services/yappr";
-import type { ChatMessage } from "~/cli/types.js";
+import type { ChatMessage, ScreenId } from "~/cli/types.js";
 import { createContainer } from "~/lib/unstated.js";
 import {
   ChatStatus,
   type ChatPhase,
   type SttPhase,
 } from "./components/chat-status.js";
+import {
+  resolveSlashSubmit,
+  type SlashCommandContext,
+} from "./slash-commands.js";
 
 export interface ChatStoreInitialState {
   onBack: () => void;
+  onNavigate?: (screen: ScreenId) => void;
 }
 
 function useChatStoreLogic(initialState?: ChatStoreInitialState) {
-  const onBack = initialState?.onBack ?? (() => {});
+  const noop = useCallback(() => {}, []);
+  const onBack = initialState?.onBack ?? noop;
+  const onNavigate = initialState?.onNavigate;
 
   const [value, setValue] = useState("");
+  const [slashNotice, setSlashNotice] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [phase, setPhase] = useState<ChatPhase>("idle");
   const [streamingResponse, setStreamingResponse] = useState("");
@@ -145,6 +154,22 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     }
   }, [sttPhase]);
 
+  const clearConversation = useCallback(() => {
+    stopChat();
+    stopStt();
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setHasStoppedRecording(false);
+    chatMutation.reset();
+    sttMutation.reset();
+    setMessages([]);
+    setStreamingResponse("");
+    setPhase("idle");
+    setActiveToolCall(null);
+  }, [stopChat, stopStt, chatMutation, sttMutation]);
+
   const { isLeakage } = useVoiceToggle({
     isRecording: sttPhase === "recording",
     onStart: startStt,
@@ -154,20 +179,89 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
 
   const handleInputChange = useCallback(
     (val: string) => {
+      setSlashNotice(null);
       if (!isLeakage(val, value)) setValue(val);
     },
     [isLeakage, value],
   );
 
-  const handleSubmit = useCallback(
-    (prompt: string) => {
-      if (!prompt.trim()) return;
+  const quitApp = useCallback(() => {
+    stopStt();
+    stopChat();
+    quit();
+  }, [stopStt, stopChat]);
+
+  const buildSlashContext = useCallback((): SlashCommandContext => {
+    return {
+      clearConversation,
+      stopChat,
+      stopStt,
+      quitApp,
+      onBack,
+      navigate: (screen) => {
+        if (onNavigate) onNavigate(screen);
+        else
+          setSlashNotice(
+            `Open ${screen} from the main menu (this build has no navigator).`,
+          );
+      },
+      showNotice: setSlashNotice,
+      model,
+      provider,
+      voice,
+      useNarrationForTTS,
+    };
+  }, [
+    clearConversation,
+    stopChat,
+    stopStt,
+    quitApp,
+    onBack,
+    onNavigate,
+    model,
+    provider,
+    voice,
+    useNarrationForTTS,
+  ]);
+
+  const handleComposerSubmit = useCallback(
+    (raw: string, slashPick?: string) => {
+      const t = raw.trim();
+      if (!t) return;
+      if (t.startsWith("/")) {
+        const body = t.slice(1).trim();
+        if (!body && !slashPick) {
+          setSlashNotice(
+            "Type to filter · ↑↓ select · Enter run · /help lists all",
+          );
+          return;
+        }
+        const def = resolveSlashSubmit(t, slashPick);
+        if (def) {
+          sttMutation.reset();
+          def.run(buildSlashContext());
+          setValue("");
+          return;
+        }
+        setSlashNotice(`Unknown command: ${t}. Try /help.`);
+        setValue("");
+        return;
+      }
       sttMutation.reset();
-      chatMutation.mutate(prompt.trim());
+      chatMutation.mutate(t);
       setValue("");
     },
-    [chatMutation, sttMutation],
+    [buildSlashContext, chatMutation, sttMutation],
   );
+
+  const dismissSlashOrBack = useCallback(() => {
+    setSlashNotice(null);
+    if (value.startsWith("/")) {
+      setValue("");
+      return;
+    }
+    onBack();
+  }, [value, onBack]);
 
   const statusContent = (
     <ChatStatus
@@ -182,6 +276,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     />
   );
 
+  const isSlashPalette = value.startsWith("/");
+
   const state = {
     provider,
     model,
@@ -191,19 +287,28 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     messages,
     streamingResponse,
     statusContent,
+    slashNotice,
     footerItems: [
       { key: "ctrl+t", label: "voice" },
-      { key: "Esc", label: "back" },
-      { key: "q", label: "quit" },
+      { key: "Esc", label: isSlashPalette ? "cancel /" : "back" },
+      { key: "/quit", label: "exit app" },
       ...(chatMutation.isPending ? [{ key: "ctrl+c", label: "stop" }] : []),
-      ...(value.trim() ? [{ key: "Enter", label: "submit" }] : []),
+      ...(isSlashPalette
+        ? [
+            { key: "↑↓", label: "select" },
+            { key: "Enter", label: "run" },
+          ]
+        : value.trim()
+          ? [{ key: "Enter", label: "submit" }]
+          : [{ key: "/", label: "commands" }]),
     ],
   };
 
   const actions = {
     onBack,
+    dismissSlashOrBack,
     handleInputChange,
-    handleSubmit,
+    handleComposerSubmit,
     stopStt,
     stopChat,
   };
