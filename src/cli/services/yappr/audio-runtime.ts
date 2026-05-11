@@ -1,5 +1,5 @@
-import { mkdirSync } from "fs";
-import path from "path";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import { spawn } from "bun";
 import type { ResultAsync } from "neverthrow";
 

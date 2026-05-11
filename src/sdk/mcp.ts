@@ -1,6 +1,5 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
+import os from "node:os";
+import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -10,7 +9,7 @@ import {
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { toolDefinition, type ServerTool } from "@tanstack/ai";
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { errAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
 import { toError } from "~/lib/result.js";
@@ -32,11 +31,12 @@ export class McpManager {
       "mcp.json",
     ),
   ): ResultAsync<ServerStatus[], Error> {
-    if (!fs.existsSync(configPath)) return okAsync([]);
-
     return ResultAsync.fromPromise(
       (async (): Promise<ServerStatus[]> => {
-        const content = fs.readFileSync(configPath, "utf-8");
+        const file = Bun.file(configPath);
+        if (!(await file.exists())) return [];
+
+        const content = await file.text();
         const config = JSON.parse(content) as McpConfig;
         const results: ServerStatus[] = [];
         for (const [id, serverConfig] of Object.entries(config.mcpServers)) {

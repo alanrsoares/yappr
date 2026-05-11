@@ -13,13 +13,15 @@
 
 ## 2. Tech stack
 
-- **Runtime**: **Bun** for all TS execution, installs, and tests (not Node/npm/pnpm for project commands).
+This repo is **Bun-first**: TypeScript runs on **Bun**, not Node, for installs, scripts, tests, and the TUI.
+
+- **Runtime**: **Bun** only for TS execution, installs, and tests — use **`bun`**, **`bun run`**, **`bun test`**, **`bunx`**. Do not add npm/yarn/pnpm workflows or assume a Node-only runtime for project commands.
+- **Bun APIs (prefer these)**: **`Bun.file`** / **`Bun.write`** for file I/O, **`Bun.$`** (or **`spawn` from `"bun"`**) for subprocesses, **`bun:sqlite`** / **`Bun.sql`** / **`Bun.redis`** when applicable — see [Bun docs](https://bun.sh/docs). Bun loads `.env` in the project root automatically; **do not add `dotenv`** on the Bun side.
+- **Node compatibility**: Use **`node:`** imports (`node:fs`, `node:path`, …) only when there is no good Bun-native substitute (e.g. **`fs.writeSync`** to a TTY fd for terminal modes, **`mkdir`** next to `Bun.write` when the directory must exist first).
 - **TUI**: Ink + React (`src/cli/` screens); screen state often uses `createContainer` from `~/lib/unstated.js`.
 - **Errors**: `neverthrow` (`Result` / `ResultAsync`) for service boundaries where the codebase already uses it.
 - **Lint / format**: ESLint + Prettier (`bun run lint`, `bun run format`).
 - **Python**: 3.11+, FastAPI, uv/pytest in `python/` (see that package’s README and `pyproject.toml`).
-
-Bun loads `.env` in the project root automatically; do not add `dotenv` for the Bun side.
 
 ## 3. Repository layout
 
