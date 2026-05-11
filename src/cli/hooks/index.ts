@@ -1,6 +1,10 @@
 export { useVoiceToggle } from "./useVoiceToggle";
-export { useKeyboard } from "./useKeyboard";
-export type { KeyBinding, UseKeyboardOptions } from "./useKeyboard";
+export { getEffectiveKey, useKeyboard } from "./useKeyboard";
+export type {
+  ExtendedKey,
+  KeyBinding,
+  UseKeyboardOptions,
+} from "./useKeyboard";
 export { useMutation } from "./useMutation";
 export type { UseMutationResult } from "./useMutation";
 export { useMcpStatuses } from "./useMcpStatuses";
