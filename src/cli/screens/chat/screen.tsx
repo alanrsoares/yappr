@@ -1,7 +1,8 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header } from "~/cli/components";
-import { useKeyboard } from "~/cli/hooks";
+import { useKeyboard, useTerminalWidth } from "~/cli/hooks";
+import { semantic } from "~/cli/theme/semantic.js";
 import type { ScreenId } from "~/cli/types.js";
 import { ChatHistory } from "./components/chat-history.js";
 import { ChatInput } from "./components/chat-input.js";
@@ -22,6 +23,7 @@ export function ChatScreen({ onBack, onNavigate }: ChatScreenProps) {
 
 function ChatScreenContent() {
   const [state, actions] = useChatStore();
+  const terminalWidth = useTerminalWidth();
 
   useKeyboard({
     bindings: [
@@ -33,7 +35,12 @@ function ChatScreenContent() {
   const subtitle = `${state.model} · ${state.provider} · TTS: ${state.voice}`;
 
   return (
-    <Box flexDirection="column" padding={1} height="100%">
+    <Box
+      flexDirection="column"
+      padding={1}
+      height="100%"
+      width={terminalWidth}
+    >
       <Header title="Chat" subtitle={subtitle} />
 
       <Box
@@ -41,7 +48,7 @@ function ChatScreenContent() {
         flexGrow={1}
         minHeight={4}
         borderStyle="round"
-        borderColor="gray"
+        borderColor={semantic.border.historyFrame}
         paddingX={1}
         paddingY={0}
         marginBottom={1}
@@ -60,7 +67,7 @@ function ChatScreenContent() {
       {state.slashNotice !== null && state.slashNotice !== "" && (
         <Box flexDirection="column" marginBottom={1}>
           {state.slashNotice.split("\n").map((line, i) => (
-            <Text key={i} color="yellow">
+            <Text key={i} color={semantic.notice}>
               {line}
             </Text>
           ))}

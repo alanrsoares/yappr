@@ -59,6 +59,13 @@ Prefer **`bun run <script>`**, **`bun <file.ts>`**, and **`bunx`** instead of np
 - **Settings / voices**: Prefer the same **store + thin screen** pattern as existing screens.
 - **Secrets**: Never commit real API keys or `.env`; OpenRouter and paths live in user preferences / env.
 
-## 6. Git
+## 6. TUI patterns & styling
+
+- **Semantic colors**: Use `~/cli/theme/semantic.js` (`semantic.accent`, `semantic.error`, `semantic.border.*`, …) instead of scattering `"cyan"` / `"red"` literals. Chat bubbles use `~/cli/theme/chat-appearance.js` (`bubbleBorderForRole`, `streamingBubbleBorder`).
+- **Terminal width**: `useTerminalWidth()` from `~/cli/hooks` reads `stdout.columns` for layouts that should match the terminal (e.g. chat root `Box` `width`).
+- **Exit cleanup**: `quit()` runs `cleanupTerminalModesSync()` (`~/cli/terminal-cleanup.js`) so bracketed paste / mouse tracking modes are not left on after exit.
+- **Further reading**: [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) `packages/cli/src/ui/` — alternate buffer, scroll registry, theme tokens, and terminal capability probing (patterns to borrow gradually, not copy wholesale).
+
+## 7. Git
 
 Use **Conventional Commits** (e.g. `feat(cli): …`, `fix(python): …`, `refactor(cli): …`). Run typecheck and lint for TS changes; run Python tests when touching `python/`.

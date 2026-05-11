@@ -8,6 +8,7 @@ import {
   usePreferences,
 } from "~/cli/hooks/index.js";
 import { quit } from "~/cli/quit.js";
+import { semantic } from "~/cli/theme/semantic.js";
 import { StatusTable } from "./components/status-table.js";
 import { getSummaryCounts, Summary } from "./components/summary.js";
 
@@ -37,7 +38,7 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
       {loading ? (
         <Loading message="Connecting..." />
       ) : error ? (
-        <Text color="red">{error}</Text>
+        <Text color={semantic.error}>{error}</Text>
       ) : statuses.length === 0 ? (
         <Text dimColor>No config at path or no servers defined.</Text>
       ) : (

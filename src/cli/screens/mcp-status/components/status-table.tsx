@@ -1,15 +1,14 @@
 import { Box, Text } from "ink";
 
+import { semantic } from "~/cli/theme/semantic.js";
 import type { ServerStatus } from "~/sdk/types.js";
 
 const HEADERS = ["Server", "Status", "Tools", "Transport", "Message"] as const;
 
-function statusColor(
-  status: ServerStatus["status"],
-): "green" | "red" | "yellow" {
-  if (status === "[OK] Connected") return "green";
-  if (status === "[FAIL] Failed") return "red";
-  return "yellow";
+function statusColor(status: ServerStatus["status"]) {
+  if (status === "[OK] Connected") return semantic.success;
+  if (status === "[FAIL] Failed") return semantic.error;
+  return semantic.notice;
 }
 
 function getCell(row: ServerStatus, col: (typeof HEADERS)[number]): string {

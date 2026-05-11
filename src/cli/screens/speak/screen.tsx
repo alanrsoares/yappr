@@ -7,6 +7,7 @@ import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
 import { speak } from "~/cli/services/yappr";
+import { semantic } from "~/cli/theme/semantic.js";
 
 export interface SpeakScreenProps {
   onBack: () => void;
@@ -42,7 +43,7 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
         subtitle="Type text and press Enter to synthesize"
       />
       <Box>
-        <Text color="cyan">Text: </Text>
+        <Text color={semantic.accent}>Text: </Text>
         <TextInput
           value={value}
           onChange={setValue}
@@ -51,9 +52,11 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
         />
       </Box>
       {speakMutation.isPending && <Loading message="Synthesizing..." />}
-      {speakMutation.isSuccess && <Text color="green">Done. Playing.</Text>}
+      {speakMutation.isSuccess && (
+        <Text color={semantic.success}>Done. Playing.</Text>
+      )}
       {speakMutation.isError && speakMutation.error && (
-        <Text color="red">{speakMutation.error.message}</Text>
+        <Text color={semantic.error}>{speakMutation.error.message}</Text>
       )}
       <Footer
         items={[

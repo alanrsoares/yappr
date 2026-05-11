@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 
 import { getEffectiveKey, type ExtendedKey } from "~/cli/hooks/index.js";
+import { semantic } from "~/cli/theme/semantic.js";
 import { filterSlashCommands, listSlashCommands } from "../slash-commands.js";
 
 const MAX_VISIBLE = 8;
@@ -74,7 +75,7 @@ export function SlashCommandInput({
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box flexDirection="row">
-        <Text color="cyan">{value}</Text>
+        <Text color={semantic.accent}>{value}</Text>
         <Text dimColor>▏</Text>
       </Box>
       <Box flexDirection="column" marginTop={0} paddingLeft={1}>
@@ -86,7 +87,7 @@ export function SlashCommandInput({
             return (
               <Box key={cmd.name}>
                 {selected ? (
-                  <Text color="cyan" bold>
+                  <Text color={semantic.accent} bold>
                     › /{cmd.name}{" "}
                     <Text dimColor bold={false}>
                       — {cmd.description}

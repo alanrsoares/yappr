@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Box, Text } from "ink";
 
+import { semantic } from "~/cli/theme/semantic.js";
+
 export interface SettingsListRowProps {
   index: number;
   selectedRow: number;
@@ -17,7 +19,7 @@ export function SettingsListRow({
   const selected = selectedRow === index;
   return (
     <Box>
-      <Text color={selected ? "cyan" : undefined}>
+      <Text color={selected ? semantic.accent : undefined}>
         {selected ? "› " : "  "}
       </Text>
       <Text>{label}</Text>

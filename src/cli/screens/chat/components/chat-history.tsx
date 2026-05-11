@@ -1,5 +1,9 @@
 import { Box, Static, Text } from "ink";
 
+import {
+  bubbleBorderForRole,
+  streamingBubbleBorder,
+} from "~/cli/theme/chat-appearance.js";
 import type { ChatMessage } from "~/cli/types.js";
 import { MessageBubble } from "./message-bubble.js";
 
@@ -35,7 +39,9 @@ export function ChatHistory({
             role={msg.role as "user" | "assistant"}
             content={msg.content}
             label={msg.role === "user" ? "You" : modelName}
-            borderColor={msg.role === "user" ? "green" : "cyan"}
+            borderColor={bubbleBorderForRole(
+              msg.role === "user" ? "user" : "assistant",
+            )}
           />
         )}
       </Static>
@@ -46,7 +52,7 @@ export function ChatHistory({
           role="assistant"
           content={streamingResponse}
           label={`${modelName} (streaming…)`}
-          borderColor="cyan"
+          borderColor={streamingBubbleBorder()}
         />
       )}
     </Box>

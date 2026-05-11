@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import { semantic } from "~/cli/theme/semantic.js";
 import { PICKER_TITLES } from "../constants.js";
 import { pickerItemLabel, useSettingsStore } from "../store.js";
 
@@ -38,7 +39,7 @@ export function SettingsPickerPanel() {
       ) : null}
       {picker === "model" && !modelsLoading && ollamaModelsError ? (
         <Box marginTop={1}>
-          <Text color="red">{ollamaModelsError.message}</Text>
+          <Text color={semantic.error}>{ollamaModelsError.message}</Text>
         </Box>
       ) : null}
       {picker === "model" &&
@@ -61,7 +62,7 @@ export function SettingsPickerPanel() {
       !openRouterModelsLoading &&
       openRouterModelsError ? (
         <Box marginTop={1}>
-          <Text color="red">{openRouterModelsError.message}</Text>
+          <Text color={semantic.error}>{openRouterModelsError.message}</Text>
         </Box>
       ) : null}
       <Box marginTop={1}>
@@ -74,7 +75,7 @@ export function SettingsPickerPanel() {
         const label = pickerItemLabel(item);
         return (
           <Box key={actualIndex}>
-            <Text color={selected ? "cyan" : undefined}>
+            <Text color={selected ? semantic.accent : undefined}>
               {selected ? "› " : "  "}
               {label}
             </Text>

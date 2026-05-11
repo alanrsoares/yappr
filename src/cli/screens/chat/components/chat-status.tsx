@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Text } from "ink";
 
 import { Loading } from "~/cli/components/index.js";
+import { semantic } from "~/cli/theme/semantic.js";
 
 export type ChatPhase = "idle" | "thinking" | "narrating" | "speaking";
 export type SttPhase = "idle" | "recording" | "transcribing";
@@ -34,7 +35,9 @@ export function ChatStatus({
   activeToolCall,
 }: ChatStatusProps): ReactNode {
   if (isChatPending && activeToolCall) {
-    return <Text color="cyan">Calling tool: {activeToolCall}…</Text>;
+    return (
+      <Text color={semantic.accent}>Calling tool: {activeToolCall}…</Text>
+    );
   }
   if (isChatPending && chatPhase === "thinking" && !hasStreamingResponse) {
     return <Loading message="Thinking…" />;
@@ -46,20 +49,24 @@ export function ChatStatus({
     return <Loading message="Speaking…" />;
   }
   if (sttPhase === "recording") {
-    return <Text color="yellow">Recording… Press ctrl+t to stop.</Text>;
+    return (
+      <Text color={semantic.notice}>
+        Recording… Press ctrl+t to stop.
+      </Text>
+    );
   }
   if (sttPhase === "transcribing") {
     return <Loading message="Transcribing…" />;
   }
   if (sttError) {
-    return <Text color="red">STT: {sttError.message}</Text>;
+    return <Text color={semantic.error}>STT: {sttError.message}</Text>;
   }
   if (chatError && !isAbortError(chatError)) {
     const msg = chatError.message;
     const isModelNotFound =
       /not found|unknown model|model .* does not exist/i.test(msg);
     return (
-      <Text color="red">
+      <Text color={semantic.error}>
         {msg}
         {isModelNotFound
           ? " — Check Settings: Chat provider (Ollama vs OpenRouter) and Chat model."

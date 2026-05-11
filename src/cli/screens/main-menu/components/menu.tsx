@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import { semantic } from "~/cli/theme/semantic.js";
 import type { MenuItem } from "~/cli/types.js";
 
 export interface MenuProps {
@@ -12,7 +13,7 @@ export function Menu({ items, selectedIndex }: MenuProps) {
     <Box flexDirection="column" gap={0}>
       {items.map((item, i) => (
         <Box key={item.id}>
-          <Text color={i === selectedIndex ? "cyan" : undefined}>
+          <Text color={i === selectedIndex ? semantic.accent : undefined}>
             {i === selectedIndex ? "› " : "  "}
             {item.label}
           </Text>

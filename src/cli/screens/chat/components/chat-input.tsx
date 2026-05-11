@@ -1,6 +1,8 @@
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
+import { semantic } from "~/cli/theme/semantic.js";
+
 import { SlashCommandInput } from "./slash-command-input.js";
 
 export interface ChatInputProps {
@@ -21,14 +23,14 @@ export function ChatInput({
   return (
     <Box
       borderStyle="round"
-      borderColor="cyan"
+      borderColor={semantic.border.composer}
       paddingX={1}
       flexDirection="row"
       alignItems={isSlash ? "flex-start" : "center"}
       marginBottom={0}
     >
       <Box marginRight={1}>
-        <Text color="cyan" bold>
+        <Text color={semantic.accent} bold>
           ›
         </Text>
       </Box>

@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import { semantic } from "~/cli/theme/semantic.js";
 import type { SummaryCounts } from "~/cli/types.js";
 
 export interface SummaryProps {
@@ -11,9 +12,11 @@ export function Summary({ counts }: SummaryProps) {
 
   return (
     <Box marginTop={1} flexDirection="row" gap={2}>
-      <Text color="green">{connected} connected</Text>
-      {failed > 0 && <Text color="red">{failed} failed</Text>}
-      {skipped > 0 && <Text color="yellow">{skipped} skipped</Text>}
+      <Text color={semantic.success}>{connected} connected</Text>
+      {failed > 0 && <Text color={semantic.error}>{failed} failed</Text>}
+      {skipped > 0 && (
+        <Text color={semantic.notice}>{skipped} skipped</Text>
+      )}
       <Text dimColor> · </Text>
       <Text dimColor>{totalTools} tools</Text>
     </Box>

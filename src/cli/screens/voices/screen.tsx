@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
+import { semantic } from "~/cli/theme/semantic.js";
 import { useVoicesStore, VoicesProvider } from "./store.js";
 
 export interface VoicesScreenProps {
@@ -40,7 +41,7 @@ function VoicesScreenContent() {
       {isLoading ? (
         <Loading message="Loading voices..." />
       ) : error ? (
-        <Text color="red">{error.message}</Text>
+        <Text color={semantic.error}>{error.message}</Text>
       ) : len === 0 ? (
         <Text dimColor>
           {voices.length === 0
@@ -71,12 +72,17 @@ function VoicesScreenContent() {
             <Text dimColor>Synthesizing…</Text>
           ) : null}
           {previewStatus === "error" && previewError ? (
-            <Text color="red">{previewError}</Text>
+            <Text color={semantic.error}>{previewError}</Text>
           ) : null}
-          {previewStatus === "ok" ? <Text color="green">Playing.</Text> : null}
+          {previewStatus === "ok" ? (
+            <Text color={semantic.success}>Playing.</Text>
+          ) : null}
           <Box flexDirection="column" marginTop={1}>
             {filtered.map((v, i) => (
-              <Text key={v} color={i === effectiveIndex ? "cyan" : undefined}>
+              <Text
+                key={v}
+                color={i === effectiveIndex ? semantic.accent : undefined}
+              >
                 {i === effectiveIndex ? "› " : "  "}
                 {v}
               </Text>
