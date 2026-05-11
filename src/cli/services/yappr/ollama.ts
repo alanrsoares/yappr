@@ -16,7 +16,13 @@ export function listOllamaModels(
 ): ResultAsync<string[], Error> {
   const client = getOllamaClient(baseUrl);
   return ResultAsync.fromPromise(
-    client.list().then((res) => res.models.map((m) => m.name)),
+    client
+      .list()
+      .then((res) =>
+        (res.models ?? [])
+          .map((m) => m.name?.trim() || m.model?.trim() || "")
+          .filter(Boolean),
+      ),
     toError,
   );
 }
