@@ -14,7 +14,6 @@ import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
 import { toError } from "~/lib/result.js";
-
 import type {
   McpConfig,
   McpServerConfig,

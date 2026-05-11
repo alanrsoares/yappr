@@ -4,7 +4,7 @@ import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useQuery } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
-import { listVoices } from "~/cli/services/yappr.js";
+import { listVoices } from "~/cli/services/yappr";
 
 export interface VoicesScreenProps {
   onBack: () => void;

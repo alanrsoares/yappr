@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { highlight } from "cli-highlight";
 import { Text } from "ink";
+
+import { highlight } from "cli-highlight";
 import { marked, type Renderer } from "marked";
 import TerminalRenderer from "marked-terminal";
 

@@ -6,7 +6,7 @@ import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
 import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
-import { speak } from "~/cli/services/yappr.js";
+import { speak } from "~/cli/services/yappr";
 
 export interface SpeakScreenProps {
   onBack: () => void;

@@ -17,7 +17,7 @@ export function Footer({ items }: FooterProps) {
           <Text dimColor>
             <Text bold>{item.key}</Text>
             <Text> {item.label}</Text>
-            {i < items.length - 1 && <Text>  ·  </Text>}
+            {i < items.length - 1 && <Text> · </Text>}
           </Text>
         </Box>
       ))}

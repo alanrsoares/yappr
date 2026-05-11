@@ -1,4 +1,4 @@
-declare module 'cli-highlight' {
+declare module "cli-highlight" {
   export interface HighlightOptions {
     language?: string;
     ignoreIllegals?: boolean;

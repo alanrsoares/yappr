@@ -79,7 +79,9 @@ type OpenRouterStreamChunk =
 interface OpenRouterChatAdapter {
   name: "openrouter";
   model: string;
-  chatStream: (opts: OpenRouterChatStreamOptions) => AsyncIterable<OpenRouterStreamChunk>;
+  chatStream: (
+    opts: OpenRouterChatStreamOptions,
+  ) => AsyncIterable<OpenRouterStreamChunk>;
 }
 
 function mergeOpenRouterRequestHeaders(

@@ -1,4 +1,4 @@
-import { stopAudioPlayback } from "./services/yappr.js";
+import { stopAudioPlayback } from "./services/yappr";
 
 export function quit(): never {
   stopAudioPlayback();

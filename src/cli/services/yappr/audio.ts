@@ -1,17 +1,13 @@
 import { ResultAsync } from "neverthrow";
 
+import { toError } from "~/lib/result.js";
 import {
   listInputDevices,
   listOutputDevices,
   type AudioDevice,
 } from "~/sdk/audio-devices.js";
-import { toError } from "~/lib/result.js";
-
 import type { SpeakOptions } from "../../types.js";
-import {
-  getDefaultAudioRuntime,
-  type AudioRuntime,
-} from "./audio-runtime.js";
+import { getDefaultAudioRuntime, type AudioRuntime } from "./audio-runtime.js";
 
 export type { AudioDevice };
 export {
@@ -37,7 +33,9 @@ export function listVoices(): ResultAsync<string[], Error> {
   return listVoicesWithRuntime(getDefaultAudioRuntime());
 }
 
-export function listVoicesWithRuntime(runtime: AudioRuntime): ResultAsync<string[], Error> {
+export function listVoicesWithRuntime(
+  runtime: AudioRuntime,
+): ResultAsync<string[], Error> {
   return runtime.tts.listVoices();
 }
 

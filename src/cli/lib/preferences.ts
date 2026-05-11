@@ -3,7 +3,6 @@ import path from "path";
 import { ResultAsync } from "neverthrow";
 
 import { toError } from "~/lib/result.js";
-
 import { MCP_CONFIG_PATH } from "../constants.js";
 import type { Preferences } from "../types.js";
 

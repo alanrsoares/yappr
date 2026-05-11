@@ -24,7 +24,10 @@ export function resolveAudioPaths(projectRoot: string): AudioPaths {
 
 export interface TtsPort {
   listVoices(): ResultAsync<string[], Error>;
-  synthesize(text: string, options?: TTSOptions): ResultAsync<ArrayBuffer, Error>;
+  synthesize(
+    text: string,
+    options?: TTSOptions,
+  ): ResultAsync<ArrayBuffer, Error>;
   transcribe(filePath: string): ResultAsync<string, Error>;
 }
 
@@ -93,7 +96,9 @@ export interface CreateAudioRuntimeOptions {
   writeArrayBuffer?: (filePath: string, data: ArrayBuffer) => Promise<unknown>;
 }
 
-export function createAudioRuntime(options: CreateAudioRuntimeOptions = {}): AudioRuntime {
+export function createAudioRuntime(
+  options: CreateAudioRuntimeOptions = {},
+): AudioRuntime {
   const projectRoot = options.projectRoot ?? process.cwd();
   const paths = resolveAudioPaths(projectRoot);
   const playback = options.playback ?? createPlaybackPort();

@@ -37,12 +37,14 @@ describe("createAudioRuntime", () => {
     const tts = {
       listVoices: () => okAsync<string[], Error>(["af_test"]),
       synthesize: () =>
-        ResultAsync.fromPromise(Promise.reject(new Error("should not run")), (e) =>
-          e instanceof Error ? e : new Error(String(e)),
+        ResultAsync.fromPromise(
+          Promise.reject(new Error("should not run")),
+          (e) => (e instanceof Error ? e : new Error(String(e))),
         ),
       transcribe: () =>
-        ResultAsync.fromPromise(Promise.reject(new Error("should not run")), (e) =>
-          e instanceof Error ? e : new Error(String(e)),
+        ResultAsync.fromPromise(
+          Promise.reject(new Error("should not run")),
+          (e) => (e instanceof Error ? e : new Error(String(e))),
         ),
     };
     const rt = createAudioRuntime({

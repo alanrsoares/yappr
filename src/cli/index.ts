@@ -46,7 +46,7 @@ async function run() {
           speed: values.speed ? parseFloat(values.speed) : 1.0,
         });
         speakRes.match(
-          () => { },
+          () => {},
           (e) => console.error("Error:", e.message),
         );
       }
@@ -71,7 +71,7 @@ async function run() {
         });
         console.log(""); // newline
         chatRes.match(
-          () => { },
+          () => {},
           (e) => console.error("Error:", e.message),
         );
       }

@@ -1,15 +1,15 @@
 import type { ModelMessage, ServerTool } from "@tanstack/ai";
 import { ResultAsync } from "neverthrow";
 
+import { toError } from "~/lib/result.js";
 import { MCP_CONFIG_PATH } from "../../../constants.js";
 import type { ChatOptions, NarrationOptions } from "../../../types.js";
-import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
-import { buildChatModelMessages } from "./messages.js";
 import {
   createOpenRouterChat,
   type OpenRouterTextMessage,
 } from "../openrouter.js";
-import { toError } from "~/lib/result.js";
+import { buildChatModelMessages } from "./messages.js";
+import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
 
 function throwIfChatAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
@@ -49,7 +49,9 @@ export function narrateResponse(
   }
   const client = runtime.getOllamaClient(ollamaBaseUrl);
   return ResultAsync.fromPromise(
-    client.chat({ model, messages, stream: false }).then((r) => r.message.content ?? ""),
+    client
+      .chat({ model, messages, stream: false })
+      .then((r) => r.message.content ?? ""),
     toError,
   );
 }
@@ -139,9 +141,7 @@ async function streamOpenRouterAndCollect(
     let finalContent = "";
     for await (const chunk of openRouterAdapter.chatStream({
       messages: openRouterMessages,
-      request: abortController
-        ? { signal: abortController.signal }
-        : undefined,
+      request: abortController ? { signal: abortController.signal } : undefined,
     })) {
       throwIfChatAborted(abortController?.signal);
       if (chunk.type === "RUN_ERROR")
@@ -185,22 +185,13 @@ async function streamOllamaAndCollect(
     let finalContent = "";
     for await (const chunk of stream) {
       throwIfChatAborted(args.abortController?.signal);
-      if (
-        chunk.type === "content" ||
-        chunk.type === "TEXT_MESSAGE_CONTENT"
-      ) {
+      if (chunk.type === "content" || chunk.type === "TEXT_MESSAGE_CONTENT") {
         const delta = "delta" in chunk ? chunk.delta : "";
         finalContent += delta;
         args.onUpdate?.(finalContent);
-      } else if (
-        chunk.type === "TOOL_CALL_START" &&
-        "toolName" in chunk
-      ) {
+      } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
         args.onToolCall?.(chunk.toolName, "start");
-      } else if (
-        chunk.type === "TOOL_CALL_END" &&
-        "toolName" in chunk
-      ) {
+      } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
         args.onToolCall?.(chunk.toolName, "end");
       } else if (chunk.type === "RUN_ERROR") {
         throw new Error(chunk.error.message);

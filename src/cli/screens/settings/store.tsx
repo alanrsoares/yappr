@@ -10,7 +10,7 @@ import {
   listOpenRouterModels,
   listOutputDevices,
   listVoices,
-} from "~/cli/services/yappr.js";
+} from "~/cli/services/yappr";
 import { createContainer } from "~/lib/unstated.js";
 
 export type PickerKind =
@@ -435,7 +435,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       else setSelectedRow((r) => cycle(r, ROW_COUNT, 1));
       return;
     }
-    if (effectiveKey === "return" || effectiveKey === "enter" || effectiveKey === "ctrl+s") {
+    if (
+      effectiveKey === "return" ||
+      effectiveKey === "enter" ||
+      effectiveKey === "ctrl+s"
+    ) {
       if (editingOllamaUrl) confirmOllamaUrlEdit();
       else if (editingMcpConfigPath) confirmMcpConfigPathEdit();
       else if (editingChatModel) confirmChatModelEdit();
@@ -469,7 +473,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       else onBack();
       return;
     }
-    if ((DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey) || effectiveKey === "ctrl+q") quit();
+    if (
+      (DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey) ||
+      effectiveKey === "ctrl+q"
+    )
+      quit();
   });
 
   const state = {

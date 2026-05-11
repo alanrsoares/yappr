@@ -8,7 +8,7 @@ import {
   narrateResponse,
   recordAndTranscribe,
   speak,
-} from "~/cli/services/yappr.js";
+} from "~/cli/services/yappr";
 import type { ChatMessage } from "~/cli/types.js";
 import { createContainer } from "~/lib/unstated.js";
 import {
