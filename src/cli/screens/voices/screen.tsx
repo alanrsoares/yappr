@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { footerVoices } from "~/cli/footer-items.js";
+import { listSelectionPrefix } from "~/cli/list-selection-prefix.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import {
   useVoicesStore,
@@ -99,7 +100,7 @@ function VoicesScreenContent() {
                 key={v}
                 color={i === effectiveIndex ? semantic.accent : undefined}
               >
-                {i === effectiveIndex ? "› " : "  "}
+                {listSelectionPrefix(i === effectiveIndex)}
                 {v}
               </Text>
             ))}

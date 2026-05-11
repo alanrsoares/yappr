@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 
-import { getEffectiveKey, type ExtendedKey } from "~/cli/hooks/index.js";
+import {
+  getEffectiveKey,
+  type ExtendedKey,
+  type InkKeyWithAlt,
+} from "~/cli/hooks/index.js";
+import { clampSelectedIndex, cycleIndex } from "~/cli/list-nav.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import { filterSlashCommands, listSlashCommands } from "../slash-commands.js";
 
 const MAX_VISIBLE = 8;
-
-function cycle(i: number, n: number, d: number): number {
-  if (n <= 0) return 0;
-  return (i + n + d) % n;
-}
 
 export interface SlashCommandInputProps {
   value: string;
@@ -34,8 +34,7 @@ export function SlashCommandInput({
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const n = list.length;
-  const effectiveIndex =
-    n <= 0 ? 0 : Math.min(Math.max(0, selectedIndex), n - 1);
+  const effectiveIndex = clampSelectedIndex(selectedIndex, n);
   const windowStart =
     n <= MAX_VISIBLE
       ? 0
@@ -51,11 +50,11 @@ export function SlashCommandInput({
       return;
     }
     if (effectiveKey === "upArrow") {
-      setSelectedIndex((i) => cycle(i, n, -1));
+      setSelectedIndex((i) => cycleIndex(i, n, -1));
       return;
     }
     if (effectiveKey === "downArrow") {
-      setSelectedIndex((i) => cycle(i, n, 1));
+      setSelectedIndex((i) => cycleIndex(i, n, 1));
       return;
     }
     if (effectiveKey === "backspace" || key.backspace) {
@@ -64,7 +63,7 @@ export function SlashCommandInput({
       else onChange(value.slice(0, -1));
       return;
     }
-    if (key.ctrl || key.meta || (key as { alt?: boolean }).alt) return;
+    if (key.ctrl || key.meta || (key as InkKeyWithAlt).alt) return;
 
     if (input && !key.return) {
       setSelectedIndex(0);

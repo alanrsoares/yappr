@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import { listSelectionPrefix } from "~/cli/list-selection-prefix.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import type { MenuItem } from "~/cli/types.js";
 
@@ -14,7 +15,7 @@ export function Menu({ items, selectedIndex }: MenuProps) {
       {items.map((item, i) => (
         <Box key={item.id}>
           <Text color={i === selectedIndex ? semantic.accent : undefined}>
-            {i === selectedIndex ? "› " : "  "}
+            {listSelectionPrefix(i === selectedIndex)}
             {item.label}
           </Text>
         </Box>

@@ -1,13 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
-import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { wantsBackKey } from "~/cli/constants.js";
 import {
   getEffectiveKey,
   usePreferences,
   useQuery,
   type ExtendedKey,
+  type InkKeyWithAlt,
 } from "~/cli/hooks/index.js";
+import { filterBySubstring } from "~/cli/list-filter.js";
+import { clampSelectedIndex, cycleIndex } from "~/cli/list-nav.js";
 import { quit } from "~/cli/quit.js";
 import {
   listInputDevices,
@@ -69,13 +72,6 @@ export const SETTINGS_MAIN_LIST_ROW_COUNT =
 /** Max visible rows in a settings picker window (independent of main list length). */
 const VISIBLE_PICKER_ROWS = 10;
 
-/** Ink `Key` may include `alt` depending on version; used for picker typeahead guard. */
-interface InkKeyOptionalAlt {
-  alt?: boolean;
-}
-
-type PickerInputKey = ExtendedKey & InkKeyOptionalAlt;
-
 export interface PickerListItemRecord {
   name?: string;
   id?: string;
@@ -129,9 +125,6 @@ export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-const cycle = (i: number, n: number, d: number) =>
-  n <= 0 ? 0 : (i + n + d) % n;
-
 function clampPickerScrollOffset(index: number, listLength: number): number {
   return Math.max(
     0,
@@ -157,9 +150,7 @@ function filterPickerList(
   query: string,
 ): PickerListItem[] {
   if (!list?.length) return [];
-  const q = query.trim().toLowerCase();
-  if (!q) return [...list];
-  return list.filter((item) => pickerItemLabel(item).toLowerCase().includes(q));
+  return filterBySubstring(list, query, pickerItemLabel);
 }
 
 function commitPickerChoice(
@@ -268,8 +259,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   );
   const pickerLen = filteredPickerList.length;
 
-  const effectivePickerIndex =
-    pickerLen <= 0 ? 0 : Math.min(Math.max(0, pickerIndex), pickerLen - 1);
+  const effectivePickerIndex = clampSelectedIndex(pickerIndex, pickerLen);
 
   const { visiblePickerStart, visiblePickerSlice } =
     useMemo((): VisiblePickerWindow => {
@@ -469,7 +459,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
 
   const movePickerSelection = useCallback(
     (delta: number) => {
-      const next = cycle(effectivePickerIndex, pickerLen, delta);
+      const next = cycleIndex(effectivePickerIndex, pickerLen, delta);
       setPickerIndex(next);
       setPickerScrollOffset((s) => {
         const maxScroll = Math.max(0, pickerLen - VISIBLE_PICKER_ROWS);
@@ -487,7 +477,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       picker &&
       !key.ctrl &&
       !key.meta &&
-      !(key as PickerInputKey).alt &&
+      !(key as InkKeyWithAlt).alt &&
       !key.return
     ) {
       if (key.backspace) {
@@ -506,7 +496,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       !isInlineTextEditing
     ) {
       if (picker) movePickerSelection(-1);
-      else setSelectedRow((r) => cycle(r, SETTINGS_MAIN_LIST_ROW_COUNT, -1));
+      else
+        setSelectedRow((r) =>
+          cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, -1),
+        );
       return;
     }
     if (
@@ -514,7 +507,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       !isInlineTextEditing
     ) {
       if (picker) movePickerSelection(1);
-      else setSelectedRow((r) => cycle(r, SETTINGS_MAIN_LIST_ROW_COUNT, 1));
+      else
+        setSelectedRow((r) =>
+          cycleIndex(r, SETTINGS_MAIN_LIST_ROW_COUNT, 1),
+        );
       return;
     }
     if (
@@ -539,10 +535,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       openPicker();
       return;
     }
-    const wantsBack =
-      effectiveKey === "escape" ||
-      (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
-    if (wantsBack) {
+    if (wantsBackKey(effectiveKey)) {
       if (textEditorSession) {
         cancelTextEditor();
         return;

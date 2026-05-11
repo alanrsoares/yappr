@@ -2,6 +2,7 @@ export { useVoiceToggle } from "./useVoiceToggle";
 export { getEffectiveKey, useKeyboard } from "./useKeyboard";
 export type {
   ExtendedKey,
+  InkKeyWithAlt,
   KeyBinding,
   UseKeyboardOptions,
 } from "./useKeyboard";

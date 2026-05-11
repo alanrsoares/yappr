@@ -18,6 +18,10 @@ export const DEFAULT_KEYS = {
   back: ["escape"],
 } as const;
 
+export function wantsBackKey(effectiveKey: string) {
+  return (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
+}
+
 export const MENU_ITEMS: { id: ScreenId; label: string }[] = [
   { id: "mcp", label: "MCP servers" },
   { id: "speak", label: "Speak (text → speech)" },

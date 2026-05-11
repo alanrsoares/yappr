@@ -1,27 +1,21 @@
 import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
-import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { wantsBackKey } from "~/cli/constants.js";
 import {
   getEffectiveKey,
   useQuery,
   type ExtendedKey,
+  type InkKeyWithAlt,
 } from "~/cli/hooks/index.js";
+import { filterBySubstring } from "~/cli/list-filter.js";
+import { clampSelectedIndex, cycleIndex } from "~/cli/list-nav.js";
 import { quit } from "~/cli/quit.js";
 import { listVoices, speak } from "~/cli/services/yappr";
 import { createContainer } from "~/lib/unstated.js";
 
 const VOICE_PREVIEW_SAMPLE =
   "Hello. This is a short preview of the selected voice.";
-
-function filterVoiceIds(voices: readonly string[], query: string): string[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [...voices];
-  return voices.filter((v) => v.toLowerCase().includes(q));
-}
-
-const cycle = (i: number, n: number, d: number) =>
-  n <= 0 ? 0 : (i + n + d) % n;
 
 export interface VoicesStoreInitialState {
   onBack: () => void;
@@ -42,12 +36,12 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const filtered = useMemo(
-    () => filterVoiceIds(voices, filterText),
+    () => filterBySubstring(voices, filterText, (v) => v),
     [voices, filterText],
   );
   const len = filtered.length;
   const effectiveIndex = useMemo(
-    () => (len <= 0 ? 0 : Math.min(Math.max(0, selectedIndex), len - 1)),
+    () => clampSelectedIndex(selectedIndex, len),
     [len, selectedIndex],
   );
   const selectedVoice = len > 0 ? filtered[effectiveIndex] : null;
@@ -84,11 +78,8 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
   useInput((input, key) => {
     const effectiveKey = getEffectiveKey(input, key as ExtendedKey);
 
-    // `DEFAULT_KEYS.quit` includes "escape"; handle back before quit so Esc leaves the screen, not the app.
-    const wantsBack =
-      effectiveKey === "escape" ||
-      (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
-    if (wantsBack) {
+    // Quit keys include "escape"; handle back before quit so Esc leaves the screen, not the app.
+    if (wantsBackKey(effectiveKey)) {
       if (phraseCustom) {
         setPhraseCustom(false);
       } else {
@@ -108,7 +99,7 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
       !phraseCustom &&
       !key.ctrl &&
       !key.meta &&
-      !(key as { alt?: boolean }).alt &&
+      !(key as InkKeyWithAlt).alt &&
       !key.return
     ) {
       if (key.backspace) {
@@ -127,7 +118,7 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
       phraseCustom &&
       !key.ctrl &&
       !key.meta &&
-      !(key as { alt?: boolean }).alt &&
+      !(key as InkKeyWithAlt).alt &&
       !key.return
     ) {
       if (key.backspace) {
@@ -141,11 +132,11 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
     }
 
     if ((effectiveKey === "upArrow" || effectiveKey === "k") && len > 0) {
-      setSelectedIndex(cycle(effectiveIndex, len, -1));
+      setSelectedIndex(cycleIndex(effectiveIndex, len, -1));
       return;
     }
     if ((effectiveKey === "downArrow" || effectiveKey === "j") && len > 0) {
-      setSelectedIndex(cycle(effectiveIndex, len, 1));
+      setSelectedIndex(cycleIndex(effectiveIndex, len, 1));
       return;
     }
 

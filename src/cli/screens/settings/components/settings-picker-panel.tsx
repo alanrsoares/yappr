@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import { listSelectionPrefix } from "~/cli/list-selection-prefix.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import { PICKER_TITLES } from "../constants.js";
 import { pickerItemLabel, useSettingsStore } from "../store.js";
@@ -76,7 +77,7 @@ export function SettingsPickerPanel() {
         return (
           <Box key={actualIndex}>
             <Text color={selected ? semantic.accent : undefined}>
-              {selected ? "› " : "  "}
+              {listSelectionPrefix(selected)}
               {label}
             </Text>
           </Box>
