@@ -14,9 +14,7 @@ export function Summary({ counts }: SummaryProps) {
     <Box marginTop={1} flexDirection="row" gap={2}>
       <Text color={semantic.success}>{connected} connected</Text>
       {failed > 0 && <Text color={semantic.error}>{failed} failed</Text>}
-      {skipped > 0 && (
-        <Text color={semantic.notice}>{skipped} skipped</Text>
-      )}
+      {skipped > 0 && <Text color={semantic.notice}>{skipped} skipped</Text>}
       <Text dimColor> · </Text>
       <Text dimColor>{totalTools} tools</Text>
     </Box>

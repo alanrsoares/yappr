@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components";
+import { footerVoices } from "~/cli/footer-items.js";
 import { semantic } from "~/cli/theme/semantic.js";
 import { useVoicesStore, VoicesProvider } from "./store.js";
 
@@ -90,15 +91,7 @@ function VoicesScreenContent() {
           </Box>
         </Box>
       )}
-      <Footer
-        items={[
-          { key: "Esc", label: phraseCustom ? "phrase" : "back" },
-          { key: "Ctrl+p", label: "sample" },
-          { key: "Ctrl+e", label: "phrase" },
-          { key: "Enter", label: "play" },
-          { key: "q", label: "quit" },
-        ]}
-      />
+      <Footer items={footerVoices(phraseCustom ? "phrase" : "back")} />
     </Box>
   );
 }

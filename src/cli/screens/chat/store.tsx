@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { okAsync } from "neverthrow";
 
+import { buildChatFooterItems } from "~/cli/footer-items.js";
 import { useMutation, usePreferences, useVoiceToggle } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
 import {
@@ -288,20 +289,11 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     streamingResponse,
     statusContent,
     slashNotice,
-    footerItems: [
-      { key: "ctrl+t", label: "voice" },
-      { key: "Esc", label: isSlashPalette ? "cancel /" : "back" },
-      { key: "/quit", label: "exit app" },
-      ...(chatMutation.isPending ? [{ key: "ctrl+c", label: "stop" }] : []),
-      ...(isSlashPalette
-        ? [
-            { key: "↑↓", label: "select" },
-            { key: "Enter", label: "run" },
-          ]
-        : value.trim()
-          ? [{ key: "Enter", label: "submit" }]
-          : [{ key: "/", label: "commands" }]),
-    ],
+    footerItems: buildChatFooterItems({
+      isSlashPalette,
+      isChatPending: chatMutation.isPending,
+      hasComposerValue: !!value.trim(),
+    }),
   };
 
   const actions = {

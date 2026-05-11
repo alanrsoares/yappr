@@ -16,7 +16,7 @@ import {
   listOutputDevices,
   listVoices,
 } from "~/cli/services/yappr";
-import type { ChatProvider } from "~/cli/types.js";
+import type { ChatProvider, Preferences } from "~/cli/types.js";
 import { createContainer } from "~/lib/unstated.js";
 
 export type PickerKind =
@@ -32,6 +32,87 @@ export type PickerKind =
 const PROVIDER_LABELS = ["Ollama", "OpenRouter"] as const;
 const PROVIDER_VALUES = ["ollama", "openrouter"] as const;
 type ProviderValue = (typeof PROVIDER_VALUES)[number];
+
+type PickerKindNonNull = Exclude<PickerKind, null>;
+
+type SettingsTextEditor = "ollamaUrl" | "mcpPath" | "chatModel" | "openrouterKey";
+
+const TEXT_EDITOR_ORDER = [
+  "ollamaUrl",
+  "mcpPath",
+  "chatModel",
+  "openrouterKey",
+] as const satisfies readonly SettingsTextEditor[];
+
+function activeTextEditor(flags: {
+  editingOllamaUrl: boolean;
+  editingMcpConfigPath: boolean;
+  editingChatModel: boolean;
+  editingOpenrouterApiKey: boolean;
+}) {
+  const map: Record<SettingsTextEditor, boolean> = {
+    ollamaUrl: flags.editingOllamaUrl,
+    mcpPath: flags.editingMcpConfigPath,
+    chatModel: flags.editingChatModel,
+    openrouterKey: flags.editingOpenrouterApiKey,
+  };
+  for (const k of TEXT_EDITOR_ORDER) {
+    if (map[k]) return k;
+  }
+  return null;
+}
+
+function commitPickerProvider(
+  effectivePickerIndex: number,
+  savePreferences: (next: Partial<Preferences>) => void,
+) {
+  if (PROVIDER_VALUES[effectivePickerIndex]) {
+    savePreferences({
+      defaultChatProvider: PROVIDER_VALUES[
+        effectivePickerIndex
+      ] as ProviderValue,
+    });
+  }
+}
+
+function commitPickerNarration(
+  selected: PickerListItem,
+  savePreferences: (next: Partial<Preferences>) => void,
+) {
+  const raw = selected as string;
+  savePreferences({
+    narrationModel: raw === "(same as chat)" ? "" : raw,
+  });
+}
+
+function commitPickerChoice(
+  kind: PickerKindNonNull,
+  selected: PickerListItem,
+  effectivePickerIndex: number,
+  savePreferences: (next: Partial<Preferences>) => void,
+) {
+  const handlers: Record<PickerKindNonNull, () => void> = {
+    provider: () =>
+      commitPickerProvider(effectivePickerIndex, savePreferences),
+    model: () => savePreferences({ defaultChatModel: selected as string }),
+    openRouterModel: () =>
+      savePreferences({
+        defaultChatModel: (selected as { id: string }).id,
+      }),
+    voice: () => savePreferences({ defaultVoice: selected as string }),
+    input: () =>
+      savePreferences({
+        defaultInputDeviceIndex: (selected as { index: number }).index,
+      }),
+    output: () =>
+      savePreferences({
+        defaultOutputDeviceIndex: (selected as { index: number }).index,
+      }),
+    narrationModel: () =>
+      commitPickerNarration(selected, savePreferences),
+  };
+  handlers[kind]();
+}
 
 export interface SettingsStoreInitialState {
   onBack: () => void;
@@ -336,44 +417,13 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       setPickerFilterText("");
       return;
     }
-    switch (picker) {
-      case "provider":
-        if (PROVIDER_VALUES[effectivePickerIndex]) {
-          savePreferences({
-            defaultChatProvider: PROVIDER_VALUES[
-              effectivePickerIndex
-            ] as ProviderValue,
-          });
-        }
-        break;
-      case "model":
-        savePreferences({ defaultChatModel: selected as string });
-        break;
-      case "openRouterModel":
-        savePreferences({
-          defaultChatModel: (selected as { id: string }).id,
-        });
-        break;
-      case "voice":
-        savePreferences({ defaultVoice: selected as string });
-        break;
-      case "input":
-        savePreferences({
-          defaultInputDeviceIndex: (selected as { index: number }).index,
-        });
-        break;
-      case "output":
-        savePreferences({
-          defaultOutputDeviceIndex: (selected as { index: number }).index,
-        });
-        break;
-      case "narrationModel": {
-        const raw = selected as string;
-        savePreferences({
-          narrationModel: raw === "(same as chat)" ? "" : raw,
-        });
-        break;
-      }
+    if (picker) {
+      commitPickerChoice(
+        picker,
+        selected,
+        effectivePickerIndex,
+        savePreferences,
+      );
     }
     setPicker(null);
     setPickerFilterText("");
@@ -403,6 +453,36 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       });
     },
     [effectivePickerIndex, pickerLen],
+  );
+
+  const confirmByEditor = useMemo(
+    (): Record<SettingsTextEditor, () => void> => ({
+      ollamaUrl: confirmOllamaUrlEdit,
+      mcpPath: confirmMcpConfigPathEdit,
+      chatModel: confirmChatModelEdit,
+      openrouterKey: confirmOpenrouterApiKeyEdit,
+    }),
+    [
+      confirmOllamaUrlEdit,
+      confirmMcpConfigPathEdit,
+      confirmChatModelEdit,
+      confirmOpenrouterApiKeyEdit,
+    ],
+  );
+
+  const cancelByEditor = useMemo(
+    (): Record<SettingsTextEditor, () => void> => ({
+      ollamaUrl: cancelOllamaUrlEdit,
+      mcpPath: cancelMcpConfigPathEdit,
+      chatModel: cancelChatModelEdit,
+      openrouterKey: cancelOpenrouterApiKeyEdit,
+    }),
+    [
+      cancelOllamaUrlEdit,
+      cancelMcpConfigPathEdit,
+      cancelChatModelEdit,
+      cancelOpenrouterApiKeyEdit,
+    ],
   );
 
   useInput((input, key) => {
@@ -438,35 +518,58 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       effectiveKey === "enter" ||
       effectiveKey === "ctrl+s"
     ) {
-      if (editingOllamaUrl) confirmOllamaUrlEdit();
-      else if (editingMcpConfigPath) confirmMcpConfigPathEdit();
-      else if (editingChatModel) confirmChatModelEdit();
-      else if (editingOpenrouterApiKey) confirmOpenrouterApiKeyEdit();
-      else if (picker) confirmPicker();
-      else if (selectedRow === 5)
+      const editor = activeTextEditor({
+        editingOllamaUrl,
+        editingMcpConfigPath,
+        editingChatModel,
+        editingOpenrouterApiKey,
+      });
+      if (editor) {
+        confirmByEditor[editor]();
+        return;
+      }
+      if (picker) {
+        confirmPicker();
+        return;
+      }
+      if (selectedRow === 5) {
         savePreferences({
           useNarrationForTTS: !preferences.useNarrationForTTS,
         });
-      else openPicker();
+        return;
+      }
+      openPicker();
       return;
     }
     const wantsBack =
       effectiveKey === "escape" ||
       (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
     if (wantsBack) {
-      if (editingOllamaUrl) cancelOllamaUrlEdit();
-      else if (editingMcpConfigPath) cancelMcpConfigPathEdit();
-      else if (editingChatModel) cancelChatModelEdit();
-      else if (editingOpenrouterApiKey) cancelOpenrouterApiKeyEdit();
-      else if (picker) closePicker();
-      else onBack();
+      const editor = activeTextEditor({
+        editingOllamaUrl,
+        editingMcpConfigPath,
+        editingChatModel,
+        editingOpenrouterApiKey,
+      });
+      if (editor) {
+        cancelByEditor[editor]();
+        return;
+      }
+      if (picker) {
+        closePicker();
+        return;
+      }
+      onBack();
       return;
     }
-    if (
-      (DEFAULT_KEYS.quit as readonly string[]).includes(effectiveKey) ||
-      effectiveKey === "ctrl+q"
-    )
+    if (effectiveKey === "ctrl+q") {
       quit();
+      return;
+    }
+    if (effectiveKey === "q" && !isEditing) {
+      quit();
+      return;
+    }
   });
 
   const state = {

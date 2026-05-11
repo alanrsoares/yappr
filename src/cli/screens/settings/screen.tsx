@@ -1,10 +1,11 @@
 import { Box } from "ink";
 
 import { Footer, Header } from "~/cli/components";
+import { FOOTER_SETTINGS_LIST } from "~/cli/footer-items.js";
 import { SettingsEditLayer } from "./components/settings-edit-layer.js";
 import { SettingsMainList } from "./components/settings-main-list.js";
 import { SettingsPickerPanel } from "./components/settings-picker-panel.js";
-import { LIST_FOOTER_ITEMS, SETTINGS_SUBTITLE } from "./constants.js";
+import { SETTINGS_SUBTITLE } from "./constants.js";
 import { SettingsProvider, useSettingsStore } from "./store.js";
 
 export interface SettingsScreenProps {
@@ -45,7 +46,7 @@ function SettingsScreenContent() {
 
       {!picker ? <SettingsMainList /> : <SettingsPickerPanel />}
 
-      <Footer items={LIST_FOOTER_ITEMS} />
+      <Footer items={FOOTER_SETTINGS_LIST} />
     </Box>
   );
 }

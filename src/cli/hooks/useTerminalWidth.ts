@@ -7,7 +7,7 @@ const MAX_COLS = 10_000;
  * Safe column count for Ink `Box` `width`. Yoga (WASM) can throw if width is 0
  * or invalid; `stdout.columns` is sometimes 0 briefly or in broken pipes.
  */
-export function useTerminalWidth(): number {
+export function useTerminalWidth() {
   const { stdout } = useStdout();
   const c = stdout.columns;
   const raw =

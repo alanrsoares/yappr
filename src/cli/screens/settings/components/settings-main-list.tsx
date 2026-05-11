@@ -91,7 +91,7 @@ export function SettingsMainList() {
         value={preferences.mcpConfigPath}
       />
       <Box marginTop={1}>
-        <Text dimColor>Enter to change · Esc back · ^Q quit</Text>
+        <Text dimColor>Enter to change · Esc back · q quit</Text>
       </Box>
     </Box>
   );

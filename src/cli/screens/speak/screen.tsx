@@ -4,6 +4,7 @@ import TextInput from "ink-text-input";
 
 import { Footer, Header, Loading } from "~/cli/components";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { FOOTER_SPEAK } from "~/cli/footer-items.js";
 import { useKeyboard, useMutation, usePreferences } from "~/cli/hooks";
 import { quit } from "~/cli/quit.js";
 import { speak } from "~/cli/services/yappr";
@@ -58,12 +59,7 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
       {speakMutation.isError && speakMutation.error && (
         <Text color={semantic.error}>{speakMutation.error.message}</Text>
       )}
-      <Footer
-        items={[
-          { key: "Esc", label: "back" },
-          { key: "q", label: "quit" },
-        ]}
-      />
+      <Footer items={FOOTER_SPEAK} />
     </Box>
   );
 }

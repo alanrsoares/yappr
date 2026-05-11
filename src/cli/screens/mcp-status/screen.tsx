@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 
 import { Footer, Header, Loading } from "~/cli/components/index.js";
 import { DEFAULT_KEYS } from "~/cli/constants.js";
+import { FOOTER_MCP_STATUS } from "~/cli/footer-items.js";
 import {
   useKeyboard,
   useMcpStatuses,
@@ -48,13 +49,7 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
         </>
       )}
 
-      <Footer
-        items={[
-          { key: "r", label: "refresh" },
-          { key: "Esc", label: "back" },
-          { key: "q", label: "quit" },
-        ]}
-      />
+      <Footer items={FOOTER_MCP_STATUS} />
     </Box>
   );
 }

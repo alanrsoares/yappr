@@ -2,7 +2,8 @@ import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
 import { Footer, Header } from "~/cli/components";
-import { EDIT_MODE_FOOTER_ITEMS, SETTINGS_SUBTITLE } from "../constants.js";
+import { FOOTER_SETTINGS_EDIT } from "~/cli/footer-items.js";
+import { SETTINGS_SUBTITLE } from "../constants.js";
 import { useSettingsStore } from "../store.js";
 
 function EditFieldShell(props: {
@@ -25,10 +26,10 @@ function EditFieldShell(props: {
           placeholder={placeholder}
         />
         <Box marginTop={1}>
-          <Text dimColor>Enter or ^S save · Esc cancel</Text>
+          <Text dimColor>Enter or Ctrl+s save · Esc cancel · Ctrl+q quit</Text>
         </Box>
       </Box>
-      <Footer items={EDIT_MODE_FOOTER_ITEMS} />
+      <Footer items={FOOTER_SETTINGS_EDIT} />
     </Box>
   );
 }

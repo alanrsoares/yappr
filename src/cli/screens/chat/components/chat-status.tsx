@@ -18,85 +18,99 @@ export interface ChatStatusProps {
   activeToolCall?: string | null;
 }
 
-function isAbortError(err: Error): boolean {
+const isAbortError = (err: Error) =>
+  err.name === "AbortError" || err.message?.toLowerCase().includes("abort");
+
+function renderChatErrorBlock(p: ChatStatusProps) {
+  const msg = p.chatError!.message;
+  const isModelNotFound =
+    /not found|unknown model|model .* does not exist/i.test(msg);
   return (
-    err.name === "AbortError" || err.message?.toLowerCase().includes("abort")
+    <Text color={semantic.error}>
+      {msg}
+      {isModelNotFound
+        ? " — Check Settings: Chat provider (Ollama vs OpenRouter) and Chat model."
+        : ""}
+    </Text>
   );
 }
 
-export function ChatStatus({
-  chatPhase,
-  sttPhase,
-  hasStreamingResponse,
-  isChatPending,
-  messageCount,
-  sttError,
-  chatError,
-  activeToolCall,
-}: ChatStatusProps): ReactNode {
-  if (isChatPending && activeToolCall) {
-    return (
-      <Text color={semantic.accent}>Calling tool: {activeToolCall}…</Text>
-    );
-  }
-  if (isChatPending && chatPhase === "thinking" && !hasStreamingResponse) {
-    return <Loading message="Thinking…" />;
-  }
-  if (isChatPending && chatPhase === "narrating") {
-    return <Loading message="Narrating…" />;
-  }
-  if (isChatPending && chatPhase === "speaking") {
-    return <Loading message="Speaking…" />;
-  }
-  if (sttPhase === "recording") {
-    return (
-      <Text color={semantic.notice}>
-        Recording… Press ctrl+t to stop.
-      </Text>
-    );
-  }
-  if (sttPhase === "transcribing") {
-    return <Loading message="Transcribing…" />;
-  }
-  if (sttError) {
-    return <Text color={semantic.error}>STT: {sttError.message}</Text>;
-  }
-  if (chatError && !isAbortError(chatError)) {
-    const msg = chatError.message;
-    const isModelNotFound =
-      /not found|unknown model|model .* does not exist/i.test(msg);
-    return (
-      <Text color={semantic.error}>
-        {msg}
-        {isModelNotFound
-          ? " — Check Settings: Chat provider (Ollama vs OpenRouter) and Chat model."
-          : ""}
-      </Text>
-    );
-  }
-  if (chatError && isAbortError(chatError)) {
-    return <Text dimColor>Cancelled.</Text>;
-  }
-  if (messageCount === 0 && !hasStreamingResponse && !isChatPending) {
-    return (
+type StatusRule = {
+  readonly when: (p: ChatStatusProps) => boolean;
+  readonly render: (p: ChatStatusProps) => ReactNode;
+};
+
+/** First matching rule wins (explicit priority order). */
+const CHAT_STATUS_RULES: readonly StatusRule[] = [
+  {
+    when: (p) => p.isChatPending && !!p.activeToolCall,
+    render: (p) => (
+      <Text color={semantic.accent}>Calling tool: {p.activeToolCall}…</Text>
+    ),
+  },
+  {
+    when: (p) =>
+      p.isChatPending && p.chatPhase === "thinking" && !p.hasStreamingResponse,
+    render: () => <Loading message="Thinking…" />,
+  },
+  {
+    when: (p) => p.isChatPending && p.chatPhase === "narrating",
+    render: () => <Loading message="Narrating…" />,
+  },
+  {
+    when: (p) => p.isChatPending && p.chatPhase === "speaking",
+    render: () => <Loading message="Speaking…" />,
+  },
+  {
+    when: (p) => p.sttPhase === "recording",
+    render: () => (
+      <Text color={semantic.notice}>Recording… Press ctrl+t to stop.</Text>
+    ),
+  },
+  {
+    when: (p) => p.sttPhase === "transcribing",
+    render: () => <Loading message="Transcribing…" />,
+  },
+  {
+    when: (p) => !!p.sttError,
+    render: (p) => (
+      <Text color={semantic.error}>STT: {p.sttError!.message}</Text>
+    ),
+  },
+  {
+    when: (p) => !!p.chatError && !isAbortError(p.chatError!),
+    render: renderChatErrorBlock,
+  },
+  {
+    when: (p) => !!p.chatError && isAbortError(p.chatError!),
+    render: () => <Text dimColor>Cancelled.</Text>,
+  },
+  {
+    when: (p) =>
+      p.messageCount === 0 && !p.hasStreamingResponse && !p.isChatPending,
+    render: () => (
       <Text dimColor>
         Type or ctrl+t for voice — assistant replies are spoken with TTS.
       </Text>
-    );
-  }
-  if (
-    !isChatPending &&
-    sttPhase === "idle" &&
-    !sttError &&
-    !(chatError && !isAbortError(chatError)) &&
-    messageCount > 0 &&
-    !hasStreamingResponse
-  ) {
-    return (
+    ),
+  },
+  {
+    when: (p) =>
+      !p.isChatPending &&
+      p.sttPhase === "idle" &&
+      !p.sttError &&
+      !(p.chatError && !isAbortError(p.chatError)) &&
+      p.messageCount > 0 &&
+      !p.hasStreamingResponse,
+    render: () => (
       <Text dimColor>
         Ready — Enter sends · ctrl+t voice · Esc back · /quit exit
       </Text>
-    );
-  }
-  return null;
+    ),
+  },
+];
+
+export function ChatStatus(props: ChatStatusProps) {
+  const rule = CHAT_STATUS_RULES.find((r) => r.when(props));
+  return rule ? rule.render(props) : null;
 }

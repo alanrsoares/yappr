@@ -2,7 +2,6 @@ import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
 import { semantic } from "~/cli/theme/semantic.js";
-
 import { SlashCommandInput } from "./slash-command-input.js";
 
 export interface ChatInputProps {

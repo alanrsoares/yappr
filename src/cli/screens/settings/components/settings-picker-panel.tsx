@@ -85,7 +85,7 @@ export function SettingsPickerPanel() {
       <Box marginTop={1}>
         <Text dimColor>
           {pickerScrollPrefix}
-          ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel · ^Q quit
+          ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel · q quit
         </Text>
       </Box>
     </Box>

@@ -35,12 +35,7 @@ function ChatScreenContent() {
   const subtitle = `${state.model} · ${state.provider} · TTS: ${state.voice}`;
 
   return (
-    <Box
-      flexDirection="column"
-      padding={1}
-      height="100%"
-      width={terminalWidth}
-    >
+    <Box flexDirection="column" padding={1} height="100%" width={terminalWidth}>
       <Header title="Chat" subtitle={subtitle} />
 
       <Box
