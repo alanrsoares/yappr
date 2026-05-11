@@ -48,3 +48,4 @@ __pycache__
 # Audio Artifacts / tmp
 tmp
 *.wav
+kokoro-voice-assessment/

@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "start:py": "python/venv/bin/python python/server.py",
-    "openapi:export": "python/venv/bin/python python/export_openapi.py",
+    "openapi:export": "PYTHONPATH=python python/venv/bin/python python/export_openapi.py && bunx openapi-typescript openapi.json -o src/sdk/schema.d.ts",
+    "assess:kokoro-voices": "PYTHONPATH=python python/venv/bin/python python/scripts/assess_kokoro_voices.py",
     "lint": "eslint .",
     "test:py": "cd python && python -m pytest tests/ -v",
     "test": "bun test",
