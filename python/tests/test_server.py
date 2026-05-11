@@ -14,6 +14,8 @@ def test_voices_returns_list(client: TestClient) -> None:
     voices = data["voices"]
     assert isinstance(voices, list)
     assert "af_bella" in voices
+    assert "af_heart" in voices
+    assert len(voices) == 20
 
 
 def test_voices_structure(client: TestClient) -> None:

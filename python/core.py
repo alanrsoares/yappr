@@ -28,20 +28,32 @@ def get_stt_model() -> Any:
 
 
 def get_voices() -> Result[list[str], Exception]:
-    """List available TTS voice IDs."""
+    """List American English voice IDs for lang_code='a' (hexgrad/Kokoro-82M v1).
+
+    Voices are loaded from HF as voices/<id>.pt; only af_* / am_* match the
+    American English pipeline (British bf_/bm_* belong to lang_code='b').
+    """
     voices = [
+        "af_alloy",
+        "af_aoede",
         "af_bella",
-        "af_sarah",
+        "af_heart",
+        "af_jessica",
+        "af_kore",
         "af_nicole",
+        "af_nova",
+        "af_river",
+        "af_sarah",
         "af_sky",
         "am_adam",
-        "am_michael",
+        "am_echo",
         "am_eric",
         "am_fenrir",
-        "bf_emma",
-        "bf_isabella",
-        "bm_george",
-        "bm_lewis",
+        "am_liam",
+        "am_michael",
+        "am_onyx",
+        "am_puck",
+        "am_santa",
     ]
     return Ok(voices)
 

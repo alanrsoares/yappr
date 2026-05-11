@@ -32,9 +32,9 @@ def get_pipeline() -> Any:
 def _load_tts() -> Any:
     import kokoro
 
-    print("Loading Kokoro TTS model (82M)...")
+    print("Loading Kokoro 82M (hexgrad/Kokoro-82M v1 weights, lang=a)...")
     pipeline = kokoro.KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
-    print("Kokoro model loaded successfully.")
+    print("Kokoro TTS ready.")
     return pipeline
 
 
@@ -68,7 +68,7 @@ async def lifespan(_app: FastAPI) -> Any:
     yield
 
 
-app = FastAPI(title="Yappr Kokoro TTS + Whisper STT Server", lifespan=lifespan)
+app = FastAPI(title="Yappr Kokoro v1 TTS + Whisper STT Server", lifespan=lifespan)
 
 
 # --- Request/response models ---
@@ -81,7 +81,7 @@ class SynthesizeRequest(BaseModel):
 # --- Routes: core returns Result, we map to HTTP ---
 @app.get("/voices")
 def get_voices() -> Response:
-    """List available voices."""
+    """American English Kokoro v1 voice IDs (af_*, am_* for hexgrad/Kokoro-82M)."""
     result = core.get_voices()
     return result.match(
         ok=lambda voices: JSONResponse(content={"voices": voices}),
@@ -91,7 +91,7 @@ def get_voices() -> Response:
 
 @app.post("/synthesize")
 def synthesize(request: SynthesizeRequest) -> Response:
-    """Synthesize text to speech."""
+    """Synthesize text to speech (Kokoro 82M v1 weights, WAV)."""
     pipeline = get_pipeline()
     if pipeline is None:
         raise HTTPException(status_code=503, detail="TTS not loaded")

@@ -8,7 +8,7 @@
     "/voices": {
       "get": {
         "summary": "Get Voices",
-        "description": "List available voices (hardcoded common ones for now as discovery is complex).",
+        "description": "List available voices.",
         "operationId": "get_voices_voices_get",
         "responses": {
           "200": {
@@ -25,7 +25,7 @@
     "/synthesize": {
       "post": {
         "summary": "Synthesize",
-        "description": "Synthesize text to speech using Kokoro.",
+        "description": "Synthesize text to speech.",
         "operationId": "synthesize_synthesize_post",
         "requestBody": {
           "content": {
@@ -62,7 +62,7 @@
     "/transcribe": {
       "post": {
         "summary": "Transcribe",
-        "description": "Transcribe uploaded audio file using Whisper.",
+        "description": "Transcribe uploaded audio file.",
         "operationId": "transcribe_transcribe_post",
         "requestBody": {
           "content": {
@@ -108,7 +108,9 @@
           }
         },
         "type": "object",
-        "required": ["file"],
+        "required": [
+          "file"
+        ],
         "title": "Body_transcribe_transcribe_post"
       },
       "HTTPValidationError": {
@@ -142,7 +144,9 @@
           }
         },
         "type": "object",
-        "required": ["text"],
+        "required": [
+          "text"
+        ],
         "title": "SynthesizeRequest"
       },
       "ValidationError": {
@@ -171,7 +175,11 @@
           }
         },
         "type": "object",
-        "required": ["loc", "msg", "type"],
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
         "title": "ValidationError"
       }
     }
