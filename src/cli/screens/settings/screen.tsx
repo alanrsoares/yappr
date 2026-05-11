@@ -22,19 +22,9 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
 
 function SettingsScreenContent() {
   const [state] = useSettingsStore();
-  const {
-    picker,
-    editingOllamaUrl,
-    editingMcpConfigPath,
-    editingChatModel,
-    editingOpenrouterApiKey,
-  } = state;
+  const { picker, textEditorSession } = state;
 
-  const isInlineEditing =
-    editingOllamaUrl ||
-    editingMcpConfigPath ||
-    editingChatModel ||
-    editingOpenrouterApiKey;
+  const isInlineEditing = textEditorSession !== null;
 
   if (isInlineEditing) {
     return <SettingsEditLayer />;

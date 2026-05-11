@@ -128,8 +128,7 @@ export function filterSlashCommands(query: string) {
   if (!q) return [...SLASH_COMMANDS];
   return SLASH_COMMANDS.filter(
     (c) =>
-      c.name.startsWith(q) ||
-      Boolean(c.aliases?.some((a) => a.startsWith(q))),
+      c.name.startsWith(q) || Boolean(c.aliases?.some((a) => a.startsWith(q))),
   );
 }
 

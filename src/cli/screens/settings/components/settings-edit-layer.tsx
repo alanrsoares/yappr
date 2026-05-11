@@ -4,7 +4,31 @@ import TextInput from "ink-text-input";
 import { Footer, Header } from "~/cli/components";
 import { FOOTER_SETTINGS_EDIT } from "~/cli/footer-items.js";
 import { SETTINGS_SUBTITLE } from "../constants.js";
-import { useSettingsStore } from "../store.js";
+import { useSettingsStore, type SettingsTextEditor } from "../store.js";
+
+interface TextEditorFieldUi {
+  label: string;
+  placeholder: string;
+}
+
+const TEXT_EDITOR_FIELD_UI: Record<SettingsTextEditor, TextEditorFieldUi> = {
+  ollamaUrl: {
+    label: "Ollama URL: ",
+    placeholder: "http://localhost:11434",
+  },
+  mcpPath: {
+    label: "MCP config path: ",
+    placeholder: "~/.cursor/mcp.json",
+  },
+  chatModel: {
+    label: "Chat model (OpenRouter): ",
+    placeholder: "e.g. openai/gpt-4o",
+  },
+  openrouterKey: {
+    label: "OpenRouter API key: ",
+    placeholder: "sk-or-...",
+  },
+};
 
 function EditFieldShell(props: {
   label: string;
@@ -37,54 +61,17 @@ function EditFieldShell(props: {
 /** Full-screen inline editors (must render under `SettingsProvider`). */
 export function SettingsEditLayer() {
   const [state, actions] = useSettingsStore();
+  const session = state.textEditorSession;
+  if (!session) return null;
 
-  if (state.editingChatModel) {
-    return (
-      <EditFieldShell
-        label="Chat model (OpenRouter): "
-        value={state.chatModelInputValue}
-        onChange={actions.setChatModelInputValue}
-        onSubmit={actions.confirmChatModelEdit}
-        placeholder="e.g. openai/gpt-4o"
-      />
-    );
-  }
-
-  if (state.editingOpenrouterApiKey) {
-    return (
-      <EditFieldShell
-        label="OpenRouter API key: "
-        value={state.openrouterApiKeyInputValue}
-        onChange={actions.setOpenrouterApiKeyInputValue}
-        onSubmit={actions.confirmOpenrouterApiKeyEdit}
-        placeholder="sk-or-..."
-      />
-    );
-  }
-
-  if (state.editingMcpConfigPath) {
-    return (
-      <EditFieldShell
-        label="MCP config path: "
-        value={state.mcpConfigPathInputValue}
-        onChange={actions.setMcpConfigPathInputValue}
-        onSubmit={actions.confirmMcpConfigPathEdit}
-        placeholder="~/.cursor/mcp.json"
-      />
-    );
-  }
-
-  if (state.editingOllamaUrl) {
-    return (
-      <EditFieldShell
-        label="Ollama URL: "
-        value={state.ollamaUrlInputValue}
-        onChange={actions.setOllamaUrlInputValue}
-        onSubmit={actions.confirmOllamaUrlEdit}
-        placeholder="http://localhost:11434"
-      />
-    );
-  }
-
-  return null;
+  const ui = TEXT_EDITOR_FIELD_UI[session.field];
+  return (
+    <EditFieldShell
+      label={ui.label}
+      value={session.value}
+      onChange={actions.setTextEditorValue}
+      onSubmit={actions.confirmTextEditor}
+      placeholder={ui.placeholder}
+    />
+  );
 }

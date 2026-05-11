@@ -25,8 +25,7 @@ function VoicesPreviewStatusLine({
   if (status === "loading") return <Text dimColor>Synthesizing…</Text>;
   if (status === "error" && previewError)
     return <Text color={semantic.error}>{previewError}</Text>;
-  if (status === "ok")
-    return <Text color={semantic.success}>Playing.</Text>;
+  if (status === "ok") return <Text color={semantic.success}>Playing.</Text>;
   return null;
 }
 

@@ -16,4 +16,4 @@ export { usePreferences } from "./usePreferences";
 export type { UsePreferencesResult } from "./usePreferences";
 export { useQuery } from "./useQuery";
 export type { UseQueryOptions, UseQueryResult } from "./useQuery";
-export { useTerminalWidth } from "./useTerminalWidth";
+export { useTerminalHeight, useTerminalWidth } from "./useTerminalWidth";

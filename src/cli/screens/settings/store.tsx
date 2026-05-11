@@ -35,91 +35,99 @@ type ProviderValue = (typeof PROVIDER_VALUES)[number];
 
 type PickerKindNonNull = Exclude<PickerKind, null>;
 
-type SettingsTextEditor = "ollamaUrl" | "mcpPath" | "chatModel" | "openrouterKey";
+export type SettingsTextEditor =
+  | "ollamaUrl"
+  | "mcpPath"
+  | "chatModel"
+  | "openrouterKey";
 
-const TEXT_EDITOR_ORDER = [
-  "ollamaUrl",
-  "mcpPath",
-  "chatModel",
-  "openrouterKey",
-] as const satisfies readonly SettingsTextEditor[];
+export interface SettingsTextEditorSession {
+  field: SettingsTextEditor;
+  value: string;
+}
 
-function activeTextEditor(flags: {
-  editingOllamaUrl: boolean;
-  editingMcpConfigPath: boolean;
-  editingChatModel: boolean;
-  editingOpenrouterApiKey: boolean;
-}) {
-  const map: Record<SettingsTextEditor, boolean> = {
-    ollamaUrl: flags.editingOllamaUrl,
-    mcpPath: flags.editingMcpConfigPath,
-    chatModel: flags.editingChatModel,
-    openrouterKey: flags.editingOpenrouterApiKey,
-  };
-  for (const k of TEXT_EDITOR_ORDER) {
-    if (map[k]) return k;
+/** Indices aligned with `SettingsMainList` row order. */
+export const SETTINGS_LIST_ROW = {
+  chatProvider: 0,
+  chatModel: 1,
+  defaultVoice: 2,
+  inputDevice: 3,
+  outputDevice: 4,
+  useNarrationForTts: 5,
+  narrationModel: 6,
+  ollamaUrl: 7,
+  openrouterApiKey: 8,
+  mcpConfigPath: 9,
+} as const;
+
+export const SETTINGS_MAIN_LIST_ROW_COUNT =
+  (Object.values(SETTINGS_LIST_ROW) as readonly number[]).reduce(
+    (m, n) => Math.max(m, n),
+    0,
+  ) + 1;
+
+/** Max visible rows in a settings picker window (independent of main list length). */
+const VISIBLE_PICKER_ROWS = 10;
+
+/** Ink `Key` may include `alt` depending on version; used for picker typeahead guard. */
+interface InkKeyOptionalAlt {
+  alt?: boolean;
+}
+
+type PickerInputKey = ExtendedKey & InkKeyOptionalAlt;
+
+export interface PickerListItemRecord {
+  name?: string;
+  id?: string;
+  index?: number;
+}
+
+export type PickerListItem = string | PickerListItemRecord;
+
+export interface VisiblePickerWindow {
+  visiblePickerStart: number;
+  visiblePickerSlice: PickerListItem[];
+}
+
+export type PickerListsByKind = Record<
+  PickerKindNonNull,
+  readonly PickerListItem[]
+>;
+
+export type PickerOpenScrollMode = "clamp" | "zero";
+
+export interface PickerOpenRouterRow {
+  id: string;
+}
+
+export interface PickerDeviceRow {
+  index: number;
+}
+
+function commitTextEditorSession(
+  session: SettingsTextEditorSession,
+  savePreferences: (next: Partial<Preferences>) => void,
+) {
+  const v = session.value.trim();
+  switch (session.field) {
+    case "ollamaUrl":
+      savePreferences({ ollamaBaseUrl: v || "http://localhost:11434" });
+      break;
+    case "mcpPath":
+      if (v) savePreferences({ mcpConfigPath: v });
+      break;
+    case "chatModel":
+      if (v) savePreferences({ defaultChatModel: v });
+      break;
+    case "openrouterKey":
+      savePreferences({ openrouterApiKey: v });
+      break;
   }
-  return null;
-}
-
-function commitPickerProvider(
-  effectivePickerIndex: number,
-  savePreferences: (next: Partial<Preferences>) => void,
-) {
-  if (PROVIDER_VALUES[effectivePickerIndex]) {
-    savePreferences({
-      defaultChatProvider: PROVIDER_VALUES[
-        effectivePickerIndex
-      ] as ProviderValue,
-    });
-  }
-}
-
-function commitPickerNarration(
-  selected: PickerListItem,
-  savePreferences: (next: Partial<Preferences>) => void,
-) {
-  const raw = selected as string;
-  savePreferences({
-    narrationModel: raw === "(same as chat)" ? "" : raw,
-  });
-}
-
-function commitPickerChoice(
-  kind: PickerKindNonNull,
-  selected: PickerListItem,
-  effectivePickerIndex: number,
-  savePreferences: (next: Partial<Preferences>) => void,
-) {
-  const handlers: Record<PickerKindNonNull, () => void> = {
-    provider: () =>
-      commitPickerProvider(effectivePickerIndex, savePreferences),
-    model: () => savePreferences({ defaultChatModel: selected as string }),
-    openRouterModel: () =>
-      savePreferences({
-        defaultChatModel: (selected as { id: string }).id,
-      }),
-    voice: () => savePreferences({ defaultVoice: selected as string }),
-    input: () =>
-      savePreferences({
-        defaultInputDeviceIndex: (selected as { index: number }).index,
-      }),
-    output: () =>
-      savePreferences({
-        defaultOutputDeviceIndex: (selected as { index: number }).index,
-      }),
-    narrationModel: () =>
-      commitPickerNarration(selected, savePreferences),
-  };
-  handlers[kind]();
 }
 
 export interface SettingsStoreInitialState {
   onBack: () => void;
 }
-
-const ROW_COUNT = 10;
-const VISIBLE_PICKER_ROWS = 10;
 
 const cycle = (i: number, n: number, d: number) =>
   n <= 0 ? 0 : (i + n + d) % n;
@@ -131,11 +139,6 @@ function clampPickerScrollOffset(index: number, listLength: number): number {
   );
 }
 
-/** Row value in any settings picker list (provider strings, Ollama ids, HF-style models, devices). */
-export type PickerListItem =
-  | string
-  | { name?: string; id?: string; index?: number };
-
 export const CHAT_PROVIDER_LABEL: Record<ChatProvider, string> = {
   ollama: PROVIDER_LABELS[0],
   openrouter: PROVIDER_LABELS[1],
@@ -143,8 +146,9 @@ export const CHAT_PROVIDER_LABEL: Record<ChatProvider, string> = {
 
 export function pickerItemLabel(item: PickerListItem): string {
   if (typeof item === "string") return item;
-  const name = item.name ?? "";
-  const id = item.id ?? "";
+  const row: PickerListItemRecord = item;
+  const name = row.name ?? "";
+  const id = row.id ?? "";
   return id ? `${id} ${name}`.trim() : name;
 }
 
@@ -156,6 +160,46 @@ function filterPickerList(
   const q = query.trim().toLowerCase();
   if (!q) return [...list];
   return list.filter((item) => pickerItemLabel(item).toLowerCase().includes(q));
+}
+
+function commitPickerChoice(
+  kind: PickerKindNonNull,
+  selected: PickerListItem,
+  effectivePickerIndex: number,
+  savePreferences: (next: Partial<Preferences>) => void,
+) {
+  const handlers: Record<PickerKindNonNull, () => void> = {
+    provider: () => {
+      if (PROVIDER_VALUES[effectivePickerIndex]) {
+        savePreferences({
+          defaultChatProvider: PROVIDER_VALUES[
+            effectivePickerIndex
+          ] as ProviderValue,
+        });
+      }
+    },
+    model: () => savePreferences({ defaultChatModel: selected as string }),
+    openRouterModel: () =>
+      savePreferences({
+        defaultChatModel: (selected as PickerOpenRouterRow).id,
+      }),
+    voice: () => savePreferences({ defaultVoice: selected as string }),
+    input: () =>
+      savePreferences({
+        defaultInputDeviceIndex: (selected as PickerDeviceRow).index,
+      }),
+    output: () =>
+      savePreferences({
+        defaultOutputDeviceIndex: (selected as PickerDeviceRow).index,
+      }),
+    narrationModel: () => {
+      const raw = selected as string;
+      savePreferences({
+        narrationModel: raw === "(same as chat)" ? "" : raw,
+      });
+    },
+  };
+  handlers[kind]();
 }
 
 function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
@@ -190,15 +234,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [pickerIndex, setPickerIndex] = useState(0);
   const [pickerFilterText, setPickerFilterText] = useState("");
   const [pickerScrollOffset, setPickerScrollOffset] = useState(0);
-  const [editingOllamaUrl, setEditingOllamaUrl] = useState(false);
-  const [ollamaUrlInputValue, setOllamaUrlInputValue] = useState("");
-  const [editingMcpConfigPath, setEditingMcpConfigPath] = useState(false);
-  const [mcpConfigPathInputValue, setMcpConfigPathInputValue] = useState("");
-  const [editingChatModel, setEditingChatModel] = useState(false);
-  const [chatModelInputValue, setChatModelInputValue] = useState("");
-  const [editingOpenrouterApiKey, setEditingOpenrouterApiKey] = useState(false);
-  const [openrouterApiKeyInputValue, setOpenrouterApiKeyInputValue] =
-    useState("");
+  const [textEditorSession, setTextEditorSession] =
+    useState<SettingsTextEditorSession | null>(null);
 
   const narrationModelList = useMemo(
     () => ["(same as chat)", ...ollamaModels],
@@ -206,10 +243,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   );
   const pickerList = useMemo((): readonly PickerListItem[] | null => {
     if (!picker) return null;
-    const lists: Record<
-      Exclude<PickerKind, null>,
-      readonly PickerListItem[]
-    > = {
+    const lists: PickerListsByKind = {
       provider: [...PROVIDER_LABELS],
       model: ollamaModels,
       openRouterModel: openRouterModels,
@@ -237,32 +271,41 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const effectivePickerIndex =
     pickerLen <= 0 ? 0 : Math.min(Math.max(0, pickerIndex), pickerLen - 1);
 
-  const visiblePickerStart = Math.max(
-    0,
-    Math.min(pickerScrollOffset, Math.max(0, pickerLen - VISIBLE_PICKER_ROWS)),
-  );
-  const visiblePickerSlice = useMemo(
-    () =>
-      filteredPickerList.slice(
-        visiblePickerStart,
-        visiblePickerStart + VISIBLE_PICKER_ROWS,
-      ),
-    [filteredPickerList, visiblePickerStart],
-  );
+  const { visiblePickerStart, visiblePickerSlice } =
+    useMemo((): VisiblePickerWindow => {
+      const start = Math.max(
+        0,
+        Math.min(
+          pickerScrollOffset,
+          Math.max(0, pickerLen - VISIBLE_PICKER_ROWS),
+        ),
+      );
+      return {
+        visiblePickerStart: start,
+        visiblePickerSlice: filteredPickerList.slice(
+          start,
+          start + VISIBLE_PICKER_ROWS,
+        ),
+      };
+    }, [filteredPickerList, pickerScrollOffset, pickerLen]);
 
-  const inputDeviceLabel =
-    inputDevices.find((d) => d.index === preferences.defaultInputDeviceIndex)
-      ?.name ?? `Device ${preferences.defaultInputDeviceIndex}`;
-  const outputDeviceLabel =
-    outputDevices.find((d) => d.index === preferences.defaultOutputDeviceIndex)
-      ?.name ?? `Device ${preferences.defaultOutputDeviceIndex}`;
+  const inputDeviceLabel = useMemo(() => {
+    const idx = preferences.defaultInputDeviceIndex;
+    return inputDevices.find((d) => d.index === idx)?.name ?? `Device ${idx}`;
+  }, [inputDevices, preferences.defaultInputDeviceIndex]);
+
+  const outputDeviceLabel = useMemo(() => {
+    const idx = preferences.defaultOutputDeviceIndex;
+    return outputDevices.find((d) => d.index === idx)?.name ?? `Device ${idx}`;
+  }, [outputDevices, preferences.defaultOutputDeviceIndex]);
 
   const openPicker = useCallback(() => {
+    const R = SETTINGS_LIST_ROW;
     const beginList = (
-      kind: Exclude<PickerKind, null>,
+      kind: PickerKindNonNull,
       index: number,
       listLength: number,
-      scroll: "clamp" | "zero" = "clamp",
+      scroll: PickerOpenScrollMode = "clamp",
     ) => {
       setPicker(kind);
       setPickerFilterText("");
@@ -273,7 +316,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     };
 
     switch (selectedRow) {
-      case 0:
+      case R.chatProvider:
         beginList(
           "provider",
           Math.max(
@@ -286,7 +329,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           "zero",
         );
         break;
-      case 1: {
+      case R.chatModel: {
         if (preferences.defaultChatProvider === "openrouter") {
           if (openRouterModels.length > 0) {
             const idx = openRouterModels.findIndex(
@@ -295,8 +338,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
             const i = idx >= 0 ? idx : 0;
             beginList("openRouterModel", i, openRouterModels.length);
           } else {
-            setEditingChatModel(true);
-            setChatModelInputValue(preferences.defaultChatModel);
+            setTextEditorSession({
+              field: "chatModel",
+              value: preferences.defaultChatModel,
+            });
           }
         } else {
           const i = Math.max(
@@ -307,12 +352,12 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         }
         break;
       }
-      case 2: {
+      case R.defaultVoice: {
         const voiceIdx = Math.max(0, voices.indexOf(preferences.defaultVoice));
         beginList("voice", voiceIdx, voices.length);
         break;
       }
-      case 3: {
+      case R.inputDevice: {
         const inputIdx = Math.max(
           0,
           inputDevices.findIndex(
@@ -322,7 +367,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         beginList("input", inputIdx, inputDevices.length);
         break;
       }
-      case 4: {
+      case R.outputDevice: {
         const outputIdx = Math.max(
           0,
           outputDevices.findIndex(
@@ -332,24 +377,30 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         beginList("output", outputIdx, outputDevices.length);
         break;
       }
-      case 6: {
+      case R.narrationModel: {
         const narrIdx = preferences.narrationModel
           ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
           : 0;
         beginList("narrationModel", narrIdx, narrationModelList.length);
         break;
       }
-      case 7:
-        setEditingOllamaUrl(true);
-        setOllamaUrlInputValue(preferences.ollamaBaseUrl);
+      case R.ollamaUrl:
+        setTextEditorSession({
+          field: "ollamaUrl",
+          value: preferences.ollamaBaseUrl,
+        });
         break;
-      case 8:
-        setEditingOpenrouterApiKey(true);
-        setOpenrouterApiKeyInputValue(preferences.openrouterApiKey);
+      case R.openrouterApiKey:
+        setTextEditorSession({
+          field: "openrouterKey",
+          value: preferences.openrouterApiKey,
+        });
         break;
-      case 9:
-        setEditingMcpConfigPath(true);
-        setMcpConfigPathInputValue(preferences.mcpConfigPath);
+      case R.mcpConfigPath:
+        setTextEditorSession({
+          field: "mcpPath",
+          value: preferences.mcpConfigPath,
+        });
         break;
     }
   }, [
@@ -371,50 +422,30 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     narrationModelList,
   ]);
 
-  const confirmOllamaUrlEdit = useCallback(() => {
-    const url = ollamaUrlInputValue.trim() || "http://localhost:11434";
-    savePreferences({ ollamaBaseUrl: url });
-    setEditingOllamaUrl(false);
-  }, [ollamaUrlInputValue, savePreferences]);
-
-  const cancelOllamaUrlEdit = useCallback(() => {
-    setEditingOllamaUrl(false);
+  const setTextEditorValue = useCallback((value: string) => {
+    setTextEditorSession((s) => (s ? { ...s, value } : null));
   }, []);
 
-  const confirmMcpConfigPathEdit = useCallback(() => {
-    const path = mcpConfigPathInputValue.trim();
-    if (path) savePreferences({ mcpConfigPath: path });
-    setEditingMcpConfigPath(false);
-  }, [mcpConfigPathInputValue, savePreferences]);
+  const confirmTextEditor = useCallback(() => {
+    setTextEditorSession((s) => {
+      if (s) commitTextEditorSession(s, savePreferences);
+      return null;
+    });
+  }, [savePreferences]);
 
-  const cancelMcpConfigPathEdit = useCallback(() => {
-    setEditingMcpConfigPath(false);
+  const cancelTextEditor = useCallback(() => {
+    setTextEditorSession(null);
   }, []);
 
-  const confirmChatModelEdit = useCallback(() => {
-    const value = chatModelInputValue.trim();
-    if (value) savePreferences({ defaultChatModel: value });
-    setEditingChatModel(false);
-  }, [chatModelInputValue, savePreferences]);
-
-  const cancelChatModelEdit = useCallback(() => {
-    setEditingChatModel(false);
-  }, []);
-
-  const confirmOpenrouterApiKeyEdit = useCallback(() => {
-    savePreferences({ openrouterApiKey: openrouterApiKeyInputValue.trim() });
-    setEditingOpenrouterApiKey(false);
-  }, [openrouterApiKeyInputValue, savePreferences]);
-
-  const cancelOpenrouterApiKeyEdit = useCallback(() => {
-    setEditingOpenrouterApiKey(false);
+  const closePicker = useCallback(() => {
+    setPicker(null);
+    setPickerFilterText("");
   }, []);
 
   const confirmPicker = useCallback(() => {
     const selected = filteredPickerList[effectivePickerIndex];
     if (selected === undefined) {
-      setPicker(null);
-      setPickerFilterText("");
+      closePicker();
       return;
     }
     if (picker) {
@@ -425,20 +456,16 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         savePreferences,
       );
     }
-    setPicker(null);
-    setPickerFilterText("");
-  }, [picker, effectivePickerIndex, filteredPickerList, savePreferences]);
+    closePicker();
+  }, [
+    picker,
+    effectivePickerIndex,
+    filteredPickerList,
+    savePreferences,
+    closePicker,
+  ]);
 
-  const closePicker = useCallback(() => {
-    setPicker(null);
-    setPickerFilterText("");
-  }, []);
-
-  const isEditing =
-    editingOllamaUrl ||
-    editingMcpConfigPath ||
-    editingChatModel ||
-    editingOpenrouterApiKey;
+  const isInlineTextEditing = textEditorSession !== null;
 
   const movePickerSelection = useCallback(
     (delta: number) => {
@@ -455,42 +482,12 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     [effectivePickerIndex, pickerLen],
   );
 
-  const confirmByEditor = useMemo(
-    (): Record<SettingsTextEditor, () => void> => ({
-      ollamaUrl: confirmOllamaUrlEdit,
-      mcpPath: confirmMcpConfigPathEdit,
-      chatModel: confirmChatModelEdit,
-      openrouterKey: confirmOpenrouterApiKeyEdit,
-    }),
-    [
-      confirmOllamaUrlEdit,
-      confirmMcpConfigPathEdit,
-      confirmChatModelEdit,
-      confirmOpenrouterApiKeyEdit,
-    ],
-  );
-
-  const cancelByEditor = useMemo(
-    (): Record<SettingsTextEditor, () => void> => ({
-      ollamaUrl: cancelOllamaUrlEdit,
-      mcpPath: cancelMcpConfigPathEdit,
-      chatModel: cancelChatModelEdit,
-      openrouterKey: cancelOpenrouterApiKeyEdit,
-    }),
-    [
-      cancelOllamaUrlEdit,
-      cancelMcpConfigPathEdit,
-      cancelChatModelEdit,
-      cancelOpenrouterApiKeyEdit,
-    ],
-  );
-
   useInput((input, key) => {
     if (
       picker &&
       !key.ctrl &&
       !key.meta &&
-      !(key as { alt?: boolean }).alt &&
+      !(key as PickerInputKey).alt &&
       !key.return
     ) {
       if (key.backspace) {
@@ -503,14 +500,21 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       }
     }
     const effectiveKey = getEffectiveKey(input, key as ExtendedKey);
-    if ((effectiveKey === "upArrow" || effectiveKey === "k") && !isEditing) {
+
+    if (
+      (effectiveKey === "upArrow" || effectiveKey === "k") &&
+      !isInlineTextEditing
+    ) {
       if (picker) movePickerSelection(-1);
-      else setSelectedRow((r) => cycle(r, ROW_COUNT, -1));
+      else setSelectedRow((r) => cycle(r, SETTINGS_MAIN_LIST_ROW_COUNT, -1));
       return;
     }
-    if ((effectiveKey === "downArrow" || effectiveKey === "j") && !isEditing) {
+    if (
+      (effectiveKey === "downArrow" || effectiveKey === "j") &&
+      !isInlineTextEditing
+    ) {
       if (picker) movePickerSelection(1);
-      else setSelectedRow((r) => cycle(r, ROW_COUNT, 1));
+      else setSelectedRow((r) => cycle(r, SETTINGS_MAIN_LIST_ROW_COUNT, 1));
       return;
     }
     if (
@@ -518,21 +522,15 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       effectiveKey === "enter" ||
       effectiveKey === "ctrl+s"
     ) {
-      const editor = activeTextEditor({
-        editingOllamaUrl,
-        editingMcpConfigPath,
-        editingChatModel,
-        editingOpenrouterApiKey,
-      });
-      if (editor) {
-        confirmByEditor[editor]();
+      if (textEditorSession) {
+        confirmTextEditor();
         return;
       }
       if (picker) {
         confirmPicker();
         return;
       }
-      if (selectedRow === 5) {
+      if (selectedRow === SETTINGS_LIST_ROW.useNarrationForTts) {
         savePreferences({
           useNarrationForTTS: !preferences.useNarrationForTTS,
         });
@@ -545,14 +543,8 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       effectiveKey === "escape" ||
       (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
     if (wantsBack) {
-      const editor = activeTextEditor({
-        editingOllamaUrl,
-        editingMcpConfigPath,
-        editingChatModel,
-        editingOpenrouterApiKey,
-      });
-      if (editor) {
-        cancelByEditor[editor]();
+      if (textEditorSession) {
+        cancelTextEditor();
         return;
       }
       if (picker) {
@@ -566,7 +558,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       quit();
       return;
     }
-    if (effectiveKey === "q" && !isEditing) {
+    if (effectiveKey === "q" && !isInlineTextEditing) {
       quit();
       return;
     }
@@ -590,30 +582,14 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     visiblePickerRows: VISIBLE_PICKER_ROWS,
     inputDeviceLabel,
     outputDeviceLabel,
-    editingOllamaUrl,
-    ollamaUrlInputValue,
-    editingMcpConfigPath,
-    mcpConfigPathInputValue,
-    editingChatModel,
-    chatModelInputValue,
-    editingOpenrouterApiKey,
-    openrouterApiKeyInputValue,
+    textEditorSession,
   };
 
   const actions = {
     onBack,
-    setOllamaUrlInputValue,
-    confirmOllamaUrlEdit,
-    cancelOllamaUrlEdit,
-    setMcpConfigPathInputValue,
-    confirmMcpConfigPathEdit,
-    cancelMcpConfigPathEdit,
-    setChatModelInputValue,
-    confirmChatModelEdit,
-    cancelChatModelEdit,
-    setOpenrouterApiKeyInputValue,
-    confirmOpenrouterApiKeyEdit,
-    cancelOpenrouterApiKeyEdit,
+    setTextEditorValue,
+    confirmTextEditor,
+    cancelTextEditor,
   };
 
   return [state, actions] as const;

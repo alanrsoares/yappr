@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Box } from "ink";
 
+import { useTerminalHeight, useTerminalWidth } from "./hooks/index.js";
 import { ChatScreen } from "./screens/chat/index.js";
 import { MainMenuScreen } from "./screens/main-menu/index.js";
 import { McpStatusScreen } from "./screens/mcp-status/index.js";
@@ -11,13 +12,15 @@ import type { ScreenId } from "./types.js";
 
 export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");
+  const terminalWidth = useTerminalWidth();
+  const terminalHeight = useTerminalHeight();
 
   const goBack = useCallback(() => {
     setScreen("menu");
   }, []);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
       {screen === "menu" && <MainMenuScreen onSelect={(id) => setScreen(id)} />}
       {screen === "mcp" && <McpStatusScreen onBack={goBack} />}
       {screen === "speak" && <SpeakScreen onBack={goBack} />}
