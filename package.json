@@ -18,35 +18,35 @@
   },
   "private": true,
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^9.39.4",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/bun": "latest",
-    "@types/react": "^19.2.10",
-    "eslint": "^9.39.2",
+    "@types/react": "^19.2.14",
+    "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "jiti": "^2.6.1",
-    "openapi-typescript": "^7.10.1",
-    "prettier": "^3.8.1",
-    "typescript-eslint": "^8.54.0"
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "jiti": "^2.7.0",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.2"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.3",
-    "@tanstack/ai": "^0.3.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tanstack/ai": "^0.3.1",
     "@tanstack/ai-ollama": "^0.3.0",
     "@types/marked-terminal": "^6.1.1",
     "cli-highlight": "^2.1.11",
-    "ink": "^6.6.0",
+    "ink": "^6.8.0",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
-    "marked": "^17.0.1",
+    "marked": "^17.0.6",
     "marked-terminal": "^7.3.0",
     "neverthrow": "^8.2.0",
     "ollama": "^0.6.3",
-    "react": "^19.2.4",
-    "zod": "^4.3.6"
+    "react": "^19.2.6",
+    "zod": "^4.4.3"
   }
 }

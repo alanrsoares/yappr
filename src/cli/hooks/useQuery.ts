@@ -31,7 +31,10 @@ export function useQuery<T, E = Error>(
   const [error, setError] = useState<E | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const queryFnRef = useRef(queryFn);
-  queryFnRef.current = queryFn;
+
+  useEffect(() => {
+    queryFnRef.current = queryFn;
+  }, [queryFn]);
 
   const run = useCallback(() => {
     setIsLoading(true);
@@ -53,7 +56,7 @@ export function useQuery<T, E = Error>(
 
   useEffect(() => {
     if (!enabled) {
-      setIsLoading(false);
+      queueMicrotask(() => setIsLoading(false));
       return;
     }
     const timeoutId = setTimeout(run, 0);
