@@ -1,10 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
+import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { MessageRow } from "@yappr/db/rpc";
+import type { UIMessage } from "ai";
 import { Copy, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
-import { DEFAULT_CHAT_MODEL, streamOllamaChat } from "~/lib/ollama";
+import { OllamaTransport } from "~/lib/ollama-transport";
 import { conversationsOptions, messagesOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { useVoiceStore } from "~/lib/voice-store";
@@ -34,6 +37,18 @@ function truncateTitle(text: string): string {
   return trimmed.length > 48 ? trimmed.slice(0, 48) + "…" : trimmed;
 }
 
+function dbToUIMessage(m: MessageRow): UIMessage {
+  return {
+    id: m.id,
+    role: m.role,
+    parts: [{ type: "text", text: m.content }],
+  };
+}
+
+function uiTextOf(m: UIMessage): string {
+  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+}
+
 export function ChatPanel({
   model,
   onModelChange: _onModelChange,
@@ -42,17 +57,6 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const queryClient = useQueryClient();
   const { data: persisted = [] } = useQuery(messagesOptions(conversationId));
-
-  // Streaming buffer for the in-flight assistant reply. Lives in component
-  // state because the DB doesn't see the message until streaming completes —
-  // we render it concatenated onto `persisted` for the duration.
-  const [streamingAssistant, setStreamingAssistant] = useState<string | null>(
-    null,
-  );
-  const [pendingUser, setPendingUser] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
   const { tts, speak, stopAudio, transcribe } = useVoiceStore();
   const isSpeaking = tts.kind === "speaking";
 
@@ -68,17 +72,44 @@ export function ChatPanel({
     }) => dbRpc.request("messages:append", params),
   });
 
-  const stop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setBusy(false);
-  }, []);
+  // Live conversation id captured at send-time so onFinish writes to the
+  // right row even if the user navigates between conversations mid-stream.
+  const liveConvIdRef = useRef<string | null>(conversationId);
 
-  const send = useCallback(
+  const transport = useMemo(() => new OllamaTransport(model), [model]);
+
+  const { messages, sendMessage, status, error, setMessages, stop } = useChat({
+    transport,
+    onFinish: async ({ message }) => {
+      const convId = liveConvIdRef.current;
+      if (!convId) return;
+      const text = uiTextOf(message);
+      if (!text) return;
+      await appendMessage.mutateAsync({
+        conversationId: convId,
+        role: "assistant",
+        content: text,
+      });
+      queryClient.invalidateQueries({
+        queryKey: messagesOptions(convId).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: conversationsOptions.queryKey,
+      });
+    },
+  });
+
+  // Hydrate from the DB when the active conversation or persisted list
+  // changes. Skip during an in-flight stream so the transport's live messages
+  // aren't clobbered.
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming") return;
+    liveConvIdRef.current = conversationId;
+    setMessages(persisted.map(dbToUIMessage));
+  }, [conversationId, persisted, status, setMessages]);
+
+  const handleSubmit = useCallback(
     async (text: string) => {
-      setError(null);
-      // Ensure a conversation exists. First send on a blank state creates one
-      // titled from the user's prompt; subsequent sends reuse the active id.
       let convId = conversationId;
       if (!convId) {
         const conv = await createConv.mutateAsync(truncateTitle(text));
@@ -88,104 +119,25 @@ export function ChatPanel({
           queryKey: conversationsOptions.queryKey,
         });
       }
-
-      // Persist the user turn before streaming so a crash/refresh keeps it.
-      setPendingUser(text);
+      liveConvIdRef.current = convId;
       await appendMessage.mutateAsync({
         conversationId: convId,
         role: "user",
         content: text,
       });
-      setPendingUser(null);
-      queryClient.invalidateQueries({
-        queryKey: messagesOptions(convId).queryKey,
-      });
-
-      const history = [
-        ...persisted,
-        { role: "user" as const, content: text },
-      ].map((m) => ({ role: m.role, content: m.content }));
-
-      const ac = new AbortController();
-      abortRef.current = ac;
-      setBusy(true);
-      setStreamingAssistant("");
-
-      let buffer = "";
-      try {
-        await streamOllamaChat(
-          model.trim() || DEFAULT_CHAT_MODEL,
-          history,
-          (chunk) => {
-            buffer += chunk;
-            setStreamingAssistant(buffer);
-          },
-          ac.signal,
-        );
-        if (buffer.length > 0) {
-          await appendMessage.mutateAsync({
-            conversationId: convId,
-            role: "assistant",
-            content: buffer,
-          });
-          queryClient.invalidateQueries({
-            queryKey: messagesOptions(convId).queryKey,
-          });
-          queryClient.invalidateQueries({
-            queryKey: conversationsOptions.queryKey,
-          });
-        }
-      } catch (e) {
-        if ((e as Error).name !== "AbortError") {
-          const msg = e instanceof Error ? e.message : String(e);
-          setError(msg);
-        } else if (buffer.length > 0) {
-          // Aborted mid-stream — keep what we have so far.
-          await appendMessage.mutateAsync({
-            conversationId: convId,
-            role: "assistant",
-            content: buffer,
-          });
-          queryClient.invalidateQueries({
-            queryKey: messagesOptions(convId).queryKey,
-          });
-        }
-      } finally {
-        setBusy(false);
-        setStreamingAssistant(null);
-        abortRef.current = null;
-      }
+      sendMessage({ text });
     },
     [
       conversationId,
-      persisted,
-      model,
-      createConv,
-      appendMessage,
       onConversationChange,
       queryClient,
+      createConv,
+      appendMessage,
+      sendMessage,
     ],
   );
 
-  const rendered = useMemo(() => {
-    type Render = { id: string; role: "user" | "assistant"; content: string };
-    const out: Render[] = persisted.map((m) => ({
-      id: m.id,
-      role: m.role === "system" ? "assistant" : m.role,
-      content: m.content,
-    }));
-    if (pendingUser) {
-      out.push({ id: "pending-user", role: "user", content: pendingUser });
-    }
-    if (streamingAssistant !== null) {
-      out.push({
-        id: "streaming",
-        role: "assistant",
-        content: streamingAssistant || (busy ? "…" : ""),
-      });
-    }
-    return out;
-  }, [persisted, pendingUser, streamingAssistant, busy]);
+  const isBusy = status === "submitted" || status === "streaming";
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
@@ -194,26 +146,29 @@ export function ChatPanel({
           className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive"
           role="alert"
         >
-          {error}
+          {error.message}
         </div>
       ) : null}
 
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
         <ChatContainerContent className="gap-4">
-          {rendered.length === 0 ? (
+          {messages.length === 0 ? (
             <EmptyState />
           ) : (
-            rendered.map((m) => (
-              <MessageBubble
-                key={m.id}
-                role={m.role}
-                content={m.content}
-                canSpeak={m.role === "assistant" && m.content.trim().length > 0}
-                isSpeaking={isSpeaking}
-                onSpeak={() => void speak(m.content)}
-                onStop={stopAudio}
-              />
-            ))
+            messages.map((m) => {
+              const text = uiTextOf(m);
+              return (
+                <MessageBubble
+                  key={m.id}
+                  role={m.role === "system" ? "assistant" : m.role}
+                  content={text || (isBusy ? "…" : "")}
+                  canSpeak={m.role === "assistant" && text.trim().length > 0}
+                  isSpeaking={isSpeaking}
+                  onSpeak={() => void speak(text)}
+                  onStop={stopAudio}
+                />
+              );
+            })
           )}
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
@@ -222,8 +177,8 @@ export function ChatPanel({
       <div className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto max-w-3xl">
           <Composer
-            onSend={(t) => void send(t)}
-            isBusy={busy}
+            onSend={(t) => void handleSubmit(t)}
+            isBusy={isBusy}
             onStop={stop}
             disabled={!model.trim()}
             placeholder="Ask the local model… (Shift+Enter for newline)"
@@ -276,7 +231,7 @@ function MessageBubble({
         >
           {content}
         </MessageContent>
-        <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <MessageActions className="-ml-2 gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           <MessageAction tooltip="Copy" delayDuration={100}>
             <Button
               type="button"
@@ -318,7 +273,6 @@ function MessageBubble({
     );
   }
 
-  // User message — right-aligned bubble.
   return (
     <Message className="group mx-auto flex w-full max-w-3xl flex-col items-end gap-1">
       <MessageContent className="max-w-[85%] rounded-3xl bg-secondary px-4 py-2 text-foreground whitespace-pre-wrap sm:max-w-[75%]">
