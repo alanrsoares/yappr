@@ -8,11 +8,12 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./client": "./src/client.ts",
-    "./rpc-types": "./src/rpc-types.ts"
+    "./rpc": "./src/rpc.ts"
   },
   "dependencies": {
     "@yappr/lib": "workspace:*",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.44.0",
+    "drizzle-zod": "^0.8.3",
     "neverthrow": "^8.2.0",
     "zod": "^4.4.3"
   }

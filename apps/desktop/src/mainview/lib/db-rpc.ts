@@ -1,4 +1,4 @@
-import type { DbRpcSchema } from "@yappr/db/rpc-types";
+import type { DbRpcSchema } from "@yappr/db/rpc";
 import { Electroview } from "electrobun/view";
 
 /**
