@@ -1,11 +1,10 @@
-import path from "node:path";
-import { createDb, importSettingsJsonIfFresh, type YapprDb } from "@yappr/db";
 import { toError } from "@yappr/lib/result";
 import { DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
-import { MCP_CONFIG_PATH, userHomeDir } from "../constants.js";
+import { MCP_CONFIG_PATH } from "../constants.js";
 import type { Preferences } from "../types.js";
+import { getDb } from "./db.js";
 import { mergeStoredPreferences } from "./preferences-merge.js";
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -20,39 +19,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   narrationModel: "",
   openrouterApiKey: "",
 };
-
-const YAPPR_DIR = ".yappr";
-const DB_FILE = "yappr.db";
-const LEGACY_SETTINGS_FILE = "settings.json";
-
-/**
- * Cache DB handles by resolved file path. bun:sqlite holds an OS lock on the
- * file, so we open at most one Database per path. Tests that swap `HOME`
- * between cases get distinct cache entries automatically; the previous
- * (orphaned) handle still works against its now-deleted file but is harmless.
- */
-const dbCache = new Map<string, YapprDb>();
-
-function getDbPath(): string {
-  return path.join(userHomeDir(), YAPPR_DIR, DB_FILE);
-}
-
-function getLegacySettingsPath(): string {
-  return path.join(userHomeDir(), YAPPR_DIR, LEGACY_SETTINGS_FILE);
-}
-
-function getDb(): YapprDb {
-  const dbPath = getDbPath();
-  const cached = dbCache.get(dbPath);
-  if (cached) return cached;
-
-  const db = createDb({ path: dbPath });
-  // One-way import from the CLI's pre-DB settings.json. Idempotent + sync,
-  // so subsequent reads from the same `getDb()` see the migrated rows.
-  importSettingsJsonIfFresh(db, getLegacySettingsPath());
-  dbCache.set(dbPath, db);
-  return db;
-}
 
 /**
  * Read all preferences from the DB, merge with defaults, and apply the legacy
