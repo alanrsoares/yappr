@@ -1,10 +1,17 @@
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { dbRpc } from "~/lib/db-rpc";
 import { DRAG } from "~/lib/drag-region";
 import { DEFAULT_CHAT_MODEL, pickModel } from "~/lib/ollama";
-import { ollamaModelsOptions } from "~/lib/queries";
+import { ollamaModelsOptions, preferencesOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { SidebarInset, SidebarProvider } from "~/ui/sidebar";
 import { ChatSidebar } from "./chat-sidebar";
@@ -26,6 +33,32 @@ export function ChatLayout({ renderMain }: ChatLayoutProps) {
   // the sidebar sets this to that conversation's id.
   const [conversationId, setConversationId] = useState<string | null>(null);
 
+  // Hydrate model from persisted preferences (shared with the CLI under the
+  // `defaultChatModel` key) on first prefs arrival. Subsequent changes write
+  // back through the persist mutation.
+  const { data: prefs } = useQuery(preferencesOptions);
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (!prefs || hydratedRef.current) return;
+    if (typeof prefs.defaultChatModel === "string" && prefs.defaultChatModel) {
+      setModel(prefs.defaultChatModel);
+    }
+    hydratedRef.current = true;
+  }, [prefs]);
+
+  const persistModel = useMutation({
+    mutationFn: (next: string) =>
+      dbRpc.request("preferences:setMany", { defaultChatModel: next }),
+  });
+
+  const handleModelChange = useCallback(
+    (next: string) => {
+      setModel(next);
+      persistModel.mutate(next);
+    },
+    [persistModel],
+  );
+
   // Auto-correct the selected model when the Ollama tags list resolves: if
   // the current value isn't installed locally, fall back to the first
   // completion model. Same `pickX(current)(list)` pattern the voice store
@@ -45,11 +78,11 @@ export function ChatLayout({ renderMain }: ChatLayoutProps) {
       <SidebarInset
         className={cn("flex h-dvh flex-col bg-background pt-8", DRAG)}
       >
-        <ChatTopBar model={model} onModelChange={setModel} />
+        <ChatTopBar model={model} onModelChange={handleModelChange} />
         <main className="min-h-0 flex-1 overflow-hidden">
           {renderMain({
             model,
-            onModelChange: setModel,
+            onModelChange: handleModelChange,
             conversationId,
             onConversationChange: setConversationId,
           })}

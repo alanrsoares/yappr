@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
   buildAudio,
@@ -23,7 +23,8 @@ import {
   toTtsError,
   type AudioHandle,
 } from "~/lib/audio";
-import { voicesOptions } from "~/lib/queries";
+import { dbRpc } from "~/lib/db-rpc";
+import { preferencesOptions, voicesOptions } from "~/lib/queries";
 import { TTSClient, type VoiceId } from "~/services/yappr";
 import type { HealthState, TtsState } from "~/types";
 
@@ -62,6 +63,52 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
+
+  // Hydrate from persisted preferences once. The DB is shared with the CLI,
+  // so `defaultVoice` round-trips between surfaces. `serverUrl` and `speed`
+  // are desktop-only keys today.
+  const { data: prefs } = useQuery(preferencesOptions);
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (!prefs || hydratedRef.current) return;
+    if (typeof prefs.serverUrl === "string" && prefs.serverUrl) {
+      setServerUrl(prefs.serverUrl);
+    }
+    if (typeof prefs.defaultVoice === "string" && prefs.defaultVoice) {
+      setVoice(prefs.defaultVoice as VoiceId);
+    }
+    if (typeof prefs.defaultSpeed === "number") {
+      setSpeed(prefs.defaultSpeed);
+    }
+    hydratedRef.current = true;
+  }, [prefs]);
+
+  const persistPrefs = useMutation({
+    mutationFn: (entries: Record<string, unknown>) =>
+      dbRpc.request("preferences:setMany", entries),
+  });
+
+  const setServerUrlPersist = useCallback(
+    (next: string) => {
+      setServerUrl(next);
+      persistPrefs.mutate({ serverUrl: next });
+    },
+    [persistPrefs],
+  );
+  const setVoicePersist = useCallback(
+    (next: VoiceId) => {
+      setVoice(next);
+      persistPrefs.mutate({ defaultVoice: next });
+    },
+    [persistPrefs],
+  );
+  const setSpeedPersist = useCallback(
+    (next: number) => {
+      setSpeed(next);
+      persistPrefs.mutate({ defaultSpeed: next });
+    },
+    [persistPrefs],
+  );
 
   const client = useMemo(() => new TTSClient(serverUrl), [serverUrl]);
 
@@ -150,13 +197,13 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<VoiceStoreContextValue>(
     () => ({
       serverUrl,
-      setServerUrl,
+      setServerUrl: setServerUrlPersist,
       health,
       voices,
       voice,
-      setVoice,
+      setVoice: setVoicePersist,
       speed,
-      setSpeed,
+      setSpeed: setSpeedPersist,
       tts,
       checkHealth,
       stopAudio,
@@ -165,10 +212,13 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       serverUrl,
+      setServerUrlPersist,
       health,
       voices,
       voice,
+      setVoicePersist,
       speed,
+      setSpeedPersist,
       tts,
       checkHealth,
       stopAudio,
