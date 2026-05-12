@@ -32,7 +32,6 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
     "preferences:setMany": (entries) => {
       db.preferences.setMany(PreferencesSetManyInput.parse(entries));
     },
-
     "conversations:list": () => db.conversations.list(),
     "conversations:get": (params) => {
       const { id } = ConversationsGetInput.parse(params);
@@ -50,7 +49,6 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
       const { id } = ConversationsDeleteInput.parse(params);
       db.conversations.delete(id);
     },
-
     "messages:list": (params) => {
       const { conversationId } = MessagesListInput.parse(params);
       return db.messages.list(conversationId);
