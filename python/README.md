@@ -32,3 +32,14 @@ pip install -e .
 python server.py
 # loopback only; for LAN: uvicorn server:app --host 0.0.0.0 --port 8000
 ```
+
+## Models and cache
+
+On first launch the server downloads two model bundles into the Hugging Face cache (default `~/.cache/huggingface/hub`, overridable with `$HF_HOME`):
+
+| Model        | Default          | Size   | Override                       |
+| ------------ | ---------------- | ------ | ------------------------------ |
+| Kokoro TTS   | `hexgrad/Kokoro-82M` v1 | ~330MB | (pinned in `server.py`)        |
+| Whisper STT  | `small.en`       | ~480MB | `$YAPPR_WHISPER_MODEL` (e.g. `base.en`, `medium.en`, `distil-small.en`) |
+
+`small.en` is the default because `base.en` hallucinates "You" / "Thank you" on short or quiet clips. Set `YAPPR_WHISPER_MODEL=base.en` to revert if disk space or RAM is tight.

@@ -49,9 +49,14 @@ def _load_tts() -> Any:
 def _load_stt() -> Any:
     from faster_whisper import WhisperModel
 
-    print("Loading Whisper STT model (base.en)...")
+    # `small.en` (~244M params) hallucinates dramatically less on borderline
+    # audio than `base.en` (~74M) — the latter was the source of the
+    # phantom "You" / "Thank you" transcripts on short clips. Still fast on
+    # CPU + int8; download is ~480MB once (cached in $HF_HOME).
+    model_size = os.environ.get("YAPPR_WHISPER_MODEL", "small.en")
+    print(f"Loading Whisper STT model ({model_size})...")
     try:
-        model = WhisperModel("base.en", device="cpu", compute_type="int8")
+        model = WhisperModel(model_size, device="cpu", compute_type="int8")
         print("Whisper model loaded successfully.")
         return model
     except Exception as e:
