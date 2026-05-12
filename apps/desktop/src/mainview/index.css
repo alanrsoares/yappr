@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Cassette deck palette, expressed as HSL for shadcn token wiring */
+    --background: 30 18% 3%; /* chassis */
+    --foreground: 38 16% 75%; /* foil */
+    --card: 25 17% 8%; /* panel */
+    --card-foreground: 38 16% 75%;
+    --popover: 25 17% 8%;
+    --popover-foreground: 38 16% 75%;
+    --primary: 38 16% 75%; /* foil — primary action surface */
+    --primary-foreground: 30 18% 3%;
+    --secondary: 28 12% 14%; /* panel-edge */
+    --secondary-foreground: 38 16% 75%;
+    --muted: 28 12% 14%;
+    --muted-foreground: 32 10% 38%; /* foil-mute */
+    --accent: 39 100% 50%; /* led-amber */
+    --accent-foreground: 30 18% 3%;
+    --destructive: 0 100% 61%; /* led-red */
+    --destructive-foreground: 38 16% 95%;
+    --border: 0 0% 0%;
+    --input: 28 12% 14%;
+    --ring: 39 100% 50%; /* amber LED focus ring */
+    --radius: 0.125rem; /* sharp corners */
+
+    /* Sidebar tokens — themed to the cassette palette (app is always dark). */
+    --sidebar-background: 25 17% 6%; /* slightly darker than panel for depth */
+    --sidebar-foreground: 38 16% 75%; /* foil */
+    --sidebar-primary: 39 100% 50%; /* led-amber for active item */
+    --sidebar-primary-foreground: 30 18% 3%; /* chassis on amber */
+    --sidebar-accent: 28 12% 14%; /* panel-edge — hover/selection bg */
+    --sidebar-accent-foreground: 38 16% 88%; /* brighter foil on hover */
+    --sidebar-border: 30 18% 10%; /* subtle separator, not pitch black */
+    --sidebar-ring: 39 100% 50%; /* amber focus */
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: #050402;
+  }
+  body {
+    background-color: #050402;
+  }
+  body {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+  }
+  ::selection {
+    background: hsl(var(--accent) / 0.35);
+    color: #fff;
+  }
+  /* Dark-mode override kept for future light-theme toggle but app is always
+     in dark mode today (color-scheme: dark on <html>). Mirrors :root. */
+  .dark {
+    --sidebar-background: 25 17% 6%;
+    --sidebar-foreground: 38 16% 75%;
+    --sidebar-primary: 39 100% 50%;
+    --sidebar-primary-foreground: 30 18% 3%;
+    --sidebar-accent: 28 12% 14%;
+    --sidebar-accent-foreground: 38 16% 88%;
+    --sidebar-border: 30 18% 10%;
+    --sidebar-ring: 39 100% 50%;
+  }
+}
+
+@layer utilities {
+  /* Subtle horizontal brushed-metal lines */
+  .brushed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 3px
+    );
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  /* Engraved label — bottom highlight + top shadow */
+  .engraved {
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04),
+      0 -1px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  /* LCD amber glow */
+  .lcd-text {
+    color: #ffb02a;
+    text-shadow:
+      0 0 2px rgba(255, 176, 42, 0.8),
+      0 0 6px rgba(255, 165, 0, 0.4);
+  }
+  .lcd-text-dim {
+    color: #4a3318;
+    text-shadow: none;
+  }
+}

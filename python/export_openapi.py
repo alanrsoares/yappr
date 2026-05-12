@@ -3,7 +3,7 @@ Export OpenAPI JSON for TS codegen (`bun run openapi:export`).
 
 Route handlers and Pydantic models in ``server.py`` own summaries/descriptions;
 keep those docstrings and ``Field`` / ``File`` descriptions—they flow into
-``openapi.json`` and ``src/sdk/schema.d.ts``.
+``openapi.json`` and ``packages/sdk/src/schema.d.ts``.
 """
 
 import json

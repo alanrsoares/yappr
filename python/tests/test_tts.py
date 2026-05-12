@@ -28,7 +28,7 @@ class FakeKokoroPipeline:
     def __call__(
         self,
         text: str,
-        voice: str = "af_bella",
+        voice: str = "af_aoede",
         speed: float = 1.0,
     ) -> Generator[tuple[str, str, np.ndarray], None, None]:
         _ = (text, voice, speed)
@@ -42,7 +42,7 @@ class EmptyChunkPipeline:
     def __call__(
         self,
         text: str,
-        voice: str = "af_bella",
+        voice: str = "af_aoede",
         speed: float = 1.0,
     ) -> Generator[tuple[str, str, np.ndarray], None, None]:
         _, _, _ = text, voice, speed
@@ -53,7 +53,7 @@ class RaisingPipeline:
     def __call__(
         self,
         text: str,
-        voice: str = "af_bella",
+        voice: str = "af_aoede",
         speed: float = 1.0,
     ) -> Any:
         _, _, _ = text, voice, speed
@@ -61,7 +61,7 @@ class RaisingPipeline:
 
 
 def test_synthesize_ok_returns_wav_bytes() -> None:
-    result = core.synthesize(FakeKokoroPipeline(), "hello", voice="af_bella", speed=1.0)
+    result = core.synthesize(FakeKokoroPipeline(), "hello", voice="af_aoede", speed=1.0)
     assert result.is_ok()
     wav = result.value
     assert isinstance(wav, bytes)
@@ -90,7 +90,7 @@ def test_post_synthesize_route_smoke(client: TestClient) -> None:
     with patch("server.get_pipeline", return_value=fake):
         response = client.post(
             "/synthesize",
-            json={"text": "smoke", "voice": "af_bella", "speed": 1.0},
+            json={"text": "smoke", "voice": "af_aoede", "speed": 1.0},
         )
     assert response.status_code == 200
     assert response.headers.get("content-type", "").startswith("audio/wav")
@@ -114,7 +114,7 @@ def test_post_synthesize_route_500_hides_pipeline_exception_message(
     with patch("server.get_pipeline", return_value=RaisingPipeline()):
         response = client.post(
             "/synthesize",
-            json={"text": "x", "voice": "af_bella", "speed": 1.0},
+            json={"text": "x", "voice": "af_aoede", "speed": 1.0},
         )
     assert response.status_code == 500
     body = response.json()

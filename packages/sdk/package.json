@@ -1,0 +1,24 @@
+{
+  "name": "@yappr/sdk",
+  "version": "0.0.1",
+  "description": "Yappr SDK — TTS/STT clients, MCP manager, audio devices, MCP path cascade.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./paths": "./src/paths.ts",
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./defaults": "./src/defaults.ts",
+    "./state": "./src/state.ts",
+    "./mcp": "./src/mcp.ts",
+    "./tts": "./src/tts.ts",
+    "./recorder": "./src/recorder.ts",
+    "./audio-devices": "./src/audio-devices.ts"
+  },
+  "dependencies": {
+    "@yappr/lib": "workspace:*",
+    "neverthrow": "^8.2.0",
+    "zod": "^4.4.3"
+  }
+}

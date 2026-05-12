@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/mainview/index.css",
+    "baseColor": "stone",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "~/ui",
+    "utils": "~/lib/utils",
+    "ui": "~/ui",
+    "lib": "~/lib",
+    "hooks": "~/hooks",
+    "services": "~/services"
+  },
+  "iconLibrary": "lucide",
+  "registries": {
+    "@prompt-kit": "https://prompt-kit.com/c/{name}.json"
+  }
+}

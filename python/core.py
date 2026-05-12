@@ -54,7 +54,7 @@ def get_voices() -> Result[list[str], Exception]:
 def synthesize(
     pipeline: Any,
     text: str,
-    voice: str = "af_bella",
+    voice: str = "af_aoede",
     speed: float = 1.0,
     sample_rate: int = 24000,
 ) -> Result[bytes, Exception]:

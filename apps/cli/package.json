@@ -1,0 +1,19 @@
+{
+  "name": "@yappr/cli",
+  "version": "0.0.1",
+  "description": "Yappr terminal UI and CLI commands.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "tui": "bun run src/app.tsx",
+    "speak": "bun run src/index.ts speak",
+    "chat": "bun run src/index.ts chat",
+    "voices": "bun run src/index.ts voices",
+    "dev": "bun --watch src/index.ts"
+  },
+  "dependencies": {
+    "@yappr/db": "workspace:*",
+    "@yappr/lib": "workspace:*",
+    "@yappr/sdk": "workspace:*"
+  }
+}

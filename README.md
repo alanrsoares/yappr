@@ -9,7 +9,7 @@ Designed to run efficiently on Apple Silicon (M-series), Yappr ensures your voic
 - **Kokoro TTS:** Near human-level text-to-speech using the 82M parameter Kokoro model.
 - **Whisper STT:** Fast, accurate local speech-to-text via `faster-whisper`.
 - **Ollama Integration:** Seamlessly chat with local LLMs like `qwen2.5`, `mistral`, or `llama3`.
-- **MCP (Model Context Protocol):** Automatically loads tools from your `~/.cursor/mcp.json`. Your voice assistant can search files, check GitHub, use Figma, and more.
+- **MCP (Model Context Protocol):** Auto-discovers tools from `~/.config/yappr/mcp.json` or `~/.cursor/mcp.json` (override with `$YAPPR_MCP_CONFIG` or in Settings). Your voice assistant can search files, check GitHub, use Figma, and more.
 - **Voice Mode:** Real-time voice-to-voice conversation loop.
 
 ## 🏗️ Architecture
@@ -18,6 +18,17 @@ Yappr uses a hybrid architecture for maximum performance:
 
 - **CLI/SDK (Bun + TypeScript):** Handles orchestration, MCP tool execution, and the user interface.
 - **Inference Server (Python + FastAPI):** Wraps the heavy-lifting ML models (Kokoro & Whisper) for high-speed local inference.
+
+### Monorepo layout
+
+Bun workspaces:
+
+- `apps/cli/` — Ink + React TUI and one-shot CLI commands.
+- `apps/desktop/` — Electrobun desktop app (React + Tailwind + Vite + shadcn/prompt-kit). Chat-first surface with sidebar conversation list, streaming Ollama chat, per-message TTS, composer-mic STT, voice/server settings sheet.
+- `packages/sdk/` — `@yappr/sdk` — TTS/STT clients, MCP manager, MCP path cascade, OpenAPI types.
+- `packages/lib/` — `@yappr/lib` — shared utilities (`Result`/`ResultAsync`, unstated container).
+- `packages/db/` — `@yappr/db` — `bun:sqlite` + Drizzle persistence shared by CLI and desktop (`~/.yappr/yappr.db`); preferences, conversations, messages, and the zod-derived RPC contract.
+- `python/` — FastAPI inference server.
 
 ## 🚀 Getting Started
 
@@ -34,7 +45,7 @@ Yappr uses a hybrid architecture for maximum performance:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/yappr.git
+git clone https://github.com/alanrsoares/yappr.git
 cd yappr
 
 # Run the unified setup script
@@ -87,9 +98,25 @@ bun run chat "What is the capital of France?" --model qwen2.5:14b
 bun run voices
 ```
 
+### 4. Desktop (Experimental)
+
+The desktop app gives you the same Ollama chat + voice loop in a native window — sidebar conversation list, per-message speak, mic-in-composer dictation, and persistent settings shared with the CLI via `~/.yappr/yappr.db`. Start the Python server first (`bun run serve`), then:
+
+```bash
+bun run desktop
+```
+
+Still ahead: spawning the inference server from inside the app and the packaged-build path-resolution PoC. See `docs/PRODUCT_ROADMAP.md` for status.
+
 ## 🛠️ Configuration
 
-Yappr automatically detects MCP servers from `~/.cursor/mcp.json`. When using a model that supports tool-calling (like `qwen2.5`), you can ask Yappr to perform actions using those tools.
+Yappr auto-discovers MCP servers via this cascade:
+
+1. `$YAPPR_MCP_CONFIG` env var (explicit override)
+2. `~/.config/yappr/mcp.json` (neutral default)
+3. `~/.cursor/mcp.json` (Cursor preset — zero-config for Cursor users)
+
+You can also set an explicit path in **Settings → MCP config path**. When using a model that supports tool-calling (like `qwen2.5`), you can ask Yappr to perform actions using those tools.
 
 ## 🔒 Privacy
 
