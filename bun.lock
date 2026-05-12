@@ -69,6 +69,7 @@
         "@styled-cva/react": "^0.7.1",
         "@tanstack/react-query": "^5.100.10",
         "@tanstack/react-router": "^1.169.2",
+        "@yappr/db": "workspace:*",
         "@yappr/sdk": "workspace:*",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",

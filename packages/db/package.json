@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./rpc-types": "./src/rpc-types.ts"
   },
   "dependencies": {
     "@yappr/lib": "workspace:*",

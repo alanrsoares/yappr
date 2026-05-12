@@ -1,4 +1,15 @@
-import { BrowserWindow, Updater, Utils } from "electrobun/bun";
+import os from "node:os";
+import path from "node:path";
+import { createDb, importSettingsJsonIfFresh } from "@yappr/db";
+import type { DbRpcSchema } from "@yappr/db/rpc-types";
+import {
+  BrowserWindow,
+  defineElectrobunRPC,
+  Updater,
+  Utils,
+} from "electrobun/bun";
+
+import { makeDbRpcHandlers } from "./db-rpc";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -21,9 +32,27 @@ async function getMainViewUrl(): Promise<string> {
 
 const url = await getMainViewUrl();
 
+// Persistence: open the same ~/.yappr/yappr.db file that the CLI uses, so
+// preferences (voice, server URL, etc) stay in sync across surfaces.
+// Legacy `settings.json` is imported once if present.
+const yapprDir = path.join(os.homedir(), ".yappr");
+const db = createDb({ path: path.join(yapprDir, "yappr.db") });
+const importResult = importSettingsJsonIfFresh(
+  db,
+  path.join(yapprDir, "settings.json"),
+);
+if (importResult.kind === "imported") {
+  console.log(`Migrated ${importResult.count} legacy settings into DB.`);
+}
+
+const rpc = defineElectrobunRPC<DbRpcSchema, "bun">("bun", {
+  handlers: { requests: makeDbRpcHandlers(db) },
+});
+
 const mainWindow = new BrowserWindow({
   title: "Yappr",
   url,
+  rpc,
   // Keep macOS traffic lights, drop the system titlebar so the chassis chrome
   // reads as the title bar. Custom drag region lives on `<SerialPlate>` via
   // `-webkit-app-region: drag`.
@@ -42,6 +71,7 @@ const mainWindow = new BrowserWindow({
 // Clean shutdown: exit the Bun process when the last window closes so the
 // launcher quits cleanly instead of leaving the main process orphaned.
 mainWindow.on("close", () => {
+  db.close();
   Utils.quit();
 });
 
