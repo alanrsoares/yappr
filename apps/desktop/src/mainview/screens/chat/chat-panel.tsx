@@ -14,7 +14,12 @@ import {
   ChatContainerRoot,
   ChatContainerScrollAnchor,
 } from "~/ui/chat-container";
-import { Message, MessageActions, MessageContent } from "~/ui/message";
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+} from "~/ui/message";
 import { Composer } from "./composer";
 
 interface ChatPanelProps {
@@ -272,36 +277,41 @@ function MessageBubble({
           {content}
         </MessageContent>
         <MessageActions className="-ml-2 gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={copy}
-            aria-label="Copy message"
-            title="Copy"
-            className="size-7 rounded-full"
-          >
-            <Copy className="size-3.5" aria-hidden="true" />
-          </Button>
-          {canSpeak ? (
+          <MessageAction tooltip="Copy" delayDuration={100}>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              onClick={isSpeaking ? onStop : onSpeak}
-              aria-label={isSpeaking ? "Stop speaking" : "Speak this message"}
-              title={isSpeaking ? "Stop" : "Speak"}
-              className={cn(
-                "size-7 rounded-full",
-                isSpeaking && "text-led-amber",
-              )}
+              onClick={copy}
+              aria-label="Copy message"
+              className="size-7 rounded-full"
             >
-              {isSpeaking ? (
-                <Square className="size-3.5" aria-hidden="true" />
-              ) : (
-                <Volume2 className="size-3.5" aria-hidden="true" />
-              )}
+              <Copy className="size-3.5" aria-hidden="true" />
             </Button>
+          </MessageAction>
+          {canSpeak ? (
+            <MessageAction
+              tooltip={isSpeaking ? "Stop" : "Speak"}
+              delayDuration={100}
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={isSpeaking ? onStop : onSpeak}
+                aria-label={isSpeaking ? "Stop speaking" : "Speak this message"}
+                className={cn(
+                  "size-7 rounded-full",
+                  isSpeaking && "text-led-amber",
+                )}
+              >
+                {isSpeaking ? (
+                  <Square className="size-3.5" aria-hidden="true" />
+                ) : (
+                  <Volume2 className="size-3.5" aria-hidden="true" />
+                )}
+              </Button>
+            </MessageAction>
           ) : null}
         </MessageActions>
       </Message>
@@ -315,17 +325,18 @@ function MessageBubble({
         {content}
       </MessageContent>
       <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={copy}
-          aria-label="Copy message"
-          title="Copy"
-          className="size-7 rounded-full"
-        >
-          <Copy className="size-3.5" aria-hidden="true" />
-        </Button>
+        <MessageAction tooltip="Copy" delayDuration={100}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={copy}
+            aria-label="Copy message"
+            className="size-7 rounded-full"
+          >
+            <Copy className="size-3.5" aria-hidden="true" />
+          </Button>
+        </MessageAction>
       </MessageActions>
     </Message>
   );
