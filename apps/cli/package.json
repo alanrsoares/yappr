@@ -12,6 +12,7 @@
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
+    "@yappr/db": "workspace:*",
     "@yappr/lib": "workspace:*",
     "@yappr/sdk": "workspace:*"
   }

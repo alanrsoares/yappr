@@ -63,9 +63,9 @@ test("savePreferences merges with defaults and persists", async () => {
     expect(loaded.defaultVoice).toBe(DEFAULT_PREFERENCES.defaultVoice);
     expect(loaded.ollamaBaseUrl).toBe(DEFAULT_PREFERENCES.ollamaBaseUrl);
 
-    // ensure file was written under the temporary HOME
-    const settingsPath = path.join(homeDir, ".yappr", "settings.json");
-    expect(existsSync(settingsPath)).toBe(true);
+    // ensure DB was written under the temporary HOME
+    const dbPath = path.join(homeDir, ".yappr", "yappr.db");
+    expect(existsSync(dbPath)).toBe(true);
   });
 });
 

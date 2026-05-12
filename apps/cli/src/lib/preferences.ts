@@ -1,5 +1,5 @@
-import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { createDb, importSettingsJsonIfFresh, type YapprDb } from "@yappr/db";
 import { toError } from "@yappr/lib/result";
 import { DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
@@ -21,49 +21,68 @@ export const DEFAULT_PREFERENCES: Preferences = {
   openrouterApiKey: "",
 };
 
-function getSettingsPath(): string {
-  return path.join(userHomeDir(), ".yappr", "settings.json");
+const YAPPR_DIR = ".yappr";
+const DB_FILE = "yappr.db";
+const LEGACY_SETTINGS_FILE = "settings.json";
+
+/**
+ * Cache DB handles by resolved file path. bun:sqlite holds an OS lock on the
+ * file, so we open at most one Database per path. Tests that swap `HOME`
+ * between cases get distinct cache entries automatically; the previous
+ * (orphaned) handle still works against its now-deleted file but is harmless.
+ */
+const dbCache = new Map<string, YapprDb>();
+
+function getDbPath(): string {
+  return path.join(userHomeDir(), YAPPR_DIR, DB_FILE);
 }
 
-function isENOENT(e: unknown): boolean {
-  return (e as NodeJS.ErrnoException)?.code === "ENOENT";
+function getLegacySettingsPath(): string {
+  return path.join(userHomeDir(), YAPPR_DIR, LEGACY_SETTINGS_FILE);
 }
 
+function getDb(): YapprDb {
+  const dbPath = getDbPath();
+  const cached = dbCache.get(dbPath);
+  if (cached) return cached;
+
+  const db = createDb({ path: dbPath });
+  // One-way import from the CLI's pre-DB settings.json. Idempotent + sync,
+  // so subsequent reads from the same `getDb()` see the migrated rows.
+  importSettingsJsonIfFresh(db, getLegacySettingsPath());
+  dbCache.set(dbPath, db);
+  return db;
+}
+
+/**
+ * Read all preferences from the DB, merge with defaults, and apply the legacy
+ * `defaultOllamaModel` migration. Same `Preferences` contract as the previous
+ * JSON-file implementation — `mergeStoredPreferences` does the validation +
+ * legacy handling unchanged.
+ */
 export function loadPreferences(): ResultAsync<Preferences, Error> {
-  const filePath = getSettingsPath();
   return ResultAsync.fromPromise(
-    readPreferencesFile(filePath).catch((e) => {
-      if (isENOENT(e)) return { ...DEFAULT_PREFERENCES };
-      throw e;
-    }),
+    (async () => {
+      const db = getDb();
+      const stored = db.preferences.getAll();
+      return mergeStoredPreferences(stored, DEFAULT_PREFERENCES);
+    })(),
     toError,
   );
 }
 
-async function readPreferencesFile(filePath: string): Promise<Preferences> {
-  const file = Bun.file(filePath);
-  if (!(await file.exists())) return { ...DEFAULT_PREFERENCES };
-
-  const raw = await file.text();
-  const parsed: unknown = JSON.parse(raw);
-  return mergeStoredPreferences(parsed, DEFAULT_PREFERENCES);
-}
-
+/**
+ * Write a partial preferences update. Only the supplied keys are touched;
+ * other rows in the DB are left intact (no full-row read-modify-write needed).
+ */
 export function savePreferences(
   partial: Partial<Preferences>,
 ): ResultAsync<void, Error> {
-  return loadPreferences()
-    .andThen((current) =>
-      ResultAsync.fromPromise(
-        persistPreferences({ ...current, ...partial }),
-        toError,
-      ),
-    )
-    .map(() => undefined);
-}
-
-async function persistPreferences(merged: Preferences): Promise<void> {
-  const dir = path.dirname(getSettingsPath());
-  await mkdir(dir, { recursive: true });
-  await Bun.write(getSettingsPath(), JSON.stringify(merged, null, 2));
+  return ResultAsync.fromPromise(
+    (async () => {
+      const db = getDb();
+      db.preferences.setMany(partial as Record<string, unknown>);
+    })(),
+    toError,
+  );
 }
