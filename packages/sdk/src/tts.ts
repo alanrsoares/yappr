@@ -9,6 +9,16 @@ import {
   type VoiceId,
 } from "./schemas.js";
 
+const filenameFor = (blob: Blob): string => {
+  const type = blob.type.toLowerCase();
+  if (type.includes("wav")) return "recording.wav";
+  if (type.includes("webm")) return "recording.webm";
+  if (type.includes("mp4") || type.includes("m4a")) return "recording.m4a";
+  if (type.includes("ogg")) return "recording.ogg";
+  if (type.includes("mpeg")) return "recording.mp3";
+  return "recording.bin";
+};
+
 export interface TTSOptions {
   voice?: VoiceId;
   speed?: number;
@@ -39,7 +49,10 @@ export class TTSClient {
     return ResultAsync.fromPromise(
       (async () => {
         const formData = new FormData();
-        formData.append("file", blob);
+        // Filename hint so the server (and faster-whisper / pyav) can pick the
+        // right decoder. Without an extension, browsers send "blob" which has
+        // tripped ffmpeg format-sniff on borderline inputs.
+        formData.append("file", blob, filenameFor(blob));
 
         const response = await fetch(`${this.baseUrl}/transcribe`, {
           method: "POST",
@@ -47,7 +60,10 @@ export class TTSClient {
         });
 
         if (!response.ok) {
-          throw new Error(`Transcription failed: ${response.statusText}`);
+          const body = await response.text();
+          throw new Error(
+            body || `Transcription failed: ${response.statusText}`,
+          );
         }
 
         const data = TranscribeResponseSchema.parse(await response.json());
