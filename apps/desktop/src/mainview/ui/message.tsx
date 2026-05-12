@@ -102,14 +102,19 @@ const MessageAction = ({
   tooltip,
   children,
   className,
-  side = "top",
+  side = "bottom",
   ...props
 }: MessageActionProps) => {
   return (
     <TooltipProvider>
       <Tooltip {...props}>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} className={className}>
+        <TooltipContent
+          side={side}
+          sideOffset={6}
+          avoidCollisions={false}
+          className={className}
+        >
           {tooltip}
         </TooltipContent>
       </Tooltip>
