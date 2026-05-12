@@ -10,9 +10,10 @@
 The repo is a **Bun workspace monorepo**:
 
 - **`apps/cli/`** — Ink + React TUI and one-shot CLI commands (Bun + TypeScript).
-- **`apps/desktop/`** — experimental Electrobun desktop spike (React + Tailwind + Vite). Mirrors **`apps/cli`** layout where it fits: `screens/<name>/screen.tsx`, optional `store.tsx`, `index.ts` barrels; `services/yappr/` as the TTS façade (HTTP `TTSClient` vs CLI Bun runtime); `hooks/index.ts`; shared **`types.ts`**. Deck chrome stays in `deck.tsx` + `shell/`.
+- **`apps/desktop/`** — Electrobun desktop app (React + Tailwind + Vite + shadcn/prompt-kit). Chat-first surface with persistence: sidebar conversation list, streaming Ollama chat, per-message TTS, composer-mic STT, voice/server settings sheet. Mirrors **`apps/cli`** layout: `screens/<name>/screen.tsx`, optional store, `services/yappr/` TTS façade, `hooks/`, shared `types.ts`. Bun-side (`src/bun/`) owns the SQLite handle; webview talks to it through the typed `@yappr/db/rpc` channel.
 - **`packages/sdk/`** — TTS/STT clients, MCP manager, MCP path cascade, OpenAPI types. Published as `@yappr/sdk`.
 - **`packages/lib/`** — shared utilities (`Result`/`ResultAsync` helpers, unstated container). Published as `@yappr/lib`.
+- **`packages/db/`** — `bun:sqlite` + Drizzle persistence (preferences, conversations, messages) and zod-derived RPC schemas. CLI uses the repos directly; desktop calls them over Electrobun RPC. Single DB at `~/.yappr/yappr.db` shared by both surfaces.
 - **`python/`** — FastAPI inference server (see `python/README.md`).
 - **OpenAPI client types**: `bun run openapi:export` regenerates `packages/sdk/src/schema.d.ts` from the Python app.
 
@@ -30,22 +31,24 @@ This repo is **Bun-first**: TypeScript runs on **Bun**, not Node, for installs, 
 
 ## 3. Repository layout
 
-| Path                         | Role                                                                                                                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/cli/src/`              | Ink app entry (`app.tsx`, `Root.tsx`), screens (`screens/*`), hooks, `services/yappr` (HTTP to Python, chat, speak, STT).                                                                |
-| `apps/cli/src/screens/`      | One folder per screen (e.g. `chat/`, `settings/`, `voices/`); often `screen.tsx` + `store.tsx` + `components/`.                                                                          |
-| `apps/desktop/src/mainview/` | Electrobun webview: `app/` (router), `shell/` (chrome), `screens/*` (screen + store like CLI), `services/yappr/`, `ui/` (shadcn), `deck.tsx` (styled-cva), `lib/`, `hooks/`, `types.ts`. |
-| `packages/sdk/src/`          | TTS/STT clients, MCP manager + path cascade, OpenAPI types (`schema.d.ts`); regen with `openapi:export`.                                                                                 |
-| `packages/lib/src/`          | Shared utilities (`result.ts`, `unstated.tsx`).                                                                                                                                          |
-| `python/`                    | FastAPI server, Kokoro/Whisper wiring, pytest suite.                                                                                                                                     |
-| `openapi.json`               | Exported schema; source of truth is the Python OpenAPI export.                                                                                                                           |
+| Path                         | Role                                                                                                                                                                                                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/cli/src/`              | Ink app entry (`app.tsx`, `Root.tsx`), screens (`screens/*`), hooks, `services/yappr` (HTTP to Python, chat, speak, STT).                                                                                                                                             |
+| `apps/cli/src/screens/`      | One folder per screen (e.g. `chat/`, `settings/`, `voices/`); often `screen.tsx` + `store.tsx` + `components/`.                                                                                                                                                       |
+| `apps/desktop/src/bun/`      | Electrobun main process: window config, opens `~/.yappr/yappr.db`, registers `@yappr/db/rpc` handlers.                                                                                                                                                                |
+| `apps/desktop/src/mainview/` | Electrobun webview: `app/` (router), `shell/` (chrome), `screens/*` (screen + store like CLI — `chat/` is the current home surface), `services/yappr/`, `ui/` (shadcn + prompt-kit), `lib/` (queries, db-rpc, voice-store, audio, drag-region), `hooks/`, `types.ts`. |
+| `packages/sdk/src/`          | TTS/STT clients, MCP manager + path cascade, OpenAPI types (`schema.d.ts`); regen with `openapi:export`.                                                                                                                                                              |
+| `packages/lib/src/`          | Shared utilities (`result.ts`, `unstated.tsx`).                                                                                                                                                                                                                       |
+| `packages/db/src/`           | Drizzle SQLite schema + repositories (`conversations`, `messages`, `preferences`), legacy `settings.json` importer, and zod RPC contract (`rpc.ts` — drizzle-zod for row schemas, hand-authored zod for inputs).                                                      |
+| `python/`                    | FastAPI server, Kokoro/Whisper wiring, pytest suite.                                                                                                                                                                                                                  |
+| `openapi.json`               | Exported schema; source of truth is the Python OpenAPI export.                                                                                                                                                                                                        |
 
 **Imports in TS**:
 
 - **Intra-package** (within `apps/cli`, `packages/sdk`, `packages/lib`): use the `~/` alias to that package's `src/` and **`.js` extensions** for ESM (e.g. `import x from "~/store.js"`).
 - **Within `apps/desktop/src/mainview`**: use the **`~/`** alias to that folder (configured in `apps/desktop/tsconfig.json` and `vite.config.ts`) — same spirit as the CLI, no `@/` alias in the desktop webview.
-- **Cross-package**: use workspace package imports — `@yappr/lib/result`, `@yappr/lib/unstated`, `@yappr/sdk/paths`, `@yappr/sdk/mcp`, etc. (no `.js` extension; the package `exports` map points at `.ts` source.)
-- `apps/desktop` is isolated (own `tsconfig.json`, own React/Vite stack); do NOT import `@yappr/*` from it yet — Phase 0 stays decoupled by HTTP contract only. Prefer **`~/…`** imports inside `src/mainview/` (not `@/`).
+- **Cross-package**: use workspace package imports — `@yappr/lib/result`, `@yappr/lib/unstated`, `@yappr/sdk/paths`, `@yappr/sdk/mcp`, `@yappr/db`, `@yappr/db/rpc`, etc. (no `.js` extension; the package `exports` map points at `.ts` source.)
+- `apps/desktop` has its own `tsconfig.json` + React/Vite stack but participates in the workspace: it imports `@yappr/sdk` (TTS/STT, schemas) and `@yappr/db` (preferences + chat persistence over Electrobun RPC). Inside `src/mainview/` prefer **`~/…`** imports (not `@/`). The bun-side (`src/bun/`) owns the SQLite handle; the webview only sees it through the typed RPC channel in `lib/db-rpc.ts`.
 
 ## 4. Commands
 

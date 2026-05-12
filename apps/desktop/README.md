@@ -1,61 +1,32 @@
-# React + Tailwind + Vite Electrobun Template
+# @yappr/desktop
 
-A fast Electrobun desktop app template with React, Tailwind CSS, and Vite for hot module replacement (HMR).
+Electrobun desktop surface for [Yappr](../../README.md). React + Vite + Tailwind + shadcn/prompt-kit, with the same Ollama chat + Kokoro/Whisper voice loop as the CLI but in a native window.
 
-## Getting Started
+## Run
+
+From the repo root (recommended — picks up the workspace + the Python server script):
 
 ```bash
-# Install dependencies
-bun install
-
-# Development without HMR (uses bundled assets)
-bun run dev
-
-# Development with HMR (recommended)
-bun run dev:hmr
-
-# Build for production
-bun run build
-
-# Build for production release
-bun run build:prod
+bun run serve     # in one terminal — starts the Python inference server on :8000
+bun run desktop   # in another — opens the desktop app with HMR
 ```
 
-## How HMR Works
+Or directly inside this package:
 
-When you run `bun run dev:hmr`:
-
-1. **Vite dev server** starts on `http://localhost:5173` with HMR enabled
-2. **Electrobun** starts and detects the running Vite server
-3. The app loads from the Vite dev server instead of bundled assets
-4. Changes to React components update instantly without full page reload
-
-When you run `bun run dev` (without HMR):
-
-1. Electrobun starts and loads from `views://mainview/index.html`
-2. You need to rebuild (`bun run build`) to see changes
-
-## Project Structure
-
-```
-├── src/
-│   ├── bun/
-│   │   └── index.ts        # Main process (Electrobun/Bun)
-│   └── mainview/
-│       ├── App.tsx         # React app component
-│       ├── main.tsx        # React entry point
-│       ├── index.html      # HTML template
-│       └── index.css       # Tailwind CSS
-├── electrobun.config.ts    # Electrobun configuration
-├── vite.config.ts          # Vite configuration
-├── tailwind.config.js      # Tailwind configuration
-└── package.json
+```bash
+bun run dev:hmr   # Vite on :5173 + Electrobun loading from it
+bun run dev       # Electrobun loading bundled assets (no HMR)
+bun run start     # build once then run Electrobun against bundled assets
 ```
 
-## Customizing
+## How it fits together
 
-- **React components**: Edit files in `src/mainview/`
-- **Tailwind theme**: Edit `tailwind.config.js`
-- **Vite settings**: Edit `vite.config.ts`
-- **Window settings**: Edit `src/bun/index.ts`
-- **App metadata**: Edit `electrobun.config.ts`
+- **`src/bun/`** — Electrobun main process. Owns the `~/.yappr/yappr.db` SQLite handle (shared with the CLI) and registers the typed `@yappr/db/rpc` request handlers.
+- **`src/mainview/`** — webview (React). Talks to the bun side over the Electrobun socket via `lib/db-rpc.ts`; talks to the Python inference server over HTTP via `services/yappr` (`@yappr/sdk`). All async reads go through `@tanstack/react-query` — see `lib/queries.ts` for the canonical query options.
+- **`src/mainview/screens/chat/`** — current home surface. Sidebar lists persisted conversations; chat-panel streams Ollama replies and writes user + assistant turns through the RPC channel; settings sheet edits voice/server URL/speed (persisted to preferences).
+
+## Conventions
+
+- Schema-first: row types come from `@yappr/db` (drizzle → drizzle-zod → `z.infer`); RPC inputs are hand-authored zod schemas that the bun-side handler `.parse()`s before touching SQLite.
+- Drag regions use the literal classes from `lib/drag-region.ts` (`DRAG`, `NO_DRAG`) — Electrobun's preload script only recognises those exact class names, not raw `-webkit-app-region` CSS.
+- See [AGENTS.md](../../AGENTS.md) for the project-wide conventions.

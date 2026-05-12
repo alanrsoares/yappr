@@ -24,9 +24,10 @@ Yappr uses a hybrid architecture for maximum performance:
 Bun workspaces:
 
 - `apps/cli/` — Ink + React TUI and one-shot CLI commands.
-- `apps/desktop/` — **experimental** Electrobun desktop spike (React + Tailwind + Vite + styled-cva). Phase 0 wedge validation.
+- `apps/desktop/` — Electrobun desktop app (React + Tailwind + Vite + shadcn/prompt-kit). Chat-first surface with sidebar conversation list, streaming Ollama chat, per-message TTS, composer-mic STT, voice/server settings sheet.
 - `packages/sdk/` — `@yappr/sdk` — TTS/STT clients, MCP manager, MCP path cascade, OpenAPI types.
 - `packages/lib/` — `@yappr/lib` — shared utilities (`Result`/`ResultAsync`, unstated container).
+- `packages/db/` — `@yappr/db` — `bun:sqlite` + Drizzle persistence shared by CLI and desktop (`~/.yappr/yappr.db`); preferences, conversations, messages, and the zod-derived RPC contract.
 - `python/` — FastAPI inference server.
 
 ## 🚀 Getting Started
@@ -99,13 +100,13 @@ bun run voices
 
 ### 4. Desktop (Experimental)
 
-The desktop companion is a Phase 0 spike — not for daily use yet. Start the Python server first (`bun run serve`), then:
+The desktop app gives you the same Ollama chat + voice loop in a native window — sidebar conversation list, per-message speak, mic-in-composer dictation, and persistent settings shared with the CLI via `~/.yappr/yappr.db`. Start the Python server first (`bun run serve`), then:
 
 ```bash
 bun run desktop
 ```
 
-A window opens that can probe the inference server's `/voices` endpoint. Spawning the server from inside the desktop and the packaged-build path-resolution PoC are still ahead. See `docs/PRODUCT_ROADMAP.md` H2 and the spike plan for status.
+Still ahead: spawning the inference server from inside the app and the packaged-build path-resolution PoC. See `docs/PRODUCT_ROADMAP.md` for status.
 
 ## 🛠️ Configuration
 
