@@ -90,7 +90,20 @@ export function ChatPanel({
   // right row even if the user navigates between conversations mid-stream.
   const liveConvIdRef = useRef<string | null>(conversationId);
 
-  const transport = useMemo(() => new OllamaTransport(model), [model]);
+  // useChat freezes the transport at first render. Wrap the model lookup in a
+  // ref-backed getter so picking a different model at runtime takes effect
+  // without re-creating the chat instance (which would lose live state).
+  const modelRef = useRef(model);
+  useEffect(() => {
+    modelRef.current = model;
+  }, [model]);
+  const transport = useMemo(
+    // The closure is invoked later at send time, not during render — the lint
+    // rule can't statically see that, so silence it.
+    // eslint-disable-next-line react-hooks/refs
+    () => new OllamaTransport(() => modelRef.current),
+    [],
+  );
 
   const { messages, sendMessage, status, error, setMessages, stop } = useChat({
     transport,
