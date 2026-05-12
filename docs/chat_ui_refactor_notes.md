@@ -4,7 +4,7 @@ I have successfully added syntax highlighting to the Chat UI using `cli-highligh
 
 - **Syntax Highlighting:** Integrated `cli-highlight` into `MessageBubble` to automatically colorize code blocks in AI responses.
 - **Loading Spinner:** Replaced the static "Thinking..." text with an animated dots spinner using `ink-spinner` for a more responsive feel.
-- **Type Safety:** Created `src/declarations.d.ts` to handle missing types for `cli-highlight`.
+- **Type Safety:** Created `apps/cli/src/declarations.d.ts` to handle missing types for `cli-highlight`.
 
 The Chat UI now features:
 

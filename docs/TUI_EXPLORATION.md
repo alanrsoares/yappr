@@ -29,7 +29,7 @@ Options for rich terminal UI in yappr (tables, prompts, live updates, keyboard i
 
 ## Suggested path for yappr
 
-1. **Try Ink** with a small screen (e.g. MCP status table + “Press q to quit”). See `src/cli/mcp-status.tsx` and run with `bun run tui` (after installing deps).
+1. **Try Ink** with a small screen (e.g. MCP status table + “Press q to quit”). See `apps/cli/src/screens/mcp-status/screen.tsx` and run with `bun run tui` (after installing deps).
 2. If you like it: gradually move status table and other CLI output into Ink components; add `useInput` for key handling and optional `ink-table` for tables.
 3. If you prefer minimal deps: keep current table renderer and add **@clack/prompts** only where you want interactive prompts (e.g. voice selection, confirm before action).
 
