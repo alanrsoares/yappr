@@ -8,7 +8,11 @@ import { Copy, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { OllamaTransport } from "~/lib/ollama-transport";
-import { conversationsOptions, messagesOptions } from "~/lib/queries";
+import {
+  conversationsOptions,
+  messagesOptions,
+  ollamaModelsOptions,
+} from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { useVoiceStore } from "~/lib/voice-store";
 import { Button } from "~/ui/button";
@@ -57,6 +61,12 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const queryClient = useQueryClient();
   const { data } = useQuery(messagesOptions(conversationId));
+  const { data: models } = useQuery(ollamaModelsOptions);
+  // Model must be present in the locally-installed list — otherwise Ollama
+  // returns 404 mid-stream. Block sends until pickModel (in chat-layout) has
+  // had a chance to resolve to a valid choice.
+  const modelReady =
+    !!model && (models?.some((m) => m.name === model) ?? false);
   // Stable empty-array ref so the hydration effect below doesn't loop on
   // every render when the query is disabled (conversationId === null) and
   // `data` stays undefined.
@@ -189,8 +199,14 @@ export function ChatPanel({
             onSend={(t) => void handleSubmit(t)}
             isBusy={isBusy}
             onStop={stop}
-            disabled={!model.trim()}
-            placeholder="Ask the local model… (Shift+Enter for newline)"
+            disabled={!modelReady}
+            placeholder={
+              modelReady
+                ? "Ask the local model… (Shift+Enter for newline)"
+                : models
+                  ? "Select an installed model to start chatting…"
+                  : "Loading models from Ollama…"
+            }
             transcribe={transcribe}
           />
         </div>
