@@ -64,10 +64,20 @@ export const preferencesOptions = queryOptions({
   staleTime: Infinity,
 });
 
-/** Conversation list, newest-updated first. Sidebar driver. */
+/** Shared prefix so mutations can invalidate every conversation-scoped query. */
+export const conversationsQueryRootKey = ["db", "conversations"] as const;
+
+/** Active (non-archived) conversations, newest-updated first. Main sidebar. */
 export const conversationsOptions = queryOptions({
-  queryKey: ["db", "conversations"] as const,
-  queryFn: () => dbRpc.request("conversations:list", undefined),
+  queryKey: [...conversationsQueryRootKey, "active"] as const,
+  queryFn: () => dbRpc.request("conversations:list", { scope: "active" }),
+  staleTime: 5 * 1000,
+});
+
+/** Archived conversations for the sidebar secondary section. */
+export const archivedConversationsOptions = queryOptions({
+  queryKey: [...conversationsQueryRootKey, "archived"] as const,
+  queryFn: () => dbRpc.request("conversations:list", { scope: "archived" }),
   staleTime: 5 * 1000,
 });
 

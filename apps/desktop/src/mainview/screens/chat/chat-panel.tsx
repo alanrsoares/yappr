@@ -9,7 +9,7 @@ import { AlertTriangle, Copy, Square, Volume2 } from "lucide-react";
 import { dbRpc } from "~/lib/db-rpc";
 import { OllamaTransport } from "~/lib/ollama-transport";
 import {
-  conversationsOptions,
+  conversationsQueryRootKey,
   messagesOptions,
   ollamaModelsOptions,
 } from "~/lib/queries";
@@ -122,7 +122,7 @@ export function ChatPanel({
         queryKey: messagesOptions(convId).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: conversationsOptions.queryKey,
+        queryKey: conversationsQueryRootKey,
       });
     },
   });
@@ -149,7 +149,7 @@ export function ChatPanel({
         convId = conv.id;
         onConversationChange(convId);
         queryClient.invalidateQueries({
-          queryKey: conversationsOptions.queryKey,
+          queryKey: conversationsQueryRootKey,
         });
       }
       liveConvIdRef.current = convId;

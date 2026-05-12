@@ -14,13 +14,21 @@ export interface NewConversationInput {
 const newId = (): string =>
   `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+export type ConversationListScope = "active" | "archived" | "all";
+
 export function makeConversationsRepo(db: Db) {
   return {
-    list(): schema.Conversation[] {
+    list(scope: ConversationListScope = "active"): schema.Conversation[] {
+      const order = desc(schema.conversations.updatedAt);
+      if (scope === "all") {
+        return db.select().from(schema.conversations).orderBy(order).all();
+      }
+      const archivedInt = scope === "archived" ? 1 : 0;
       return db
         .select()
         .from(schema.conversations)
-        .orderBy(desc(schema.conversations.updatedAt))
+        .where(eq(schema.conversations.archived, archivedInt))
+        .orderBy(order)
         .all();
     },
 
@@ -41,6 +49,7 @@ export function makeConversationsRepo(db: Db) {
         id,
         title: input.title,
         model: input.model ?? null,
+        archived: 0,
         createdAt: now,
         updatedAt: now,
       };
@@ -58,6 +67,13 @@ export function makeConversationsRepo(db: Db) {
     touch(id: string): void {
       db.update(schema.conversations)
         .set({ updatedAt: Date.now() })
+        .where(eq(schema.conversations.id, id))
+        .run();
+    },
+
+    setArchived(id: string, archived: boolean): void {
+      db.update(schema.conversations)
+        .set({ archived: archived ? 1 : 0, updatedAt: Date.now() })
         .where(eq(schema.conversations.id, id))
         .run();
     },

@@ -3,7 +3,9 @@ import {
   ConversationsCreateInput,
   ConversationsDeleteInput,
   ConversationsGetInput,
+  ConversationsListInput,
   ConversationsRenameInput,
+  ConversationsSetArchivedInput,
   MessagesAppendInput,
   MessagesDeleteInput,
   MessagesListInput,
@@ -32,7 +34,11 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
     "preferences:setMany": (entries) => {
       db.preferences.setMany(PreferencesSetManyInput.parse(entries));
     },
-    "conversations:list": () => db.conversations.list(),
+    "conversations:list": (params) => {
+      const parsed = ConversationsListInput.parse(params);
+      const scope = parsed?.scope ?? "active";
+      return db.conversations.list(scope);
+    },
     "conversations:get": (params) => {
       const { id } = ConversationsGetInput.parse(params);
       return db.conversations.get(id);
@@ -48,6 +54,10 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
     "conversations:delete": (params) => {
       const { id } = ConversationsDeleteInput.parse(params);
       db.conversations.delete(id);
+    },
+    "conversations:setArchived": (params) => {
+      const { id, archived } = ConversationsSetArchivedInput.parse(params);
+      db.conversations.setArchived(id, archived);
     },
     "messages:list": (params) => {
       const { conversationId } = MessagesListInput.parse(params);

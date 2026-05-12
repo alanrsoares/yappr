@@ -36,6 +36,8 @@ export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   model: text("model"),
+  /** 0 = visible in main sidebar, 1 = archived only. Plain integers avoid SQLite boolean-mapping quirks in WHERE clauses. */
+  archived: integer("archived").notNull().default(0),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -59,7 +61,7 @@ export type NewConversation = typeof conversations.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const SCHEMA_VERSION_KEY = "_schema_version";
 
 /**
@@ -88,6 +90,7 @@ export const INIT_SQL = `
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     model TEXT,
+    archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0, 1)),
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   ) STRICT;

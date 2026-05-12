@@ -18,6 +18,17 @@ import {
 import * as schema from "./schema.js";
 import { INIT_SQL, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema.js";
 
+function tableHasColumn(
+  sqlite: Database,
+  table: string,
+  column: string,
+): boolean {
+  const rows = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{
+    name: string;
+  }>;
+  return rows.some((r) => r.name === column);
+}
+
 export interface YapprDb {
   readonly raw: Database;
   readonly drizzle: BunSQLiteDatabase<typeof schema>;
@@ -49,9 +60,20 @@ export function createDb(options: CreateDbOptions): YapprDb {
   const db = drizzle(sqlite, { schema });
 
   const preferences = makePreferencesRepo(db);
-  // Record the schema version so future ALTER ladders can branch on the
-  // previously-applied value. Safe to overwrite on every open — version only
-  // increments when a real migration lands.
+  // Never gate ADD COLUMN on `_schema_version` alone: a partially-opened DB can
+  // record v2 before `archived` exists. Always repair schema from actual PRAGMA.
+  let addedArchivedColumn = false;
+  if (!tableHasColumn(sqlite, "conversations", "archived")) {
+    sqlite.exec(
+      "ALTER TABLE conversations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+    );
+    addedArchivedColumn = true;
+  }
+  // Backfill pre-existing rows after ALTER (some SQLite builds rely on this).
+  if (addedArchivedColumn) {
+    sqlite.exec("UPDATE conversations SET archived = 0");
+  }
+
   preferences.set(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
 
   return {

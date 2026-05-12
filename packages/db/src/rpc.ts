@@ -44,6 +44,18 @@ export const ConversationsRenameInput = z.object({
 });
 export const ConversationsDeleteInput = z.object({ id: z.string().min(1) });
 
+/** Omit or use `{ scope: "active" }` for the main sidebar; `"archived"` for the archived bucket. */
+export const ConversationsListInput = z
+  .object({
+    scope: z.enum(["active", "archived", "all"]).optional(),
+  })
+  .optional();
+
+export const ConversationsSetArchivedInput = z.object({
+  id: z.string().min(1),
+  archived: z.boolean(),
+});
+
 export const MessagesListInput = z.object({
   conversationId: z.string().min(1),
 });
@@ -75,7 +87,7 @@ export interface DbRpcSchema {
       };
 
       "conversations:list": {
-        params: undefined;
+        params: z.infer<typeof ConversationsListInput>;
         response: ConversationRow[];
       };
       "conversations:get": {
@@ -92,6 +104,10 @@ export interface DbRpcSchema {
       };
       "conversations:delete": {
         params: z.infer<typeof ConversationsDeleteInput>;
+        response: void;
+      };
+      "conversations:setArchived": {
+        params: z.infer<typeof ConversationsSetArchivedInput>;
         response: void;
       };
 
