@@ -56,7 +56,11 @@ export function ChatPanel({
   onConversationChange,
 }: ChatPanelProps) {
   const queryClient = useQueryClient();
-  const { data: persisted = [] } = useQuery(messagesOptions(conversationId));
+  const { data } = useQuery(messagesOptions(conversationId));
+  // Stable empty-array ref so the hydration effect below doesn't loop on
+  // every render when the query is disabled (conversationId === null) and
+  // `data` stays undefined.
+  const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
   const { tts, speak, stopAudio, transcribe } = useVoiceStore();
   const isSpeaking = tts.kind === "speaking";
 
@@ -101,12 +105,17 @@ export function ChatPanel({
 
   // Hydrate from the DB when the active conversation or persisted list
   // changes. Skip during an in-flight stream so the transport's live messages
-  // aren't clobbered.
+  // aren't clobbered. setMessages is ref-stashed because useChat re-creates
+  // its identity each render and would otherwise re-trigger the effect.
+  const setMessagesRef = useRef(setMessages);
+  useEffect(() => {
+    setMessagesRef.current = setMessages;
+  }, [setMessages]);
   useEffect(() => {
     if (status === "submitted" || status === "streaming") return;
     liveConvIdRef.current = conversationId;
-    setMessages(persisted.map(dbToUIMessage));
-  }, [conversationId, persisted, status, setMessages]);
+    setMessagesRef.current(persisted.map(dbToUIMessage));
+  }, [conversationId, persisted, status]);
 
   const handleSubmit = useCallback(
     async (text: string) => {
