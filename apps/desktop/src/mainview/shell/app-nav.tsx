@@ -22,15 +22,13 @@ export function AppNav() {
         activeOptions={{ exact: true }}
         className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-led-amber focus-visible:ring-offset-2 focus-visible:ring-offset-chassis-deep"
       >
-        {({ isActive }) => (
-          <span className={navLinkClass(isActive)}>Voice</span>
-        )}
+        {({ isActive }) => <span className={navLinkClass(isActive)}>Chat</span>}
       </Link>
       <Link
-        to="/chat"
+        to="/voice"
         className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-led-amber focus-visible:ring-offset-2 focus-visible:ring-offset-chassis-deep"
       >
-        {({ isActive }) => <span className={navLinkClass(isActive)}>Chat</span>}
+        {({ isActive }) => <span className={navLinkClass(isActive)}>Deck</span>}
       </Link>
     </nav>
   );

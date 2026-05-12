@@ -1,7 +1,13 @@
 import { useCallback, useId, useRef, useState } from "react";
 
+import { type VoiceId } from "@yappr/sdk/schemas";
+import { formatSpeed } from "@yappr/sdk/state";
+import { Settings2, Square, Volume2 } from "lucide-react";
+
 import { streamOllamaChat } from "~/lib/ollama";
 import { cn } from "~/lib/utils";
+import { useVoiceStore } from "~/screens/voice";
+import { Button } from "~/ui/button";
 import {
   ChatContainerContent,
   ChatContainerRoot,
@@ -9,6 +15,15 @@ import {
 } from "~/ui/chat-container";
 import { Input } from "~/ui/input";
 import { Label } from "~/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "~/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/ui/select";
+import { Slider } from "~/ui/slider";
 import { Composer } from "./composer";
 
 type ChatMessage = {
@@ -28,6 +43,8 @@ export function ChatPanel({ className }: { className?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const { tts, speak, stopAudio } = useVoiceStore();
+  const isSpeaking = tts.kind === "speaking";
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -153,13 +170,33 @@ export function ChatPanel({ className }: { className?: string }) {
               <div
                 key={m.id}
                 className={cn(
-                  "max-w-[95%] rounded-sm border px-3 py-2 font-mono text-sm leading-relaxed whitespace-pre-wrap",
+                  "group relative max-w-[95%] rounded-sm border px-3 py-2 font-mono text-sm leading-relaxed whitespace-pre-wrap",
                   m.role === "user"
                     ? "ml-auto border-led-amber/25 bg-panel text-foil"
                     : "mr-auto border-black/50 bg-panel-edge/80 text-foil",
                 )}
               >
                 {m.content || (busy ? "…" : "")}
+                {m.role === "assistant" && m.content.trim().length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      isSpeaking ? stopAudio() : void speak(m.content)
+                    }
+                    aria-label={
+                      isSpeaking ? "Stop speaking" : "Speak this message"
+                    }
+                    className="absolute -right-1 -top-1 size-6 rounded-sm border border-black/50 bg-chassis-deep text-foil-mute opacity-0 hover:text-led-amber group-hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    {isSpeaking ? (
+                      <Square className="size-3" aria-hidden="true" />
+                    ) : (
+                      <Volume2 className="size-3" aria-hidden="true" />
+                    )}
+                  </Button>
+                ) : null}
               </div>
             ))
           )}
@@ -174,8 +211,103 @@ export function ChatPanel({ className }: { className?: string }) {
           onStop={stop}
           disabled={!model.trim()}
           placeholder="Ask the local model… (Shift+Enter for newline)"
+          leadingSlot={<VoicePickerPopover />}
         />
       </div>
     </aside>
+  );
+}
+
+function VoicePickerPopover() {
+  const { voice, setVoice, voices, speed, setSpeed, health } = useVoiceStore();
+  const disabled = voices.length === 0 && health.kind !== "ok";
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="Voice settings"
+          className="h-7 gap-1.5 border border-foil-dim/40 px-2 text-[0.65rem] tracking-widest text-foil-mute hover:text-foil"
+        >
+          <Settings2 className="size-3" aria-hidden="true" />
+          <span className="font-mono normal-case text-led-amber/80">
+            {voice}
+          </span>
+          <span className="text-foil-dim">·</span>
+          <span className="font-lcd text-sm leading-none text-led-amber/80">
+            {formatSpeed(speed)}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        className="w-72 border-black/70 bg-panel p-3 text-foil shadow-bezel"
+      >
+        <div className="space-y-3">
+          <div>
+            <p className="font-label text-[0.55rem] uppercase tracking-[0.3em] text-foil-mute mb-1.5">
+              Voice
+            </p>
+            <Select
+              value={voice}
+              onValueChange={(v) => setVoice(v as VoiceId)}
+              disabled={disabled}
+            >
+              <SelectTrigger
+                aria-label="Voice"
+                className="h-8 bg-chassis-deep border-black/70 text-led-amber font-mono text-sm shadow-bezel-deep"
+              >
+                <SelectValue placeholder="--- check deck ---" />
+              </SelectTrigger>
+              <SelectContent
+                translate="no"
+                className="bg-panel border-black/70 text-foil shadow-bezel max-h-72"
+              >
+                {voices.length === 0 ? (
+                  <SelectItem value={voice} disabled>
+                    --- open Deck to check host ---
+                  </SelectItem>
+                ) : (
+                  voices.map((v) => (
+                    <SelectItem
+                      key={v}
+                      value={v}
+                      className="font-mono text-sm focus:bg-panel-edge focus:text-led-amber"
+                    >
+                      {v}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <p className="font-label text-[0.55rem] uppercase tracking-[0.3em] text-foil-mute">
+                Rate
+              </p>
+              <span className="font-lcd text-base text-led-amber lcd-text tabular-nums">
+                {formatSpeed(speed)}
+              </span>
+            </div>
+            <Slider
+              aria-label="Speech rate"
+              aria-valuetext={formatSpeed(speed)}
+              value={[speed]}
+              min={0.5}
+              max={2.0}
+              step={0.05}
+              onValueChange={([next]) => {
+                if (next !== undefined) setSpeed(next);
+              }}
+            />
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

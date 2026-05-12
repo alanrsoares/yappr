@@ -13,19 +13,22 @@ const rootRoute = createRootRoute({
   component: AppLayout,
 });
 
-const voiceRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: VoiceScreen,
-});
-
+// Chat-first: the root route IS the chat surface. The cassette voice screen
+// stays reachable at `/voice` for now while the voice features migrate into
+// composer affordances; this route will be retired once the migration lands.
 const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/chat",
+  path: "/",
   component: ChatScreen,
 });
 
-const routeTree = rootRoute.addChildren([voiceRoute, chatRoute]);
+const voiceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/voice",
+  component: VoiceScreen,
+});
+
+const routeTree = rootRoute.addChildren([chatRoute, voiceRoute]);
 
 export const router = createRouter({
   routeTree,

@@ -42,7 +42,8 @@ type VoiceStoreContextValue = {
   checkHealth: () => Promise<void>;
   onCheckSubmit: (e: FormEvent<HTMLFormElement>) => void;
   stopAudio: () => void;
-  speak: () => Promise<void>;
+  /** Speak `textOverride` if provided, otherwise the persisted `text` state. */
+  speak: (textOverride?: string) => Promise<void>;
 };
 
 const VoiceStoreContext = createContext<VoiceStoreContextValue | null>(null);
@@ -103,31 +104,37 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
     setTts((prev) => (prev.kind === "speaking" ? { kind: "idle" } : prev));
   }, []);
 
-  const speak = useCallback(async () => {
-    stopAudio();
-    setTts({ kind: "speaking" });
-    const result = await client.synthesize(text, { voice, speed });
-    result.match(
-      (buffer) => {
-        const handle = buildAudio(buffer);
-        audioHandleRef.current = handle;
-        setAudioElement(handle.audio);
-        handle.audio.onended = () => {
-          disposeAudio(handle);
-          if (audioHandleRef.current === handle) audioHandleRef.current = null;
-          setAudioElement(null);
-          setTts({ kind: "idle" });
-        };
-        handle.audio.onerror = () => {
-          disposeAudio(handle);
-          setAudioElement(null);
-          setTts(toTtsError("Audio playback failed"));
-        };
-        void handle.audio.play();
-      },
-      (err) => setTts(toTtsError(err.message)),
-    );
-  }, [client, text, voice, speed, stopAudio]);
+  const speak = useCallback(
+    async (textOverride?: string) => {
+      const phrase = (textOverride ?? text).trim();
+      if (phrase.length === 0) return;
+      stopAudio();
+      setTts({ kind: "speaking" });
+      const result = await client.synthesize(phrase, { voice, speed });
+      result.match(
+        (buffer) => {
+          const handle = buildAudio(buffer);
+          audioHandleRef.current = handle;
+          setAudioElement(handle.audio);
+          handle.audio.onended = () => {
+            disposeAudio(handle);
+            if (audioHandleRef.current === handle)
+              audioHandleRef.current = null;
+            setAudioElement(null);
+            setTts({ kind: "idle" });
+          };
+          handle.audio.onerror = () => {
+            disposeAudio(handle);
+            setAudioElement(null);
+            setTts(toTtsError("Audio playback failed"));
+          };
+          void handle.audio.play();
+        },
+        (err) => setTts(toTtsError(err.message)),
+      );
+    },
+    [client, text, voice, speed, stopAudio],
+  );
 
   useEffect(
     () => () => {
