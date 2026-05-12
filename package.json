@@ -12,7 +12,7 @@
     "assess:kokoro-voices": "PYTHONPATH=python python/venv/bin/python python/scripts/assess_kokoro_voices.py",
     "test:py": "cd python && python -m pytest tests/ -v",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && bun --filter @yappr/desktop typecheck",
     "test": "bun test",
     "format": "prettier --write .",
     "prepare": "husky",
