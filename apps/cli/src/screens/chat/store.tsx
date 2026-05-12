@@ -5,6 +5,7 @@ import { okAsync } from "neverthrow";
 
 import { buildChatFooterItems } from "~/footer-items.js";
 import { useMutation, usePreferences, useVoiceToggle } from "~/hooks";
+import { appendMessage, createConversation } from "~/lib/chat-persistence.js";
 import { quit } from "~/quit.js";
 import {
   chat,
@@ -43,6 +44,11 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const abortRef = useRef<AbortController | null>(null);
   const chatAbortRef = useRef<AbortController | null>(null);
 
+  // Active conversation id. Lazily created on the first user prompt so a
+  // session that never sends anything doesn't leave an empty row behind.
+  // `/clear` resets to null, starting a fresh conversation on the next send.
+  const conversationIdRef = useRef<string | null>(null);
+
   const { preferences } = usePreferences();
   const {
     ollamaBaseUrl,
@@ -65,6 +71,32 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       role: m.role,
       content: m.content,
     }));
+
+    // Persist the user turn. First prompt of a session lazily creates the
+    // conversation row (titled from the prompt). Persistence failures are
+    // logged but don't block the chat — the in-memory transcript still
+    // renders so the user can keep working.
+    const userMessage: ChatMessage = { role: "user", content: prompt };
+    const persistUser = (async () => {
+      if (!conversationIdRef.current) {
+        const created = await createConversation(prompt, model);
+        created.match(
+          (conv) => {
+            conversationIdRef.current = conv.id;
+          },
+          (err) => console.warn("[yappr] failed to persist conversation:", err),
+        );
+      }
+      const convId = conversationIdRef.current;
+      if (!convId) return;
+      const result = await appendMessage(convId, userMessage);
+      result.match(
+        () => undefined,
+        (err) => console.warn("[yappr] failed to persist user message:", err),
+      );
+    })();
+    void persistUser;
+
     return chat(prompt, {
       provider,
       model,
@@ -104,6 +136,26 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           res !== null ? [...prev, { role: "assistant", content: res }] : prev,
         );
         setStreamingResponse("");
+        // Persist the assistant turn alongside the user one. Fire-and-forget
+        // — UI is already updated, DB is just the durable shadow.
+        if (res !== null) {
+          const convId = conversationIdRef.current;
+          if (convId) {
+            void appendMessage(convId, {
+              role: "assistant",
+              content: res,
+            }).then((result) =>
+              result.match(
+                () => undefined,
+                (err) =>
+                  console.warn(
+                    "[yappr] failed to persist assistant message:",
+                    err,
+                  ),
+              ),
+            );
+          }
+        }
         return res;
       })
       .mapErr((err) => {
@@ -169,6 +221,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     setStreamingResponse("");
     setPhase("idle");
     setActiveToolCall(null);
+    // Detach from the current conversation row — next send will start a new
+    // one. The previous conversation stays in the DB for browsing later.
+    conversationIdRef.current = null;
   }, [stopChat, stopStt, chatMutation, sttMutation]);
 
   const { isLeakage } = useVoiceToggle({
