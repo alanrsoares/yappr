@@ -277,7 +277,7 @@ function MessageBubble({
           {content}
         </MessageContent>
         <MessageActions className="-ml-2 gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <MessageAction tooltip="Copy" delayDuration={100}>
+          <MessageAction tooltip="Copy" side="bottom" delayDuration={100}>
             <Button
               type="button"
               variant="ghost"
@@ -292,6 +292,7 @@ function MessageBubble({
           {canSpeak ? (
             <MessageAction
               tooltip={isSpeaking ? "Stop" : "Speak"}
+              side="bottom"
               delayDuration={100}
             >
               <Button
@@ -325,7 +326,7 @@ function MessageBubble({
         {content}
       </MessageContent>
       <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-        <MessageAction tooltip="Copy" delayDuration={100}>
+        <MessageAction tooltip="Copy" side="bottom" delayDuration={100}>
           <Button
             type="button"
             variant="ghost"
