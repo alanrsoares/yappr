@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { toError } from "@yappr/lib/result";
+import { DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
 import { MCP_CONFIG_PATH, userHomeDir } from "../constants.js";
@@ -12,7 +13,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   mcpConfigPath: MCP_CONFIG_PATH,
   defaultChatProvider: "ollama",
   defaultChatModel: "qwen2.5:14b",
-  defaultVoice: "af_bella",
+  defaultVoice: DEFAULT_VOICE,
   defaultInputDeviceIndex: 0,
   defaultOutputDeviceIndex: 0,
   useNarrationForTTS: false,

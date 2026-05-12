@@ -10,7 +10,7 @@
 The repo is a **Bun workspace monorepo**:
 
 - **`apps/cli/`** — Ink + React TUI and one-shot CLI commands (Bun + TypeScript).
-- **`apps/desktop/`** — experimental Electrobun desktop spike (React + Tailwind + Vite, styled-cva primitives).
+- **`apps/desktop/`** — experimental Electrobun desktop spike (React + Tailwind + Vite). Mirrors **`apps/cli`** layout where it fits: `screens/<name>/screen.tsx`, optional `store.tsx`, `index.ts` barrels; `services/yappr/` as the TTS façade (HTTP `TTSClient` vs CLI Bun runtime); `hooks/index.ts`; shared **`types.ts`**. Deck chrome stays in `deck.tsx` + `shell/`.
 - **`packages/sdk/`** — TTS/STT clients, MCP manager, MCP path cascade, OpenAPI types. Published as `@yappr/sdk`.
 - **`packages/lib/`** — shared utilities (`Result`/`ResultAsync` helpers, unstated container). Published as `@yappr/lib`.
 - **`python/`** — FastAPI inference server (see `python/README.md`).
@@ -30,21 +30,22 @@ This repo is **Bun-first**: TypeScript runs on **Bun**, not Node, for installs, 
 
 ## 3. Repository layout
 
-| Path                    | Role                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `apps/cli/src/`         | Ink app entry (`app.tsx`, `Root.tsx`), screens (`screens/*`), hooks, `services/yappr` (HTTP to Python, chat, speak, STT).            |
-| `apps/cli/src/screens/` | One folder per screen (e.g. `chat/`, `settings/`, `voices/`); often `screen.tsx` + `store.tsx` + `components/`.                      |
-| `apps/desktop/`         | Experimental Electrobun desktop spike. Own `package.json`, `vite.config.ts`, isolated tsconfig. Webview UI uses `@styled-cva/react`. |
-| `packages/sdk/src/`     | TTS/STT clients, MCP manager + path cascade, OpenAPI types (`schema.d.ts`); regen with `openapi:export`.                             |
-| `packages/lib/src/`     | Shared utilities (`result.ts`, `unstated.tsx`).                                                                                      |
-| `python/`               | FastAPI server, Kokoro/Whisper wiring, pytest suite.                                                                                 |
-| `openapi.json`          | Exported schema; source of truth is the Python OpenAPI export.                                                                       |
+| Path                         | Role                                                                                                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/cli/src/`              | Ink app entry (`app.tsx`, `Root.tsx`), screens (`screens/*`), hooks, `services/yappr` (HTTP to Python, chat, speak, STT).                                                                |
+| `apps/cli/src/screens/`      | One folder per screen (e.g. `chat/`, `settings/`, `voices/`); often `screen.tsx` + `store.tsx` + `components/`.                                                                          |
+| `apps/desktop/src/mainview/` | Electrobun webview: `app/` (router), `shell/` (chrome), `screens/*` (screen + store like CLI), `services/yappr/`, `ui/` (shadcn), `deck.tsx` (styled-cva), `lib/`, `hooks/`, `types.ts`. |
+| `packages/sdk/src/`          | TTS/STT clients, MCP manager + path cascade, OpenAPI types (`schema.d.ts`); regen with `openapi:export`.                                                                                 |
+| `packages/lib/src/`          | Shared utilities (`result.ts`, `unstated.tsx`).                                                                                                                                          |
+| `python/`                    | FastAPI server, Kokoro/Whisper wiring, pytest suite.                                                                                                                                     |
+| `openapi.json`               | Exported schema; source of truth is the Python OpenAPI export.                                                                                                                           |
 
 **Imports in TS**:
 
 - **Intra-package** (within `apps/cli`, `packages/sdk`, `packages/lib`): use the `~/` alias to that package's `src/` and **`.js` extensions** for ESM (e.g. `import x from "~/store.js"`).
+- **Within `apps/desktop/src/mainview`**: use the **`~/`** alias to that folder (configured in `apps/desktop/tsconfig.json` and `vite.config.ts`) — same spirit as the CLI, no `@/` alias in the desktop webview.
 - **Cross-package**: use workspace package imports — `@yappr/lib/result`, `@yappr/lib/unstated`, `@yappr/sdk/paths`, `@yappr/sdk/mcp`, etc. (no `.js` extension; the package `exports` map points at `.ts` source.)
-- `apps/desktop` is isolated (own `tsconfig.json`, own React/Vite stack); do NOT import `@yappr/*` from it yet — Phase 0 stays decoupled by HTTP contract only.
+- `apps/desktop` is isolated (own `tsconfig.json`, own React/Vite stack); do NOT import `@yappr/*` from it yet — Phase 0 stays decoupled by HTTP contract only. Prefer **`~/…`** imports inside `src/mainview/` (not `@/`).
 
 ## 4. Commands
 

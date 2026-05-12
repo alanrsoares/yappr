@@ -3,3 +3,6 @@ export * from "./recorder";
 export * from "./audio-devices";
 export * from "./mcp";
 export * from "./types";
+export * from "./schemas";
+export * from "./defaults";
+export * from "./state";

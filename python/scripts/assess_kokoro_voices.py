@@ -18,8 +18,8 @@ WAV, or open them manually (e.g. macOS ``open`` on the output folder).
 Examples::
 
     python scripts/assess_kokoro_voices.py --text "Hello from Kokoro."
-    python scripts/assess_kokoro_voices.py --voices af_bella --play
-    python scripts/assess_kokoro_voices.py --voices af_bella,am_adam --output-dir /tmp/kokoro
+    python scripts/assess_kokoro_voices.py --voices af_aoede --play
+    python scripts/assess_kokoro_voices.py --voices af_aoede,am_adam --output-dir /tmp/kokoro
 """
 
 from __future__ import annotations

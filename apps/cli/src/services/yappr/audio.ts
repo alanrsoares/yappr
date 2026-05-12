@@ -4,6 +4,7 @@ import {
   listOutputDevices,
   type AudioDevice,
 } from "@yappr/sdk/audio-devices";
+import { DEFAULT_SPEED, DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
 import type { SpeakOptions } from "../../types.js";
@@ -51,7 +52,7 @@ export function speakWithRuntime(
   options: SpeakOptions,
   runtime: AudioRuntime,
 ): ResultAsync<void, Error> {
-  const { voice = "af_bella", speed = 1.0, play = true } = options;
+  const { voice = DEFAULT_VOICE, speed = DEFAULT_SPEED, play = true } = options;
   const { outputWav } = runtime.paths;
   return runtime.tts
     .synthesize(text, { voice, speed })
@@ -89,6 +90,6 @@ export function recordAndTranscribeWithRuntime(
   const { inputWav } = runtime.paths;
   return runtime.recorder
     .record(inputWav, deviceIndex, { signal: recordSignal })
-    .andThen(() => runtime.tts.transcribe(inputWav))
+    .andThen(() => runtime.tts.transcribe(Bun.file(inputWav)))
     .map((t) => t?.trim() ?? "");
 }

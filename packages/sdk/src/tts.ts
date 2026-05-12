@@ -1,15 +1,17 @@
 import { toError } from "@yappr/lib/result";
 import { ResultAsync } from "neverthrow";
 
-import type { components } from "./schema.js";
-import type { TTSOptions } from "./types.js";
+import {
+  SynthesizeRequestSchema,
+  TranscribeResponseSchema,
+  VoicesResponseSchema,
+  type SynthesizeRequestInput,
+  type VoiceId,
+} from "./schemas.js";
 
-interface VoicesResponse {
-  voices: string[];
-}
-
-interface TranscribeResponse {
-  text: string;
+export interface TTSOptions {
+  voice?: VoiceId;
+  speed?: number;
 }
 
 export class TTSClient {
@@ -19,26 +21,25 @@ export class TTSClient {
     this.baseUrl = baseUrl;
   }
 
-  listVoices(): ResultAsync<string[], Error> {
+  listVoices(): ResultAsync<VoiceId[], Error> {
     return ResultAsync.fromPromise(
       (async () => {
         const response = await fetch(`${this.baseUrl}/voices`);
         if (!response.ok) {
           throw new Error(`Failed to list voices: ${response.statusText}`);
         }
-        const data = (await response.json()) as VoicesResponse;
+        const data = VoicesResponseSchema.parse(await response.json());
         return data.voices;
       })(),
       toError,
     );
   }
 
-  transcribe(filePath: string): ResultAsync<string, Error> {
+  transcribe(blob: Blob): ResultAsync<string, Error> {
     return ResultAsync.fromPromise(
       (async () => {
-        const file = Bun.file(filePath);
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", blob);
 
         const response = await fetch(`${this.baseUrl}/transcribe`, {
           method: "POST",
@@ -49,7 +50,7 @@ export class TTSClient {
           throw new Error(`Transcription failed: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as TranscribeResponse;
+        const data = TranscribeResponseSchema.parse(await response.json());
         return data.text;
       })(),
       toError,
@@ -62,17 +63,16 @@ export class TTSClient {
   ): ResultAsync<ArrayBuffer, Error> {
     return ResultAsync.fromPromise(
       (async () => {
-        const body: components["schemas"]["SynthesizeRequest"] = {
+        const input: SynthesizeRequestInput = {
           text,
-          voice: options.voice ?? "af_bella",
-          speed: options.speed ?? 1.0,
+          voice: options.voice,
+          speed: options.speed,
         };
+        const body = SynthesizeRequestSchema.parse(input);
 
         const response = await fetch(`${this.baseUrl}/synthesize`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
 

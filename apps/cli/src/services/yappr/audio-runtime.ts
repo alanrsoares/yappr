@@ -1,8 +1,8 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { AudioRecorder } from "@yappr/sdk/recorder";
-import { TTSClient } from "@yappr/sdk/tts";
-import type { RecordOptions, TTSOptions } from "@yappr/sdk/types";
+import { TTSClient, type TTSOptions } from "@yappr/sdk/tts";
+import type { RecordOptions } from "@yappr/sdk/types";
 import { spawn } from "bun";
 import type { ResultAsync } from "neverthrow";
 
@@ -27,7 +27,7 @@ export interface TtsPort {
     text: string,
     options?: TTSOptions,
   ): ResultAsync<ArrayBuffer, Error>;
-  transcribe(filePath: string): ResultAsync<string, Error>;
+  transcribe(blob: Blob): ResultAsync<string, Error>;
 }
 
 export interface RecorderPort {

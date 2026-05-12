@@ -13,7 +13,7 @@ def test_voices_returns_list(client: TestClient) -> None:
     assert "voices" in data
     voices = data["voices"]
     assert isinstance(voices, list)
-    assert "af_bella" in voices
+    assert "af_aoede" in voices
     assert "af_heart" in voices
     assert len(voices) == 20
 

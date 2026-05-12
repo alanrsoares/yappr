@@ -104,7 +104,7 @@ export interface components {
       /**
        * Voice
        * @description Kokoro v1 voice id (American English: ``af_*`` / ``am_*``). See ``GET /voices`` for the supported list.
-       * @default af_bella
+       * @default af_aoede
        */
       voice: string;
       /**

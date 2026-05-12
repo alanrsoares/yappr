@@ -1,5 +1,3 @@
-import type { components } from "./schema.js";
-
 export interface AudioDevice {
   index: number;
   name: string;
@@ -9,7 +7,7 @@ export interface RecordOptions {
   signal?: AbortSignal;
 }
 
-export type TTSOptions = Partial<components["schemas"]["SynthesizeRequest"]>;
+export type { TTSOptions } from "./tts.js";
 
 export interface McpServerConfig {
   command?: string;
