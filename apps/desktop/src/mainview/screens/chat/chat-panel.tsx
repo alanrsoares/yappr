@@ -276,7 +276,7 @@ function MessageBubble({
         >
           {content}
         </MessageContent>
-        <MessageActions className="-ml-2 gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           <MessageAction tooltip="Copy" delayDuration={100}>
             <Button
               type="button"
