@@ -3,7 +3,7 @@ FastAPI server: **Kokoro** text-to-speech and **Whisper** speech-to-text.
 
 HTTP routes map ``core`` ``Result`` values to JSON or binary responses. Route and
 schema docstrings below are the **source of truth** for OpenAPI (see
-``python/export_openapi.py`` and generated ``src/sdk/schema.d.ts``).
+``python/export_openapi.py`` and generated ``packages/sdk/src/schema.d.ts``).
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from typing import Annotated, Any, NoReturn
 
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
@@ -76,6 +77,17 @@ async def lifespan(_app: FastAPI) -> Any:
 
 
 app = FastAPI(title="Yappr Kokoro v1 TTS + Whisper STT Server", lifespan=lifespan)
+
+# Server binds to 127.0.0.1 only (loopback) — see uvicorn.run at bottom of file.
+# Webview clients (Electrobun custom-scheme origin, Vite dev at :5173, TUI fetches)
+# are all local processes, so a permissive CORS policy is safe here.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class SynthesizeRequest(BaseModel):
