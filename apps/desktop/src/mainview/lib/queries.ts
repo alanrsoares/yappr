@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { type VoiceId } from "@yappr/sdk/schemas";
 import { TTSClient } from "@yappr/sdk/tts";
 
+import { dbRpc } from "~/lib/db-rpc";
 import { listOllamaModels } from "~/lib/ollama";
 
 /**
@@ -47,4 +48,37 @@ export const voicesOptions = (serverUrl: string) =>
     refetchInterval: 30 * 1000,
     refetchOnWindowFocus: true,
     retry: 0,
+  });
+
+// ---- DB-backed queries (via Electrobun RPC → bun → @yappr/db) -------------
+
+/**
+ * KV preferences blob. Reads + writes go through the bun-side `@yappr/db`,
+ * which shares ~/.yappr/yappr.db with the CLI. Treat as the source of truth
+ * for voice/model/server settings; mutations should `invalidateQueries` this
+ * key after save.
+ */
+export const preferencesOptions = queryOptions({
+  queryKey: ["db", "preferences"] as const,
+  queryFn: () => dbRpc.request("preferences:getAll", undefined),
+  staleTime: Infinity,
+});
+
+/** Conversation list, newest-updated first. Sidebar driver. */
+export const conversationsOptions = queryOptions({
+  queryKey: ["db", "conversations"] as const,
+  queryFn: () => dbRpc.request("conversations:list", undefined),
+  staleTime: 5 * 1000,
+});
+
+/** Messages for a single conversation. Returns [] if none yet. */
+export const messagesOptions = (conversationId: string | null) =>
+  queryOptions({
+    queryKey: ["db", "messages", conversationId] as const,
+    queryFn: () => {
+      if (!conversationId) return Promise.resolve([]);
+      return dbRpc.request("messages:list", { conversationId });
+    },
+    enabled: !!conversationId,
+    staleTime: Infinity, // streaming appends drive invalidation manually
   });

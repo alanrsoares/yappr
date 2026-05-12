@@ -1,8 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Square, Volume2 } from "lucide-react";
 
-import { streamOllamaChat } from "~/lib/ollama";
+import { dbRpc } from "~/lib/db-rpc";
+import { DEFAULT_CHAT_MODEL, streamOllamaChat } from "~/lib/ollama";
+import { conversationsOptions, messagesOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { useVoiceStore } from "~/lib/voice-store";
 import { Button } from "~/ui/button";
@@ -19,30 +22,51 @@ import {
 } from "~/ui/message";
 import { Composer } from "./composer";
 
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
-
-const nextId = (): string =>
-  `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
 interface ChatPanelProps {
   model: string;
   onModelChange: (next: string) => void;
+  conversationId: string | null;
+  onConversationChange: (id: string | null) => void;
+}
+
+function truncateTitle(text: string): string {
+  const trimmed = text.trim().replace(/\s+/g, " ");
+  return trimmed.length > 48 ? trimmed.slice(0, 48) + "…" : trimmed;
 }
 
 export function ChatPanel({
   model,
   onModelChange: _onModelChange,
+  conversationId,
+  onConversationChange,
 }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const queryClient = useQueryClient();
+  const { data: persisted = [] } = useQuery(messagesOptions(conversationId));
+
+  // Streaming buffer for the in-flight assistant reply. Lives in component
+  // state because the DB doesn't see the message until streaming completes —
+  // we render it concatenated onto `persisted` for the duration.
+  const [streamingAssistant, setStreamingAssistant] = useState<string | null>(
+    null,
+  );
+  const [pendingUser, setPendingUser] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { tts, speak, stopAudio, transcribe } = useVoiceStore();
   const isSpeaking = tts.kind === "speaking";
+
+  const createConv = useMutation({
+    mutationFn: (title: string) =>
+      dbRpc.request("conversations:create", { title, model }),
+  });
+  const appendMessage = useMutation({
+    mutationFn: (params: {
+      conversationId: string;
+      role: "user" | "assistant";
+      content: string;
+    }) => dbRpc.request("messages:append", params),
+  });
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -53,61 +77,115 @@ export function ChatPanel({
   const send = useCallback(
     async (text: string) => {
       setError(null);
-      const userMsg: ChatMessage = {
-        id: nextId(),
+      // Ensure a conversation exists. First send on a blank state creates one
+      // titled from the user's prompt; subsequent sends reuse the active id.
+      let convId = conversationId;
+      if (!convId) {
+        const conv = await createConv.mutateAsync(truncateTitle(text));
+        convId = conv.id;
+        onConversationChange(convId);
+        queryClient.invalidateQueries({
+          queryKey: conversationsOptions.queryKey,
+        });
+      }
+
+      // Persist the user turn before streaming so a crash/refresh keeps it.
+      setPendingUser(text);
+      await appendMessage.mutateAsync({
+        conversationId: convId,
         role: "user",
         content: text,
-      };
-      const asstId = nextId();
-      setMessages((prev) => [
-        ...prev,
-        userMsg,
-        { id: asstId, role: "assistant", content: "" },
-      ]);
+      });
+      setPendingUser(null);
+      queryClient.invalidateQueries({
+        queryKey: messagesOptions(convId).queryKey,
+      });
 
-      const history = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const history = [
+        ...persisted,
+        { role: "user" as const, content: text },
+      ].map((m) => ({ role: m.role, content: m.content }));
 
       const ac = new AbortController();
       abortRef.current = ac;
       setBusy(true);
+      setStreamingAssistant("");
 
+      let buffer = "";
       try {
         await streamOllamaChat(
-          model.trim() || "llama3.2",
+          model.trim() || DEFAULT_CHAT_MODEL,
           history,
           (chunk) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === asstId ? { ...m, content: m.content + chunk } : m,
-              ),
-            );
+            buffer += chunk;
+            setStreamingAssistant(buffer);
           },
           ac.signal,
         );
+        if (buffer.length > 0) {
+          await appendMessage.mutateAsync({
+            conversationId: convId,
+            role: "assistant",
+            content: buffer,
+          });
+          queryClient.invalidateQueries({
+            queryKey: messagesOptions(convId).queryKey,
+          });
+          queryClient.invalidateQueries({
+            queryKey: conversationsOptions.queryKey,
+          });
+        }
       } catch (e) {
-        if ((e as Error).name === "AbortError") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === asstId && m.content.length === 0
-                ? { ...m, content: "— stopped —" }
-                : m,
-            ),
-          );
-        } else {
+        if ((e as Error).name !== "AbortError") {
           const msg = e instanceof Error ? e.message : String(e);
           setError(msg);
-          setMessages((prev) => prev.filter((m) => m.id !== asstId));
+        } else if (buffer.length > 0) {
+          // Aborted mid-stream — keep what we have so far.
+          await appendMessage.mutateAsync({
+            conversationId: convId,
+            role: "assistant",
+            content: buffer,
+          });
+          queryClient.invalidateQueries({
+            queryKey: messagesOptions(convId).queryKey,
+          });
         }
       } finally {
         setBusy(false);
+        setStreamingAssistant(null);
         abortRef.current = null;
       }
     },
-    [messages, model],
+    [
+      conversationId,
+      persisted,
+      model,
+      createConv,
+      appendMessage,
+      onConversationChange,
+      queryClient,
+    ],
   );
+
+  const rendered = useMemo(() => {
+    type Render = { id: string; role: "user" | "assistant"; content: string };
+    const out: Render[] = persisted.map((m) => ({
+      id: m.id,
+      role: m.role === "system" ? "assistant" : m.role,
+      content: m.content,
+    }));
+    if (pendingUser) {
+      out.push({ id: "pending-user", role: "user", content: pendingUser });
+    }
+    if (streamingAssistant !== null) {
+      out.push({
+        id: "streaming",
+        role: "assistant",
+        content: streamingAssistant || (busy ? "…" : ""),
+      });
+    }
+    return out;
+  }, [persisted, pendingUser, streamingAssistant, busy]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
@@ -122,14 +200,14 @@ export function ChatPanel({
 
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
         <ChatContainerContent className="gap-4">
-          {messages.length === 0 ? (
+          {rendered.length === 0 ? (
             <EmptyState />
           ) : (
-            messages.map((m) => (
+            rendered.map((m) => (
               <MessageBubble
                 key={m.id}
                 role={m.role}
-                content={m.content || (busy ? "…" : "")}
+                content={m.content}
                 canSpeak={m.role === "assistant" && m.content.trim().length > 0}
                 isSpeaking={isSpeaking}
                 onSpeak={() => void speak(m.content)}
