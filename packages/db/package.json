@@ -1,0 +1,18 @@
+{
+  "name": "@yappr/db",
+  "version": "0.0.1",
+  "description": "Yappr persistence — bun:sqlite + Drizzle. Shared by CLI and desktop. DB lives at ~/.yappr/yappr.db.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./client": "./src/client.ts"
+  },
+  "dependencies": {
+    "@yappr/lib": "workspace:*",
+    "drizzle-orm": "^0.36.4",
+    "neverthrow": "^8.2.0",
+    "zod": "^4.4.3"
+  }
+}

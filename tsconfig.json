@@ -31,17 +31,21 @@
       "~/*": [
         "./apps/cli/src/*",
         "./packages/sdk/src/*",
-        "./packages/lib/src/*"
+        "./packages/lib/src/*",
+        "./packages/db/src/*"
       ],
       "@yappr/lib/*": ["./packages/lib/src/*"],
       "@yappr/sdk": ["./packages/sdk/src/index.ts"],
-      "@yappr/sdk/*": ["./packages/sdk/src/*"]
+      "@yappr/sdk/*": ["./packages/sdk/src/*"],
+      "@yappr/db": ["./packages/db/src/index.ts"],
+      "@yappr/db/*": ["./packages/db/src/*"]
     }
   },
   "include": [
     "apps/cli/src/**/*",
     "packages/sdk/src/**/*",
-    "packages/lib/src/**/*"
+    "packages/lib/src/**/*",
+    "packages/db/src/**/*"
   ],
   "exclude": ["node_modules", "apps/desktop"]
 }
