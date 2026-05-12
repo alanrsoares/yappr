@@ -5,6 +5,25 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/health": {
+      "get": {
+        "summary": "Get Health",
+        "description": "Report which inference subsystems are ready.\n\nUnlike ``GET /voices`` (which is a static list and always succeeds), this\nendpoint reflects the actual load state of the Kokoro pipeline and the\nWhisper model. Use it to differentiate \"server not running\" from \"models\nstill loading or failed to load\" in first-run UIs.",
+        "operationId": "get_health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/voices": {
       "get": {
         "summary": "Get Voices",
@@ -124,6 +143,24 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "tts": {
+            "type": "string",
+            "title": "Tts",
+            "description": "Kokoro TTS pipeline status: ``ready`` or ``unavailable``."
+          },
+          "stt": {
+            "type": "string",
+            "title": "Stt",
+            "description": "Whisper STT model status: ``ready`` or ``unavailable``."
+          }
+        },
+        "type": "object",
+        "required": ["tts", "stt"],
+        "title": "HealthResponse",
+        "description": "JSON body for ``GET /health``."
       },
       "SynthesizeRequest": {
         "properties": {

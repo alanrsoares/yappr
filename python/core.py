@@ -74,16 +74,11 @@ def synthesize(
         return Err(e)
 
 
-def transcribe(audio_path: str) -> Result[str, Exception]:
-    model = get_stt_model()
-    if model is None:
-        return Err(RuntimeError("STT model not loaded"))
-    try:
-        segments, info = model.transcribe(audio_path, beam_size=5)
-        text = " ".join(segment.text for segment in segments).strip()
-        return Ok(text)
-    except Exception as e:
-        return Err(e)
+# beam_size=1 is ~2x faster than the historical 5 with negligible quality loss.
+_STT_BEAM_SIZE = int(os.environ.get("YAPPR_STT_BEAM_SIZE", "1"))
+
+# VAD filter clips silence — kills most of Whisper's "You" hallucinations.
+_STT_VAD_FILTER = os.environ.get("YAPPR_STT_VAD", "1") not in ("0", "false", "no", "off")
 
 
 async def transcribe_upload(
@@ -99,7 +94,11 @@ async def transcribe_upload(
             tmp.write(file_content)
             tmp_path = tmp.name
         try:
-            segments, info = model.transcribe(tmp_path, beam_size=5)
+            segments, info = model.transcribe(
+                tmp_path,
+                beam_size=_STT_BEAM_SIZE,
+                vad_filter=_STT_VAD_FILTER,
+            )
             text = " ".join(segment.text for segment in segments).strip()
             return Ok((text, info.language or "", info.language_probability or 0.0))
         finally:

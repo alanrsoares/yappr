@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import warnings
 from contextlib import asynccontextmanager
 from typing import Annotated, Any, NoReturn
@@ -49,10 +48,7 @@ def _load_tts() -> Any:
 def _load_stt() -> Any:
     from faster_whisper import WhisperModel
 
-    # `small.en` (~244M params) hallucinates dramatically less on borderline
-    # audio than `base.en` (~74M) — the latter was the source of the
-    # phantom "You" / "Thank you" transcripts on short clips. Still fast on
-    # CPU + int8; download is ~480MB once (cached in $HF_HOME).
+    # small.en hallucinates much less than base.en on borderline audio.
     model_size = os.environ.get("YAPPR_WHISPER_MODEL", "small.en")
     print(f"Loading Whisper STT model ({model_size})...")
     try:
@@ -72,11 +68,12 @@ async def lifespan(_app: FastAPI) -> Any:
         core.set_stt_model(None)
         yield
         return
+    # Independent loads so a Kokoro failure doesn't kill STT (and vice-versa).
     try:
         _pipeline = _load_tts()
     except Exception as e:
         print(f"Failed to load Kokoro model: {e}")
-        sys.exit(1)
+        _pipeline = None
     core.set_stt_model(_load_stt())
     yield
 
@@ -116,6 +113,35 @@ class SynthesizeRequest(BaseModel):
     speed: float = Field(
         default=1.0,
         description="Speaking-rate multiplier (1.0 = model default).",
+    )
+
+
+class HealthResponse(BaseModel):
+    """JSON body for ``GET /health``."""
+
+    tts: str = Field(
+        ...,
+        description="Kokoro TTS pipeline status: ``ready`` or ``unavailable``.",
+    )
+    stt: str = Field(
+        ...,
+        description="Whisper STT model status: ``ready`` or ``unavailable``.",
+    )
+
+
+@app.get("/health", response_model=HealthResponse)
+def get_health() -> HealthResponse:
+    """
+    Report which inference subsystems are ready.
+
+    Unlike ``GET /voices`` (which is a static list and always succeeds), this
+    endpoint reflects the actual load state of the Kokoro pipeline and the
+    Whisper model. Use it to differentiate "server not running" from "models
+    still loading or failed to load" in first-run UIs.
+    """
+    return HealthResponse(
+        tts="ready" if _pipeline is not None else "unavailable",
+        stt="ready" if core.get_stt_model() is not None else "unavailable",
     )
 
 

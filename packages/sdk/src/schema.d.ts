@@ -4,6 +4,31 @@
  */
 
 export interface paths {
+  "/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Health
+     * @description Report which inference subsystems are ready.
+     *
+     *     Unlike ``GET /voices`` (which is a static list and always succeeds), this
+     *     endpoint reflects the actual load state of the Kokoro pipeline and the
+     *     Whisper model. Use it to differentiate "server not running" from "models
+     *     still loading or failed to load" in first-run UIs.
+     */
+    get: operations["get_health_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/voices": {
     parameters: {
       query?: never;
@@ -90,6 +115,22 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HealthResponse
+     * @description JSON body for ``GET /health``.
+     */
+    HealthResponse: {
+      /**
+       * Tts
+       * @description Kokoro TTS pipeline status: ``ready`` or ``unavailable``.
+       */
+      tts: string;
+      /**
+       * Stt
+       * @description Whisper STT model status: ``ready`` or ``unavailable``.
+       */
+      stt: string;
+    };
+    /**
      * SynthesizeRequest
      * @description JSON body for ``POST /synthesize``.
      *
@@ -132,6 +173,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  get_health_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HealthResponse"];
+        };
+      };
+    };
+  };
   get_voices_voices_get: {
     parameters: {
       query?: never;
