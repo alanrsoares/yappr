@@ -5,12 +5,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        label: ['"Antonio"', "system-ui", "sans-serif"],
-        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
-        lcd: ['"VT323"', "ui-monospace", "monospace"],
+        label: ['Antonio"', "system-ui", "sans-serif"],
+        mono: ['JetBrains Mono"', "ui-monospace", "monospace"],
+        lcd: ['VT323"', "ui-monospace", "monospace"],
       },
       colors: {
-        /* shadcn token bridge */
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -44,7 +43,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        /* Cassette deck named tokens (used by ui.tsx primitives directly) */
         chassis: "#0a0907",
         "chassis-deep": "#050402",
         panel: "#171411",
@@ -58,6 +56,16 @@ export default {
         "led-red-soft": "#5a1010",
         "led-green": "#3ee27c",
         "led-green-soft": "#0b3d1d",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -95,17 +103,135 @@ export default {
       },
       keyframes: {
         "pulse-led": {
-          "0%, 100%": { opacity: "0.85", filter: "brightness(1)" },
-          "50%": { opacity: "1", filter: "brightness(1.35)" },
+          "0%, 100%": {
+            opacity: "0.85",
+            filter: "brightness(1)",
+          },
+          "50%": {
+            opacity: "1",
+            filter: "brightness(1.35)",
+          },
         },
         "reel-spin": {
-          from: { transform: "rotate(0deg)" },
-          to: { transform: "rotate(360deg)" },
+          from: {
+            transform: "rotate(0deg)",
+          },
+          to: {
+            transform: "rotate(360deg)",
+          },
         },
       },
       animation: {
         "pulse-led": "pulse-led 1.4s ease-in-out infinite",
         "reel-spin": "reel-spin 3.2s linear infinite",
+      },
+    },
+    keyframes: {
+      typing: {
+        "0%, 100%": {
+          transform: "translateY(0)",
+          opacity: "0.5",
+        },
+        "50%": {
+          transform: "translateY(-2px)",
+          opacity: "1",
+        },
+      },
+      "loading-dots": {
+        "0%, 100%": {
+          opacity: "0",
+        },
+        "50%": {
+          opacity: "1",
+        },
+      },
+      wave: {
+        "0%, 100%": {
+          transform: "scaleY(1)",
+        },
+        "50%": {
+          transform: "scaleY(0.6)",
+        },
+      },
+      blink: {
+        "0%, 100%": {
+          opacity: "1",
+        },
+        "50%": {
+          opacity: "0",
+        },
+      },
+    },
+    "text-blink": {
+      "0%, 100%": {
+        color: "var(--primary)",
+      },
+      "50%": {
+        color: "var(--muted-foreground)",
+      },
+    },
+    "bounce-dots": {
+      "0%, 100%": {
+        transform: "scale(0.8)",
+        opacity: "0.5",
+      },
+      "50%": {
+        transform: "scale(1.2)",
+        opacity: "1",
+      },
+    },
+    "thin-pulse": {
+      "0%, 100%": {
+        transform: "scale(0.95)",
+        opacity: "0.8",
+      },
+      "50%": {
+        transform: "scale(1.05)",
+        opacity: "0.4",
+      },
+    },
+    "pulse-dot": {
+      "0%, 100%": {
+        transform: "scale(1)",
+        opacity: "0.8",
+      },
+      "50%": {
+        transform: "scale(1.5)",
+        opacity: "1",
+      },
+    },
+    "shimmer-text": {
+      "0%": {
+        backgroundPosition: "150% center",
+      },
+      "100%": {
+        backgroundPosition: "-150% center",
+      },
+    },
+    "wave-bars": {
+      "0%, 100%": {
+        transform: "scaleY(1)",
+        opacity: "0.5",
+      },
+      "50%": {
+        transform: "scaleY(0.6)",
+        opacity: "1",
+      },
+    },
+    shimmer: {
+      "0%": {
+        backgroundPosition: "200% 50%",
+      },
+      "100%": {
+        backgroundPosition: "-200% 50%",
+      },
+    },
+    "spinner-fade": {
+      "0%": {
+        opacity: "0",
+      },
+      "100%": {
+        opacity: "1",
       },
     },
   },

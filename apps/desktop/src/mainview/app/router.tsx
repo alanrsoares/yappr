@@ -6,29 +6,21 @@ import {
 } from "@tanstack/react-router";
 
 import { ChatScreen } from "~/screens/chat";
-import { VoiceScreen } from "~/screens/voice";
 import { AppLayout } from "../shell/app-layout";
 
 const rootRoute = createRootRoute({
   component: AppLayout,
 });
 
-// Chat-first: the root route IS the chat surface. The cassette voice screen
-// stays reachable at `/voice` for now while the voice features migrate into
-// composer affordances; this route will be retired once the migration lands.
+// Chat-first: a single root surface. Voice controls live inside the chat
+// (settings sheet + per-message speak); the cassette deck route was retired.
 const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: ChatScreen,
 });
 
-const voiceRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/voice",
-  component: VoiceScreen,
-});
-
-const routeTree = rootRoute.addChildren([chatRoute, voiceRoute]);
+const routeTree = rootRoute.addChildren([chatRoute]);
 
 export const router = createRouter({
   routeTree,

@@ -10,6 +10,7 @@ import {
   PromptInputActions,
   PromptInputTextarea,
 } from "~/ui/prompt-input";
+import { MicButton } from "./components/mic-button";
 
 export type ComposerProps = {
   onSend: (text: string) => void;
@@ -18,6 +19,9 @@ export type ComposerProps = {
   leadingSlot?: ReactNode;
   disabled?: boolean;
   placeholder?: string;
+  /** When provided, surfaces a mic button that records audio and appends the
+   *  transcript to the current draft. Pass the voice store's `transcribe`. */
+  transcribe?: (blob: Blob) => Promise<string>;
 };
 
 /**
@@ -30,6 +34,7 @@ export function Composer({
   leadingSlot,
   disabled,
   placeholder,
+  transcribe,
 }: ComposerProps) {
   const [draft, setDraft] = useState("");
 
@@ -40,6 +45,10 @@ export function Composer({
     if (!canSend) return;
     onSend(draft.trim());
     setDraft("");
+  };
+
+  const appendTranscript = (text: string) => {
+    setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
   };
 
   return (
@@ -59,6 +68,13 @@ export function Composer({
 
         <PromptInputActions className="w-full justify-between gap-2 border-t border-black/50 px-2 py-2">
           <div className="flex min-w-0 items-center gap-2 text-[0.65rem] uppercase tracking-wider text-foil-mute">
+            {transcribe ? (
+              <MicButton
+                onTranscript={appendTranscript}
+                transcribe={transcribe}
+                disabled={isBusy || disabled}
+              />
+            ) : null}
             {leadingSlot}
           </div>
 

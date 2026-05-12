@@ -25,6 +25,16 @@
     --input: 28 12% 14%;
     --ring: 39 100% 50%; /* amber LED focus ring */
     --radius: 0.125rem; /* sharp corners */
+
+    /* Sidebar tokens — themed to the cassette palette (app is always dark). */
+    --sidebar-background: 25 17% 6%; /* slightly darker than panel for depth */
+    --sidebar-foreground: 38 16% 75%; /* foil */
+    --sidebar-primary: 39 100% 50%; /* led-amber for active item */
+    --sidebar-primary-foreground: 30 18% 3%; /* chassis on amber */
+    --sidebar-accent: 28 12% 14%; /* panel-edge — hover/selection bg */
+    --sidebar-accent-foreground: 38 16% 88%; /* brighter foil on hover */
+    --sidebar-border: 30 18% 10%; /* subtle separator, not pitch black */
+    --sidebar-ring: 39 100% 50%; /* amber focus */
   }
 
   html {
@@ -44,6 +54,18 @@
   ::selection {
     background: hsl(var(--accent) / 0.35);
     color: #fff;
+  }
+  /* Dark-mode override kept for future light-theme toggle but app is always
+     in dark mode today (color-scheme: dark on <html>). Mirrors :root. */
+  .dark {
+    --sidebar-background: 25 17% 6%;
+    --sidebar-foreground: 38 16% 75%;
+    --sidebar-primary: 39 100% 50%;
+    --sidebar-primary-foreground: 30 18% 3%;
+    --sidebar-accent: 28 12% 14%;
+    --sidebar-accent-foreground: 38 16% 88%;
+    --sidebar-border: 30 18% 10%;
+    --sidebar-ring: 39 100% 50%;
   }
 }
 
