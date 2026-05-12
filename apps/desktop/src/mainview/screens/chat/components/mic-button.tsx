@@ -129,7 +129,6 @@ export function MicButton({
       onTranscript(trimmed);
       setState({ kind: "idle" });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[mic] error:", err);
       setState({
         kind: "error",

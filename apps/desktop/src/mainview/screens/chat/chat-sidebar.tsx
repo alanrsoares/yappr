@@ -61,6 +61,9 @@ export function ChatSidebar({
 
   const groups: ConvGroup[] = useMemo(() => {
     if (!conversations || conversations.length === 0) return [];
+    // `now` is bucket-boundary input recomputed when the list changes; the
+    // exact value is fine to drift between renders.
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const byLabel = new Map<string, ConvGroup>();
     for (const c of conversations) {

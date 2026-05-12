@@ -72,6 +72,7 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!prefs || hydratedRef.current) return;
     if (typeof prefs.serverUrl === "string" && prefs.serverUrl) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setServerUrl(prefs.serverUrl);
     }
     if (typeof prefs.defaultVoice === "string" && prefs.defaultVoice) {
@@ -130,6 +131,7 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
   // When the voice list changes, ensure the selected voice is still valid.
   useEffect(() => {
     if (voices.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVoice((prev) => pickVoice(prev)(voices));
   }, [voices]);
 

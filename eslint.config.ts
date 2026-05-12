@@ -10,13 +10,12 @@ export default tseslint.config(
       "docs/**",
       "node_modules/**",
       "**/node_modules/**",
-      "apps/desktop/**",
       "apps/*/dist/**",
       "apps/*/build/**",
       "packages/*/dist/**",
       "bun.lock",
       "openapi.json",
-      "*.config.js",
+      "**/*.config.js",
     ],
   },
   eslint.configs.recommended,
@@ -49,6 +48,17 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+  // Vendor UI primitives generated from shadcn/prompt-kit registries.
+  // Patterns like Math.random() for skeleton widths and custom data attributes
+  // are upstream conventions, not bugs.
+  {
+    files: ["apps/*/src/**/ui/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/purity": "off",
+      "react/no-unknown-property": "off",
+      "react-hooks/exhaustive-deps": "off",
     },
   },
 );

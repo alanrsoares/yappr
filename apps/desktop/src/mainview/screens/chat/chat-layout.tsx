@@ -41,6 +41,7 @@ export function ChatLayout({ renderMain }: ChatLayoutProps) {
   useEffect(() => {
     if (!prefs || hydratedRef.current) return;
     if (typeof prefs.defaultChatModel === "string" && prefs.defaultChatModel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setModel(prefs.defaultChatModel);
     }
     hydratedRef.current = true;
@@ -66,6 +67,7 @@ export function ChatLayout({ renderMain }: ChatLayoutProps) {
   const { data: models } = useQuery(ollamaModelsOptions);
   useEffect(() => {
     if (!models || models.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModel((prev) => pickModel(prev)(models));
   }, [models]);
 
