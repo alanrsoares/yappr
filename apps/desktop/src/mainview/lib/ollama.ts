@@ -29,6 +29,34 @@ export async function listOllamaModels(
   return data.models ?? [];
 }
 
+/** Default chat model — chosen first when no other selection is valid. */
+export const DEFAULT_CHAT_MODEL = "llama3.2";
+
+/**
+ * Best-effort filter: exclude embedding models. Ollama exposes both chat and
+ * embedding models on `/api/tags`; embedding model names contain `embed` by
+ * convention (`nomic-embed-text`, `mxbai-embed-large`, etc.).
+ */
+const isCompletionModel = (m: OllamaModel): boolean =>
+  !m.name.toLowerCase().includes("embed");
+
+/**
+ * Pure: pick a model from a fresh list, preserving the current selection
+ * when valid. Curried (data-last) for use with React setters:
+ *
+ *   setModel((prev) => pickModel(prev)(models))
+ *
+ * Falls back to the first completion model, then to the first model overall,
+ * then to the current value as a last resort.
+ */
+export const pickModel =
+  (current: string) =>
+  (models: readonly OllamaModel[]): string => {
+    if (models.some((m) => m.name === current)) return current;
+    const firstCompletion = models.find(isCompletionModel);
+    return firstCompletion?.name ?? models[0]?.name ?? current;
+  };
+
 /** Human-friendly size string from raw bytes. */
 export function formatModelSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "—";
