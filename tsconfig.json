@@ -26,8 +26,22 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
+    "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": [
+        "./apps/cli/src/*",
+        "./packages/sdk/src/*",
+        "./packages/lib/src/*"
+      ],
+      "@yappr/lib/*": ["./packages/lib/src/*"],
+      "@yappr/sdk": ["./packages/sdk/src/index.ts"],
+      "@yappr/sdk/*": ["./packages/sdk/src/*"]
     }
-  }
+  },
+  "include": [
+    "apps/cli/src/**/*",
+    "packages/sdk/src/**/*",
+    "packages/lib/src/**/*"
+  ],
+  "exclude": ["node_modules", "apps/desktop"]
 }
