@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MessageRow } from "@yappr/db/rpc";
 import type { UIMessage } from "ai";
-import { Copy, Square, Volume2 } from "lucide-react";
+import { AlertTriangle, Copy, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { OllamaTransport } from "~/lib/ollama-transport";
@@ -21,6 +21,7 @@ import {
   ChatContainerRoot,
   ChatContainerScrollAnchor,
 } from "~/ui/chat-container";
+import { DotsLoader } from "~/ui/loader";
 import {
   Message,
   MessageAction,
@@ -171,29 +172,28 @@ export function ChatPanel({
 
   const isBusy = status === "submitted" || status === "streaming";
 
+  // Show the typing indicator only between submit and the first token, so it
+  // disappears the moment the assistant message starts populating.
+  const showLoading =
+    status === "submitted" &&
+    !messages.some((m) => m.role === "assistant" && uiTextOf(m).length > 0);
+
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
-      {error ? (
-        <div
-          className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive"
-          role="alert"
-        >
-          {error.message}
-        </div>
-      ) : null}
-
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
-        <ChatContainerContent className="gap-4">
-          {messages.length === 0 ? (
+        <ChatContainerContent className="gap-6">
+          {messages.length === 0 && !showLoading && !error ? (
             <EmptyState />
           ) : (
-            messages.map((m) => {
+            messages.map((m, idx) => {
               const text = uiTextOf(m);
+              const isLast = idx === messages.length - 1;
               return (
                 <MessageBubble
                   key={m.id}
                   role={m.role === "system" ? "assistant" : m.role}
                   content={text || (isBusy ? "…" : "")}
+                  isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
                   isSpeaking={isSpeaking}
                   onSpeak={() => void speak(text)}
@@ -202,6 +202,8 @@ export function ChatPanel({
               );
             })
           )}
+          {showLoading ? <LoadingMessage /> : null}
+          {error ? <ErrorMessage message={error.message} /> : null}
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
       </ChatContainerRoot>
@@ -242,15 +244,17 @@ function EmptyState() {
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
+  isLast: boolean;
   canSpeak: boolean;
   isSpeaking: boolean;
   onSpeak: () => void;
   onStop: () => void;
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   role,
   content,
+  isLast,
   canSpeak,
   isSpeaking,
   onSpeak,
@@ -260,16 +264,23 @@ function MessageBubble({
     void navigator.clipboard.writeText(content);
   };
 
+  // Actions are hover-only by default but stay on for the latest message —
+  // copy/speak on the most recent reply is the common case, shouldn't hide.
+  const actionsClass = cn(
+    "gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100",
+    isLast && "opacity-100",
+  );
+
   if (role === "assistant") {
     return (
       <Message className="group mx-auto flex w-full max-w-3xl flex-col gap-1">
         <MessageContent
           markdown
-          className="bg-transparent p-0 text-foreground prose prose-invert prose-sm max-w-none"
+          className="bg-transparent p-0 text-foreground prose prose-invert max-w-none"
         >
           {content}
         </MessageContent>
-        <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <MessageActions className={actionsClass}>
           <MessageAction tooltip="Copy" delayDuration={100}>
             <Button
               type="button"
@@ -316,7 +327,7 @@ function MessageBubble({
       <MessageContent className="max-w-[85%] rounded-3xl bg-secondary px-4 py-2 text-foreground whitespace-pre-wrap sm:max-w-[75%]">
         {content}
       </MessageContent>
-      <MessageActions className="gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+      <MessageActions className={actionsClass}>
         <MessageAction tooltip="Copy" delayDuration={100}>
           <Button
             type="button"
@@ -332,4 +343,32 @@ function MessageBubble({
       </MessageActions>
     </Message>
   );
-}
+});
+
+const LoadingMessage = memo(function LoadingMessage() {
+  return (
+    <Message className="mx-auto flex w-full max-w-3xl flex-col gap-1">
+      <div className="text-muted-foreground py-2">
+        <DotsLoader />
+      </div>
+    </Message>
+  );
+});
+
+const ErrorMessage = memo(function ErrorMessage({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <Message className="mx-auto flex w-full max-w-3xl flex-col gap-1">
+      <div
+        role="alert"
+        className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 font-mono text-xs text-destructive"
+      >
+        <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+        <span>{message}</span>
+      </div>
+    </Message>
+  );
+});
