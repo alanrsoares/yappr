@@ -3,13 +3,17 @@ import type { ElectrobunConfig } from "electrobun";
 export default {
   app: {
     name: "Yappr",
-    identifier: "money.printr.yappr.desktop",
+    identifier: "alanrsoares.me.yappr.desktop",
     version: "0.0.1",
   },
   build: {
     copy: {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
+      // Drizzle migrations (SQL + journal). Required at runtime by
+      // @yappr/db's createDb -> migrate() and the legacy-baseline
+      // path that reads 0000_known_whizzer.sql for its hash.
+      "../../packages/db/drizzle": "drizzle",
     },
     watchIgnore: ["dist/**"],
     // Pin renderer per platform. Keep `bundleCEF: false` everywhere so we ship

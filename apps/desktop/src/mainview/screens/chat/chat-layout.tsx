@@ -16,6 +16,7 @@ import { cn } from "~/lib/utils";
 import { SidebarInset, SidebarProvider } from "~/ui/sidebar";
 import { ChatSidebar } from "./chat-sidebar";
 import { ChatTopBar } from "./chat-top-bar";
+import { ChatStoreProvider } from "./store";
 
 interface ChatLayoutProps {
   renderMain: (props: {
@@ -72,24 +73,26 @@ export function ChatLayout({ renderMain }: ChatLayoutProps) {
   }, [models]);
 
   return (
-    <SidebarProvider>
-      <ChatSidebar
-        activeConversationId={conversationId}
-        onSelectConversation={setConversationId}
-      />
-      <SidebarInset
-        className={cn("flex h-dvh flex-col bg-background pt-8", DRAG)}
-      >
-        <ChatTopBar model={model} onModelChange={handleModelChange} />
-        <main className="min-h-0 flex-1 overflow-hidden">
-          {renderMain({
-            model,
-            onModelChange: handleModelChange,
-            conversationId,
-            onConversationChange: setConversationId,
-          })}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <ChatStoreProvider>
+      <SidebarProvider>
+        <ChatSidebar
+          activeConversationId={conversationId}
+          onSelectConversation={setConversationId}
+        />
+        <SidebarInset
+          className={cn("flex h-dvh flex-col bg-background pt-8", DRAG)}
+        >
+          <ChatTopBar model={model} onModelChange={handleModelChange} />
+          <main className="min-h-0 flex-1 overflow-hidden">
+            {renderMain({
+              model,
+              onModelChange: handleModelChange,
+              conversationId,
+              onConversationChange: setConversationId,
+            })}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </ChatStoreProvider>
   );
 }

@@ -29,6 +29,7 @@ import {
   MessageContent,
 } from "~/ui/message";
 import { Composer } from "./composer";
+import { useChatStore } from "./store";
 
 interface ChatPanelProps {
   model: string;
@@ -101,6 +102,7 @@ export function ChatPanel({
   // `data` stays undefined.
   const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
   const { tts, speak, stopAudio, transcribe } = useVoiceStore();
+  const { inputDeviceId } = useChatStore();
   const isSpeaking = tts.kind === "speaking";
 
   const createConv = useMutation({
@@ -267,6 +269,7 @@ export function ChatPanel({
                   : "Loading models from Ollama…"
             }
             transcribe={transcribe}
+            inputDeviceId={inputDeviceId}
           />
         </div>
       </div>

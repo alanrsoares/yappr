@@ -39,6 +39,8 @@ export type ComposerProps = {
   /** When provided, surfaces a mic button that records audio and appends the
    *  transcript to the current draft. Pass the voice store's `transcribe`. */
   transcribe?: (blob: Blob) => Promise<string>;
+  /** Forwarded to MicButton's `getUserMedia` constraint. */
+  inputDeviceId?: string | null;
 };
 
 /**
@@ -54,6 +56,7 @@ export function Composer({
   disabled,
   placeholder,
   transcribe,
+  inputDeviceId,
 }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [pendingFiles, setPendingFiles] = useState<FileUIPart[]>([]);
@@ -180,6 +183,7 @@ export function Composer({
                   onTranscript={appendTranscript}
                   transcribe={transcribe}
                   disabled={isBusy || disabled}
+                  inputDeviceId={inputDeviceId}
                 />
               ) : null}
               {leadingSlot}
