@@ -194,25 +194,33 @@ export function KaraokeCaptions({
               <p className="font-mono text-[0.65rem] leading-5 font-normal tracking-widest text-muted-foreground uppercase">
                 Warming local voice engine…
               </p>
-              <CaptionLine className="lcd-text text-balance text-xl opacity-70">
+              <CaptionLine
+                motionKey={`loading-${currentLine}`}
+                className="lcd-text text-balance text-xl opacity-70"
+              >
                 {currentLine}
               </CaptionLine>
             </>
           ) : (
             <>
-              {previousLine ? (
-                <CaptionLine className="text-muted-foreground/55">
-                  {previousLine}
-                </CaptionLine>
-              ) : null}
-              <CaptionLine className="lcd-text text-balance text-xl">
+              <CaptionLine
+                motionKey="prev"
+                className="text-muted-foreground/55"
+              >
+                {previousLine ?? ""}
+              </CaptionLine>
+              <CaptionLine
+                motionKey="current"
+                className="lcd-text text-balance text-xl"
+              >
                 {currentLine}
               </CaptionLine>
-              {nextLine ? (
-                <CaptionLine className="text-muted-foreground/65">
-                  {nextLine}
-                </CaptionLine>
-              ) : null}
+              <CaptionLine
+                motionKey="next"
+                className="text-muted-foreground/65"
+              >
+                {nextLine ?? ""}
+              </CaptionLine>
             </>
           )}
         </div>
@@ -248,12 +256,20 @@ export function KaraokeCaptions({
 function CaptionLine({
   children,
   className,
+  motionKey,
 }: {
   children: string;
   className?: string;
+  motionKey: string;
 }) {
   return (
-    <p className={cn("min-h-7 break-words whitespace-pre-wrap", className)}>
+    <p
+      key={motionKey}
+      className={cn(
+        "min-h-7 break-words whitespace-pre-wrap transition-opacity duration-150 motion-reduce:transition-none",
+        className,
+      )}
+    >
       {children || " "}
     </p>
   );

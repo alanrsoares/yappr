@@ -8,6 +8,7 @@ import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
+import { markdownToNarrationText } from "~/lib/narration-text";
 import {
   conversationsQueryRootKey,
   messagesOptions,
@@ -264,7 +265,11 @@ export function ChatPanel({
                     isSpeaking &&
                     (speakingMessageId === m.id || speakingMessageId === null)
                   }
-                  onSpeak={() => void speak(text, { messageId: m.id })}
+                  onSpeak={() =>
+                    void speak(markdownToNarrationText(text), {
+                      messageId: m.id,
+                    })
+                  }
                   onStop={stopAudio}
                 />
               );
