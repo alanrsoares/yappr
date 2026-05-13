@@ -114,7 +114,7 @@ export function Composer({
     <FileUpload
       onFilesAdded={onFilesAdded}
       multiple
-      disabled={!!disabled || isBusy || attachBusy}
+      disabled={Boolean(disabled) || isBusy || attachBusy}
     >
       <PromptInput
         value={draft}

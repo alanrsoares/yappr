@@ -5,8 +5,11 @@ import {
   StreamableHTTPClientTransport,
   StreamableHTTPError,
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
-import { toolDefinition, type ServerTool } from "@tanstack/ai";
+import type {
+  CallToolResult,
+  Tool as McpTool,
+} from "@modelcontextprotocol/sdk/types.js";
+import { toolDefinition, type SchemaInput, type Tool } from "@tanstack/ai";
 import { toError } from "@yappr/lib/result";
 import { errAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
@@ -21,7 +24,7 @@ import type {
 
 export class McpManager {
   private clients: Map<string, Client> = new Map();
-  private tools: Map<string, { server: string; tool: Tool }> = new Map();
+  private tools: Map<string, { server: string; tool: McpTool }> = new Map();
 
   loadConfigAndGetStatuses(
     configPath: string = resolveMcpConfigPath(),
@@ -172,12 +175,12 @@ export class McpManager {
     }));
   }
 
-  getTanStackTools(): ServerTool<unknown, unknown>[] {
+  getTanStackTools(): Array<Tool<SchemaInput, SchemaInput>> {
     return Array.from(this.tools.values()).map(({ tool }) => {
       const def = toolDefinition({
         name: tool.name,
         description: tool.description || "",
-        inputSchema: tool.inputSchema,
+        inputSchema: tool.inputSchema as SchemaInput,
       });
 
       return def.server(async (args: unknown) => {

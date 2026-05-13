@@ -37,7 +37,7 @@ export function parsePreferencesJson(raw: unknown): PreferencesJsonPartial {
   const src = raw as Record<string, unknown>;
   const out: PreferencesJsonPartial = {};
 
-  for (const key of Object.keys(fields) as (keyof typeof fields)[]) {
+  for (const key of Object.keys(fields) as Array<keyof typeof fields>) {
     if (!Object.hasOwn(src, key)) continue;
     const parsed = fields[key].safeParse(src[key]);
     if (parsed.success) {

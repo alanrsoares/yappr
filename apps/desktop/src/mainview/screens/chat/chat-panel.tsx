@@ -39,7 +39,7 @@ interface ChatPanelProps {
 
 function truncateTitle(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
-  return trimmed.length > 48 ? trimmed.slice(0, 48) + "…" : trimmed;
+  return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
 }
 
 function dbToUIMessage(m: MessageRow): UIMessage {
@@ -95,7 +95,7 @@ export function ChatPanel({
   // returns 404 mid-stream. Block sends until pickModel (in chat-layout) has
   // had a chance to resolve to a valid choice.
   const modelReady =
-    !!model && (models?.some((m) => m.name === model) ?? false);
+    Boolean(model) && (models?.some((m) => m.name === model) ?? false);
   // Stable empty-array ref so the hydration effect below doesn't loop on
   // every render when the query is disabled (conversationId === null) and
   // `data` stays undefined.

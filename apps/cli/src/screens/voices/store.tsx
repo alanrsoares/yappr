@@ -166,7 +166,6 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
       } else {
         playPreview(VOICE_PREVIEW_SAMPLE);
       }
-      return;
     }
   });
 

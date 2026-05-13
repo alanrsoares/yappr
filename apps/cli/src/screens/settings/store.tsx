@@ -213,7 +213,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     deps: [preferences.openrouterApiKey],
     enabled:
       preferences.defaultChatProvider === "openrouter" &&
-      !!preferences.openrouterApiKey?.trim(),
+      Boolean(preferences.openrouterApiKey?.trim()),
   });
   const { data: voices = [] } = useQuery(listVoices);
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
@@ -550,7 +550,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     }
     if (effectiveKey === "q" && !isInlineTextEditing) {
       quit();
-      return;
     }
   });
 

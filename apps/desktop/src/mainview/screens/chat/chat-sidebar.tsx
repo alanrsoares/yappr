@@ -72,7 +72,7 @@ function buildGroups(
     byLabel.get(label)!.items.push({ id: c.id, title: c.title });
   }
   return BUCKET_ORDER.map((label) => byLabel.get(label)).filter(
-    (g): g is ConvGroup => !!g,
+    (g): g is ConvGroup => Boolean(g),
   );
 }
 

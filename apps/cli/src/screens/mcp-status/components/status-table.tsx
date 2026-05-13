@@ -44,9 +44,9 @@ export function StatusTable({ rows }: StatusTableProps) {
     return max;
   });
 
-  const top = "┌" + colWidths.map(sep).join("┬") + "┐";
-  const headSep = "├" + colWidths.map(sep).join("┼") + "┤";
-  const bottom = "└" + colWidths.map(sep).join("┴") + "┘";
+  const top = `┌${colWidths.map(sep).join("┬")}┐`;
+  const headSep = `├${colWidths.map(sep).join("┼")}┤`;
+  const bottom = `└${colWidths.map(sep).join("┴")}┘`;
 
   function renderRow(row: ServerStatus, index: number) {
     const w1 = colWidths[1] ?? 0;
