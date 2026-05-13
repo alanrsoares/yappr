@@ -26,10 +26,29 @@ import * as schema from "./schema.js";
 
 const packageDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const migrationsFolder = path.join(packageDir, "drizzle");
+const initialMigrationTag = "0000_known_whizzer";
 const initialMigrationFile = path.join(
   migrationsFolder,
-  "0000_known_whizzer.sql",
+  `${initialMigrationTag}.sql`,
 );
+const journalFile = path.join(migrationsFolder, "meta", "_journal.json");
+
+interface DrizzleJournalEntry {
+  idx: number;
+  tag: string;
+  when: number;
+}
+
+function readJournalWhen(tag: string): number {
+  try {
+    const journal = JSON.parse(readFileSync(journalFile, "utf8")) as {
+      entries: DrizzleJournalEntry[];
+    };
+    return journal.entries.find((e) => e.tag === tag)?.when ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
 const PRAGMA_SQL = `
   PRAGMA journal_mode = WAL;
@@ -132,6 +151,11 @@ function baselineLegacyDrizzleMigration(sqlite: Database): void {
   ensureLegacyBaselineSchema(sqlite);
   const migrationSql = readFileSync(initialMigrationFile, "utf8");
   const hash = createHash("sha256").update(migrationSql).digest("hex");
+  // `created_at` must match the migration's journal `when` so drizzle's
+  // `entry.when > lastCreatedAt` comparison applies future migrations.
+  // Using `Date.now()` here would silently skip any migration whose
+  // generation timestamp is older than the baseline-insertion clock.
+  const createdAt = readJournalWhen(initialMigrationTag);
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
       id SERIAL PRIMARY KEY,
@@ -143,7 +167,7 @@ function baselineLegacyDrizzleMigration(sqlite: Database): void {
     .prepare(
       'INSERT INTO "__drizzle_migrations" ("hash", "created_at") VALUES (?, ?)',
     )
-    .run(hash, Date.now());
+    .run(hash, createdAt);
 }
 
 export interface YapprDb {
