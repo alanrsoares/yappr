@@ -29,10 +29,6 @@ type VoiceStoreValue = {
   setVoice: (v: VoiceId) => void;
   speed: number;
   setSpeed: (v: number) => void;
-  /** MediaDevices `deviceId` to use as `getUserMedia` input. `null` = system
-   *  default. Persisted across launches. */
-  inputDeviceId: string | null;
-  setInputDeviceId: (v: string | null) => void;
   tts: TtsState;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;
@@ -47,7 +43,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
   const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
-  const [inputDeviceId, setInputDeviceId] = useState<string | null>(null);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
 
@@ -67,9 +62,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     }
     if (typeof prefs.defaultSpeed === "number") {
       setSpeed(prefs.defaultSpeed);
-    }
-    if (typeof prefs.defaultInputDeviceId === "string") {
-      setInputDeviceId(prefs.defaultInputDeviceId || null);
     }
     hydratedRef.current = true;
   }, [prefs]);
@@ -100,16 +92,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     },
     [persistPrefs],
   );
-  const setInputDeviceIdPersist = useCallback(
-    (next: string | null) => {
-      setInputDeviceId(next);
-      // Empty string represents "system default" on the wire; renderer
-      // hydrates it back to `null`.
-      persistPrefs.mutate({ defaultInputDeviceId: next ?? "" });
-    },
-    [persistPrefs],
-  );
-
   const client = useMemo(() => new TTSClient(serverUrl), [serverUrl]);
 
   // Backend connectivity probe + voice list. Auto-fires on mount, polls every
@@ -205,8 +187,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
       setVoice: setVoicePersist,
       speed,
       setSpeed: setSpeedPersist,
-      inputDeviceId,
-      setInputDeviceId: setInputDeviceIdPersist,
       tts,
       checkHealth,
       stopAudio,
@@ -222,8 +202,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
       setVoicePersist,
       speed,
       setSpeedPersist,
-      inputDeviceId,
-      setInputDeviceIdPersist,
       tts,
       checkHealth,
       stopAudio,

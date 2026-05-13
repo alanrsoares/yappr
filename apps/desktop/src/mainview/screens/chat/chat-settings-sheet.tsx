@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "~/ui/sheet";
 import { Slider } from "~/ui/slider";
+import { useChatStore } from "./store";
 
 interface ChatSettingsSheetProps {
   children: ReactNode;
@@ -43,11 +44,10 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
     voices,
     speed,
     setSpeed,
-    inputDeviceId,
-    setInputDeviceId,
     health,
     checkHealth,
   } = useVoiceStore();
+  const { inputDeviceId, setInputDeviceId } = useChatStore();
   const inputDevices = useInputDevices();
 
   return (
