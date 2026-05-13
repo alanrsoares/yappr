@@ -1,12 +1,12 @@
-import type { ModelMessage, ServerTool } from "@tanstack/ai";
+import type { ModelMessage, SchemaInput, Tool } from "@tanstack/ai";
 import { toError } from "@yappr/lib/result";
 import { ResultAsync } from "neverthrow";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
 import type { ChatOptions, NarrationOptions } from "../../../types.js";
-import {
+import type {
   createOpenRouterChat,
-  type OpenRouterTextMessage,
+  OpenRouterTextMessage,
 } from "../openrouter.js";
 import { buildChatModelMessages } from "./messages.js";
 import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
@@ -77,7 +77,7 @@ export function chat(
   const mcp = runtime.createMcpManager();
 
   const systemPrompts: string[] = explicitSystemPrompts ?? [];
-  const messages: ModelMessage<string>[] = buildChatModelMessages(
+  const messages: Array<ModelMessage<string>> = buildChatModelMessages(
     prompt,
     priorMessages,
   );
@@ -162,9 +162,9 @@ async function streamOllamaAndCollect(
   runtime: ChatRuntime,
   args: {
     adapter: ReturnType<ChatRuntime["createOllamaChat"]>;
-    messages: ModelMessage<string>[];
+    messages: Array<ModelMessage<string>>;
     systemPrompts: string[];
-    tools: ServerTool<unknown, unknown>[];
+    tools: Array<Tool<SchemaInput, SchemaInput>>;
     abortController: AbortController | undefined;
     onUpdate: ChatOptions["onUpdate"];
     onToolCall: ChatOptions["onToolCall"];
@@ -185,16 +185,16 @@ async function streamOllamaAndCollect(
     let finalContent = "";
     for await (const chunk of stream) {
       throwIfChatAborted(args.abortController?.signal);
-      if (chunk.type === "content" || chunk.type === "TEXT_MESSAGE_CONTENT") {
-        const delta = "delta" in chunk ? chunk.delta : "";
+      if (chunk.type === "TEXT_MESSAGE_CONTENT") {
+        const delta = chunk.delta ?? "";
         finalContent += delta;
         args.onUpdate?.(finalContent);
       } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
         args.onToolCall?.(chunk.toolName, "start");
       } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
-        args.onToolCall?.(chunk.toolName, "end");
+        if (chunk.toolName) args.onToolCall?.(chunk.toolName, "end");
       } else if (chunk.type === "RUN_ERROR") {
-        throw new Error(chunk.error.message);
+        throw new Error(chunk.error?.message ?? "Chat stream error");
       }
     }
     throwIfChatAborted(args.abortController?.signal);

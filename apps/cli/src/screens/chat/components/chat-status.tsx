@@ -3,6 +3,7 @@ import { Text } from "ink";
 
 import { Loading } from "~/components/index.js";
 import { semantic } from "~/theme/semantic.js";
+import type { ToolCallSummary } from "../events.js";
 
 export type ChatPhase = "idle" | "thinking" | "narrating" | "speaking";
 export type SttPhase = "idle" | "recording" | "transcribing";
@@ -16,6 +17,7 @@ export interface ChatStatusProps {
   sttError: Error | null;
   chatError: Error | null;
   activeToolCall?: string | null;
+  toolSummaries?: readonly ToolCallSummary[];
 }
 
 const isAbortError = (err: Error) =>
@@ -35,6 +37,22 @@ function renderChatErrorBlock(p: ChatStatusProps) {
   );
 }
 
+function formatToolSummary(tool: ToolCallSummary) {
+  const elapsed = tool.elapsedMs === undefined ? "" : ` ${tool.elapsedMs}ms`;
+  return `${tool.name} ${tool.status}${elapsed}`;
+}
+
+function renderToolSummaries(p: ChatStatusProps) {
+  const tools = p.toolSummaries ?? [];
+  const hasError = tools.some((tool) => tool.status === "error");
+  const summary = tools.map(formatToolSummary).join(" · ");
+  return (
+    <Text color={hasError ? semantic.error : undefined} dimColor={!hasError}>
+      Tools: {summary}
+    </Text>
+  );
+}
+
 type StatusRule = {
   readonly when: (p: ChatStatusProps) => boolean;
   readonly render: (p: ChatStatusProps) => ReactNode;
@@ -43,7 +61,7 @@ type StatusRule = {
 /** First matching rule wins (explicit priority order). */
 const CHAT_STATUS_RULES: readonly StatusRule[] = [
   {
-    when: (p) => p.isChatPending && !!p.activeToolCall,
+    when: (p) => p.isChatPending && Boolean(p.activeToolCall),
     render: (p) => (
       <Text color={semantic.accent}>Calling tool: {p.activeToolCall}…</Text>
     ),
@@ -72,18 +90,25 @@ const CHAT_STATUS_RULES: readonly StatusRule[] = [
     render: () => <Loading message="Transcribing…" />,
   },
   {
-    when: (p) => !!p.sttError,
+    when: (p) => Boolean(p.sttError),
     render: (p) => (
       <Text color={semantic.error}>STT: {p.sttError!.message}</Text>
     ),
   },
   {
-    when: (p) => !!p.chatError && !isAbortError(p.chatError!),
+    when: (p) => Boolean(p.chatError) && !isAbortError(p.chatError!),
     render: renderChatErrorBlock,
   },
   {
-    when: (p) => !!p.chatError && isAbortError(p.chatError!),
+    when: (p) => Boolean(p.chatError) && isAbortError(p.chatError!),
     render: () => <Text dimColor>Cancelled.</Text>,
+  },
+  {
+    when: (p) =>
+      !p.isChatPending &&
+      p.sttPhase === "idle" &&
+      Boolean(p.toolSummaries?.length),
+    render: renderToolSummaries,
   },
   {
     when: (p) =>

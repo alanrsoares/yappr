@@ -1,11 +1,14 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { createContainer } from "@yappr/lib/unstated";
 import { okAsync } from "neverthrow";
 
 import { buildChatFooterItems } from "~/footer-items.js";
 import { useMutation, usePreferences, useVoiceToggle } from "~/hooks";
-import { appendMessage, createConversation } from "~/lib/chat-persistence.js";
+import {
+  appendMessage,
+  createConversationSync,
+} from "~/lib/chat-persistence.js";
 import { quit } from "~/quit.js";
 import {
   chat,
@@ -14,11 +17,26 @@ import {
   speak,
 } from "~/services/yappr";
 import type { ChatMessage, ScreenId } from "~/types.js";
+import { ChatStatus, type SttPhase } from "./components/chat-status.js";
 import {
-  ChatStatus,
-  type ChatPhase,
-  type SttPhase,
-} from "./components/chat-status.js";
+  listPersistedChatEvents,
+  persistChatEvent,
+} from "./event-persistence.js";
+import {
+  appendChatEvent,
+  createChatEvent,
+  createMessageId,
+  createRunId,
+  createToolCallId,
+  deriveActiveToolCall,
+  deriveChatPhase,
+  deriveLatestRunToolSummaries,
+  deriveMessages,
+  deriveStreamingResponse,
+  mergeChatEvents,
+  type ChatEvent,
+  type ChatEventInput,
+} from "./events.js";
 import {
   resolveSlashSubmit,
   type SlashCommandContext,
@@ -36,13 +54,20 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
 
   const [value, setValue] = useState("");
   const [slashNotice, setSlashNotice] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [phase, setPhase] = useState<ChatPhase>("idle");
-  const [streamingResponse, setStreamingResponse] = useState("");
-  const [activeToolCall, setActiveToolCall] = useState<string | null>(null);
+  const [events, setEvents] = useState<ChatEvent[]>([]);
+  const [isEventStreamOpen, setIsEventStreamOpen] = useState(false);
   const [hasStoppedRecording, setHasStoppedRecording] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const chatAbortRef = useRef<AbortController | null>(null);
+  const runStartedAtRef = useRef(0);
+  const lastStreamingTextRef = useRef("");
+  const firstTokenAtRef = useRef<number | null>(null);
+  const ttsStartedAtRef = useRef(0);
+  const sttRunIdRef = useRef<string | null>(null);
+  const sttStartedAtRef = useRef(0);
+  const activeToolIdsRef = useRef(
+    new Map<string, Array<{ id: string; startedAt: number }>>(),
+  );
 
   // Active conversation id. Lazily created on the first user prompt so a
   // session that never sends anything doesn't leave an empty row behind.
@@ -61,11 +86,57 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     narrationModel,
   } = preferences;
 
+  const emit = useCallback((event: ChatEventInput) => {
+    const created = createChatEvent(event);
+    setEvents((prev) => appendChatEvent(prev, created));
+    void persistChatEvent(created).match(
+      () => undefined,
+      (err) => console.warn("[yappr] failed to persist agent event:", err),
+    );
+  }, []);
+
+  const messages = useMemo(() => deriveMessages(events), [events]);
+  const streamingResponse = useMemo(
+    () => deriveStreamingResponse(events),
+    [events],
+  );
+  const activeToolCall = useMemo(() => deriveActiveToolCall(events), [events]);
+  const toolSummaries = useMemo(
+    () => deriveLatestRunToolSummaries(events),
+    [events],
+  );
+  const phase = useMemo(() => deriveChatPhase(events), [events]);
+
   const chatMutation = useMutation<string | null, Error, string>((prompt) => {
-    setPhase("thinking");
-    setStreamingResponse("");
-    setActiveToolCall(null);
-    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    const runId = createRunId();
+    const assistantMessageId = createMessageId();
+    runStartedAtRef.current = Date.now();
+    firstTokenAtRef.current = null;
+    lastStreamingTextRef.current = "";
+    activeToolIdsRef.current.clear();
+    if (!conversationIdRef.current) {
+      try {
+        const created = createConversationSync(prompt, model);
+        conversationIdRef.current = created.id;
+      } catch (err) {
+        console.warn("[yappr] failed to persist conversation:", err);
+      }
+    }
+    emit({
+      type: "run.start",
+      runId,
+      conversationId: conversationIdRef.current,
+      provider,
+      model,
+      voice,
+      mcpConfigPath,
+    });
+    emit({
+      type: "message.user",
+      runId,
+      conversationId: conversationIdRef.current,
+      content: prompt,
+    });
     chatAbortRef.current = new AbortController();
     const priorMessages: ChatMessage[] = messages.map((m) => ({
       role: m.role,
@@ -78,15 +149,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     // renders so the user can keep working.
     const userMessage: ChatMessage = { role: "user", content: prompt };
     const persistUser = (async () => {
-      if (!conversationIdRef.current) {
-        const created = await createConversation(prompt, model);
-        created.match(
-          (conv) => {
-            conversationIdRef.current = conv.id;
-          },
-          (err) => console.warn("[yappr] failed to persist conversation:", err),
-        );
-      }
       const convId = conversationIdRef.current;
       if (!convId) return;
       const result = await appendMessage(convId, userMessage);
@@ -104,17 +166,71 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       openrouterApiKey,
       mcpConfigPath,
       messages: priorMessages,
-      onUpdate: (text) => setStreamingResponse(text),
+      onUpdate: (text) => {
+        if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now();
+        const previous = lastStreamingTextRef.current;
+        const delta = text.startsWith(previous)
+          ? text.slice(previous.length)
+          : text;
+        lastStreamingTextRef.current = text;
+        if (!delta) return;
+        emit({
+          type: "message.assistant.streaming",
+          runId,
+          conversationId: conversationIdRef.current,
+          messageId: assistantMessageId,
+          delta,
+          isComplete: false,
+        });
+      },
       abortController: chatAbortRef.current,
       onToolCall: (name, phase) => {
-        setActiveToolCall(phase === "start" ? name : null);
+        if (phase === "start") {
+          const toolCallId = createToolCallId(runId, name);
+          const startedAt = Date.now();
+          const activeCalls = activeToolIdsRef.current.get(name) ?? [];
+          activeToolIdsRef.current.set(name, [
+            ...activeCalls,
+            { id: toolCallId, startedAt },
+          ]);
+          emit({
+            type: "tool.call",
+            runId,
+            conversationId: conversationIdRef.current,
+            toolCallId,
+            name,
+            startTime: startedAt,
+          });
+          return;
+        }
+        const activeCalls = activeToolIdsRef.current.get(name) ?? [];
+        const active = activeCalls.at(-1);
+        if (!active) return;
+        const remaining = activeCalls.slice(0, -1);
+        if (remaining.length) activeToolIdsRef.current.set(name, remaining);
+        else activeToolIdsRef.current.delete(name);
+        emit({
+          type: "tool.result",
+          runId,
+          conversationId: conversationIdRef.current,
+          toolCallId: active.id,
+          name,
+          elapsedMs: Date.now() - active.startedAt,
+        });
       },
     })
       .andThen((text) => {
         if (!text) return okAsync(null);
         const modelForNarration = narrationModel || model;
         if (useNarrationForTTS && modelForNarration) {
-          setPhase("narrating");
+          emit({
+            type: "tts.start",
+            runId,
+            conversationId: conversationIdRef.current,
+            voice,
+            mode: "narration",
+            contentLength: text.length,
+          });
           return narrateResponse(text, {
             model: modelForNarration,
             provider: narrationModel ? "ollama" : provider,
@@ -123,19 +239,70 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           })
             .map((narration) => narration.trim() || text)
             .andThen((toSpeak) => {
-              setPhase("speaking");
-              return speak(toSpeak, { voice }).map(() => text);
+              ttsStartedAtRef.current = Date.now();
+              emit({
+                type: "tts.start",
+                runId,
+                conversationId: conversationIdRef.current,
+                voice,
+                mode: "direct",
+                contentLength: toSpeak.length,
+              });
+              return speak(toSpeak, { voice }).map(() => {
+                emit({
+                  type: "tts.end",
+                  runId,
+                  conversationId: conversationIdRef.current,
+                  status: "success",
+                  elapsedMs: Date.now() - ttsStartedAtRef.current,
+                });
+                return text;
+              });
             });
         }
-        setPhase("speaking");
-        return speak(text, { voice }).map(() => text);
+        ttsStartedAtRef.current = Date.now();
+        emit({
+          type: "tts.start",
+          runId,
+          conversationId: conversationIdRef.current,
+          voice,
+          mode: "direct",
+          contentLength: text.length,
+        });
+        return speak(text, { voice }).map(() => {
+          emit({
+            type: "tts.end",
+            runId,
+            conversationId: conversationIdRef.current,
+            status: "success",
+            elapsedMs: Date.now() - ttsStartedAtRef.current,
+          });
+          return text;
+        });
       })
       .map((res) => {
-        setPhase("idle");
-        setMessages((prev) =>
-          res !== null ? [...prev, { role: "assistant", content: res }] : prev,
-        );
-        setStreamingResponse("");
+        const ttltMs = Date.now() - runStartedAtRef.current;
+        if (res !== null) {
+          emit({
+            type: "message.assistant",
+            runId,
+            conversationId: conversationIdRef.current,
+            messageId: assistantMessageId,
+            content: res,
+            finishReason: "stop",
+            ...(firstTokenAtRef.current && {
+              ttftMs: firstTokenAtRef.current - runStartedAtRef.current,
+            }),
+            ttltMs,
+          });
+        }
+        emit({
+          type: "run.end",
+          runId,
+          conversationId: conversationIdRef.current,
+          status: "success",
+          elapsedMs: ttltMs,
+        });
         // Persist the assistant turn alongside the user one. Fire-and-forget
         // — UI is already updated, DB is just the durable shadow.
         if (res !== null) {
@@ -159,9 +326,24 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         return res;
       })
       .mapErr((err) => {
-        setPhase("idle");
-        setStreamingResponse("");
-        setActiveToolCall(null);
+        const elapsedMs = Date.now() - runStartedAtRef.current;
+        const status = err.name === "AbortError" ? "cancelled" : "error";
+        emit({
+          type: "system",
+          runId,
+          conversationId: conversationIdRef.current,
+          level: status === "cancelled" ? "info" : "error",
+          message: err.message,
+        });
+        emit({
+          type: "run.end",
+          runId,
+          conversationId: conversationIdRef.current,
+          status,
+          elapsedMs,
+          error: err.message,
+        });
+        activeToolIdsRef.current.clear();
         return err;
       });
   });
@@ -180,6 +362,26 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       }),
     {
       onSuccess: (transcript) => {
+        const runId = sttRunIdRef.current;
+        const elapsedMs = Date.now() - sttStartedAtRef.current;
+        if (runId) {
+          if (transcript) {
+            emit({
+              type: "stt.transcript",
+              runId,
+              conversationId: conversationIdRef.current,
+              content: transcript,
+              elapsedMs,
+            });
+          }
+          emit({
+            type: "stt.end",
+            runId,
+            conversationId: conversationIdRef.current,
+            status: "success",
+            elapsedMs,
+          });
+        }
         if (transcript)
           setValue((p) => (p ? `${p} ${transcript}` : transcript));
       },
@@ -197,8 +399,22 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     sttMutation.reset();
     setHasStoppedRecording(false);
     abortRef.current = new AbortController();
+    const runId = createRunId();
+    sttRunIdRef.current = runId;
+    sttStartedAtRef.current = Date.now();
+    emit({
+      type: "stt.start",
+      runId,
+      conversationId: conversationIdRef.current,
+      deviceIndex: preferences.defaultInputDeviceIndex,
+    });
     sttMutation.mutate(abortRef.current.signal);
-  }, [chatMutation.isPending, sttMutation]);
+  }, [
+    chatMutation.isPending,
+    emit,
+    preferences.defaultInputDeviceIndex,
+    sttMutation,
+  ]);
 
   const stopStt = useCallback(() => {
     if (abortRef.current && sttPhase === "recording") {
@@ -217,10 +433,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     setHasStoppedRecording(false);
     chatMutation.reset();
     sttMutation.reset();
-    setMessages([]);
-    setStreamingResponse("");
-    setPhase("idle");
-    setActiveToolCall(null);
+    setEvents([]);
+    activeToolIdsRef.current.clear();
+    lastStreamingTextRef.current = "";
+    firstTokenAtRef.current = null;
     // Detach from the current conversation row — next send will start a new
     // one. The previous conversation stays in the DB for browsing later.
     conversationIdRef.current = null;
@@ -254,6 +470,19 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       stopStt,
       quitApp,
       onBack,
+      openEvents: () => {
+        setSlashNotice(null);
+        const convId = conversationIdRef.current;
+        if (convId) {
+          void listPersistedChatEvents(convId).match(
+            (persistedEvents) =>
+              setEvents((current) => mergeChatEvents(current, persistedEvents)),
+            (err) =>
+              console.warn("[yappr] failed to load persisted events:", err),
+          );
+        }
+        setIsEventStreamOpen(true);
+      },
       navigate: (screen) => {
         if (onNavigate) onNavigate(screen);
         else
@@ -312,23 +541,28 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
 
   const dismissSlashOrBack = useCallback(() => {
     setSlashNotice(null);
+    if (isEventStreamOpen) {
+      setIsEventStreamOpen(false);
+      return;
+    }
     if (value.startsWith("/")) {
       setValue("");
       return;
     }
     onBack();
-  }, [value, onBack]);
+  }, [isEventStreamOpen, value, onBack]);
 
   const statusContent = (
     <ChatStatus
       chatPhase={phase}
       sttPhase={sttPhase}
-      hasStreamingResponse={!!streamingResponse}
+      hasStreamingResponse={Boolean(streamingResponse)}
       isChatPending={chatMutation.isPending}
       messageCount={messages.length}
       sttError={sttMutation.error ?? null}
       chatError={chatMutation.error ?? null}
       activeToolCall={activeToolCall}
+      toolSummaries={toolSummaries}
     />
   );
 
@@ -342,12 +576,15 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     value,
     messages,
     streamingResponse,
+    events,
+    isEventStreamOpen,
     statusContent,
     slashNotice,
     footerItems: buildChatFooterItems({
       isSlashPalette,
       isChatPending: chatMutation.isPending,
-      hasComposerValue: !!value.trim(),
+      hasComposerValue: Boolean(value.trim()),
+      isEventStreamOpen,
     }),
   };
 
@@ -358,6 +595,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     handleComposerSubmit,
     stopStt,
     stopChat,
+    closeEventStream: () => setIsEventStreamOpen(false),
   };
 
   return [state, actions] as const;

@@ -16,7 +16,7 @@ import { getDb } from "./db.js";
 
 function truncateTitle(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
-  return trimmed.length > 48 ? trimmed.slice(0, 48) + "…" : trimmed;
+  return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
 }
 
 export interface PersistedConversation {
@@ -24,26 +24,16 @@ export interface PersistedConversation {
   title: string;
 }
 
-/**
- * Create a new conversation row, titled from the first user prompt. Returns
- * the new id so the caller can thread it into subsequent `appendMessage`
- * calls.
- */
-export function createConversation(
+export function createConversationSync(
   firstPrompt: string,
   model: string | null,
-): ResultAsync<PersistedConversation, Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
-      const db = getDb();
-      const conv = db.conversations.create({
-        title: truncateTitle(firstPrompt),
-        model: model ?? undefined,
-      });
-      return { id: conv.id, title: conv.title };
-    })(),
-    toError,
-  );
+): PersistedConversation {
+  const db = getDb();
+  const conv = db.conversations.create({
+    title: truncateTitle(firstPrompt),
+    model: model ?? undefined,
+  });
+  return { id: conv.id, title: conv.title };
 }
 
 /**

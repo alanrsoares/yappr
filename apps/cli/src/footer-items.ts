@@ -65,8 +65,23 @@ export function buildChatFooterItems(opts: {
   isSlashPalette: boolean;
   isChatPending: boolean;
   hasComposerValue: boolean;
+  isEventStreamOpen?: boolean;
 }) {
-  const { isSlashPalette, isChatPending, hasComposerValue } = opts;
+  const {
+    isSlashPalette,
+    isChatPending,
+    hasComposerValue,
+    isEventStreamOpen = false,
+  } = opts;
+  if (isEventStreamOpen) {
+    return [
+      { key: "↑↓", label: "select" },
+      { key: "Enter", label: "details" },
+      { key: "f", label: "filter" },
+      footerEscBack(),
+    ];
+  }
+
   const tailMode: ComposerTailMode = isSlashPalette
     ? "slash"
     : hasComposerValue
