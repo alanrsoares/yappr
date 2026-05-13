@@ -40,7 +40,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
     { serverUrl, voice, voices, speed, health },
     { setServerUrl, setVoice, setSpeed, checkHealth },
   ] = useVoiceStore();
-  const { inputDeviceId, setInputDeviceId } = useChatStore();
+  const [{ inputDeviceId }, { setInputDeviceId }] = useChatStore();
   const inputDevices = useInputDevices();
 
   return (

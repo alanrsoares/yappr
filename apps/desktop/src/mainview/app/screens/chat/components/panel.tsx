@@ -1,21 +1,18 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
-import { useChat } from "@ai-sdk/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { MessageRow } from "@yappr/db/rpc";
-import { isFileUIPart, type FileUIPart, type UIMessage } from "ai";
-import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
+import { isFileUIPart, type FileUIPart } from "ai";
+import {
+  AlertTriangle,
+  Copy,
+  FileIcon,
+  RefreshCcw,
+  Square,
+  Volume2,
+} from "lucide-react";
 
-import { dbRpc } from "~/lib/db-rpc";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
-import {
-  conversationsQueryRootKey,
-  messagesOptions,
-  ollamaModelsOptions,
-} from "~/lib/queries";
 import { cn } from "~/lib/utils";
-import { OllamaTransport } from "~/services/ollama/transport";
 import { useVoiceStore } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import {
@@ -31,205 +28,31 @@ import {
   MessageContent,
 } from "~/ui/message";
 import { Composer } from "../../../components/composer";
-import { useChatStore } from "../store";
+import { chatMessageText, useChatStore } from "../store";
 import { KaraokeCaptions } from "./karaoke-captions";
 
-interface ChatPanelProps {
-  model: string;
-  onModelChange: (next: string) => void;
-  conversationId: string | null;
-  onConversationChange: (id: string | null) => void;
-}
-
-function truncateTitle(text: string): string {
-  const trimmed = text.trim().replace(/\s+/g, " ");
-  return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
-}
-
-function dbToUIMessage(m: MessageRow): UIMessage {
-  if (m.partsJson) {
-    try {
-      const parsed = JSON.parse(m.partsJson) as unknown;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return {
-          id: m.id,
-          role: m.role,
-          parts: parsed as UIMessage["parts"],
-        };
-      }
-    } catch {
-      /* legacy / corrupt row — fall through */
-    }
-  }
-  return {
-    id: m.id,
-    role: m.role,
-    parts: [{ type: "text", text: m.content }],
-  };
-}
-
-function buildUserParts(text: string, files: FileUIPart[]): UIMessage["parts"] {
-  const trimmed = text.trim();
-  const out: UIMessage["parts"] = [...files];
-  if (trimmed) out.push({ type: "text", text: trimmed });
-  return out;
-}
-
-function userRowContent(text: string, files: FileUIPart[]): string {
-  const t = text.trim();
-  if (t) return t;
-  if (!files.length) return "";
-  return files.map((f) => f.filename ?? f.mediaType).join(", ");
-}
-
-function uiTextOf(m: UIMessage): string {
-  return m.parts.map((p) => (p.type === "text" ? (p.text ?? "") : "")).join("");
-}
-
-export function ChatPanel({
-  model,
-  onModelChange: _onModelChange,
-  conversationId,
-  onConversationChange,
-}: ChatPanelProps) {
-  const queryClient = useQueryClient();
-  const { data } = useQuery(messagesOptions(conversationId));
-  const { data: models } = useQuery(ollamaModelsOptions);
-  // Model must be present in the locally-installed list — otherwise Ollama
-  // returns 404 mid-stream. Block sends until pickModel (in chat-layout) has
-  // had a chance to resolve to a valid choice.
-  const modelReady =
-    Boolean(model) && (models?.some((m) => m.name === model) ?? false);
-  // Stable empty-array ref so the hydration effect below doesn't loop on
-  // every render when the query is disabled (conversationId === null) and
-  // `data` stays undefined.
-  const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
+export function ChatPanel() {
   const [
     { tts, caption },
     { speak, pauseAudio, resumeAudio, restartAudio, stopAudio, transcribe },
   ] = useVoiceStore();
-  const { inputDeviceId } = useChatStore();
+  const [
+    {
+      messages,
+      error,
+      isBusy,
+      showLoading,
+      modelReady,
+      modelsLoaded,
+      inputDeviceId,
+    },
+    { submit, regenerateMessage, stop },
+  ] = useChatStore();
   const isSpeaking = tts.kind === "speaking";
   const speakingMessageId =
     caption.kind === "active" ? caption.messageId : null;
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
-
-  const createConv = useMutation({
-    mutationFn: (title: string) =>
-      dbRpc.request("conversations:create", { title, model }),
-  });
-  const appendMessage = useMutation({
-    mutationFn: (params: {
-      conversationId: string;
-      role: "user" | "assistant";
-      content: string;
-      partsJson?: string;
-    }) => dbRpc.request("messages:append", params),
-  });
-
-  // Live conversation id captured at send-time so onFinish writes to the
-  // right row even if the user navigates between conversations mid-stream.
-  const liveConvIdRef = useRef<string | null>(conversationId);
-
-  // useChat freezes the transport at first render. Wrap the model lookup in a
-  // ref-backed getter so picking a different model at runtime takes effect
-  // without re-creating the chat instance (which would lose live state).
-  const modelRef = useRef(model);
-  useEffect(() => {
-    modelRef.current = model;
-  }, [model]);
-  const transport = useMemo(
-    // The closure is invoked later at send time, not during render — the lint
-    // rule can't statically see that, so silence it.
-    // eslint-disable-next-line react-hooks/refs
-    () => new OllamaTransport(() => modelRef.current),
-    [],
-  );
-
-  const { messages, sendMessage, status, error, setMessages, stop } = useChat({
-    transport,
-    onFinish: async ({ message }) => {
-      const convId = liveConvIdRef.current;
-      if (!convId) return;
-      const text = uiTextOf(message);
-      if (!text) return;
-      await appendMessage.mutateAsync({
-        conversationId: convId,
-        role: "assistant",
-        content: text,
-      });
-      queryClient.invalidateQueries({
-        queryKey: messagesOptions(convId).queryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: conversationsQueryRootKey,
-      });
-    },
-  });
-
-  // Hydrate from the DB when the active conversation or persisted list
-  // changes. Skip during an in-flight stream so the transport's live messages
-  // aren't clobbered. setMessages is ref-stashed because useChat re-creates
-  // its identity each render and would otherwise re-trigger the effect.
-  const setMessagesRef = useRef(setMessages);
-  useEffect(() => {
-    setMessagesRef.current = setMessages;
-  }, [setMessages]);
-  useEffect(() => {
-    if (status === "submitted" || status === "streaming") return;
-    liveConvIdRef.current = conversationId;
-    setMessagesRef.current(persisted.map(dbToUIMessage));
-  }, [conversationId, persisted, status]);
-
-  const handleSubmit = useCallback(
-    async (text: string, files: FileUIPart[]) => {
-      if (!text.trim() && files.length === 0) return;
-      const titleSeed = userRowContent(text, files);
-
-      let convId = conversationId;
-      if (!convId) {
-        const conv = await createConv.mutateAsync(truncateTitle(titleSeed));
-        convId = conv.id;
-        onConversationChange(convId);
-        queryClient.invalidateQueries({
-          queryKey: conversationsQueryRootKey,
-        });
-      }
-      liveConvIdRef.current = convId;
-      const parts = buildUserParts(text, files);
-      const partsJson = files.length > 0 ? JSON.stringify(parts) : undefined;
-      await appendMessage.mutateAsync({
-        conversationId: convId,
-        role: "user",
-        content: userRowContent(text, files),
-        partsJson,
-      });
-      if (files.length > 0) {
-        const trimmed = text.trim();
-        if (trimmed) await sendMessage({ text: trimmed, files });
-        else await sendMessage({ files });
-      } else {
-        await sendMessage({ text: text.trim() });
-      }
-    },
-    [
-      conversationId,
-      onConversationChange,
-      queryClient,
-      createConv,
-      appendMessage,
-      sendMessage,
-    ],
-  );
-
-  const isBusy = status === "submitted" || status === "streaming";
-
-  // Show the typing indicator only between submit and the first token, so it
-  // disappears the moment the assistant message starts populating.
-  const showLoading =
-    status === "submitted" &&
-    !messages.some((m) => m.role === "assistant" && uiTextOf(m).length > 0);
 
   useEffect(() => {
     const node = composerShellRef.current;
@@ -249,7 +72,7 @@ export function ChatPanel({
             <EmptyState />
           ) : (
             messages.map((m, idx) => {
-              const text = uiTextOf(m);
+              const text = chatMessageText(m);
               const fileParts =
                 m.parts?.filter((p): p is FileUIPart => isFileUIPart(p)) ?? [];
               const isLast = idx === messages.length - 1;
@@ -261,10 +84,17 @@ export function ChatPanel({
                   fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
+                  canRegenerate={
+                    m.role === "assistant" &&
+                    isLast &&
+                    !isBusy &&
+                    text.trim().length > 0
+                  }
                   isSpeaking={
                     isSpeaking &&
                     (speakingMessageId === m.id || speakingMessageId === null)
                   }
+                  onRegenerate={() => void regenerateMessage(m.id)}
                   onSpeak={() =>
                     void speak(markdownToNarrationText(text), {
                       messageId: m.id,
@@ -296,14 +126,14 @@ export function ChatPanel({
       >
         <div className="mx-auto max-w-3xl">
           <Composer
-            onSend={(t, f) => void handleSubmit(t, f)}
+            onSend={(t, f) => void submit(t, f)}
             isBusy={isBusy}
             onStop={stop}
             disabled={!modelReady}
             placeholder={
               modelReady
                 ? "Ask the local model… (Shift+Enter for newline)"
-                : models
+                : modelsLoaded
                   ? "Select an installed model to start chatting…"
                   : "Loading models from Ollama…"
             }
@@ -333,7 +163,9 @@ interface MessageBubbleProps {
   fileAttachments: FileUIPart[];
   isLast: boolean;
   canSpeak: boolean;
+  canRegenerate: boolean;
   isSpeaking: boolean;
+  onRegenerate: () => void;
   onSpeak: () => void;
   onStop: () => void;
 }
@@ -344,7 +176,9 @@ const MessageBubble = memo(function MessageBubble({
   fileAttachments,
   isLast,
   canSpeak,
+  canRegenerate,
   isSpeaking,
+  onRegenerate,
   onSpeak,
   onStop,
 }: MessageBubbleProps) {
@@ -403,6 +237,20 @@ const MessageBubble = memo(function MessageBubble({
           {content}
         </MessageContent>
         <MessageActions className={actionsClass}>
+          {canRegenerate ? (
+            <MessageAction tooltip="Regenerate" delayDuration={100}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onRegenerate}
+                aria-label="Regenerate response"
+                className="size-7 rounded-full"
+              >
+                <RefreshCcw className="size-3.5" aria-hidden="true" />
+              </Button>
+            </MessageAction>
+          ) : null}
           <MessageAction tooltip="Copy" delayDuration={100}>
             <Button
               type="button"
