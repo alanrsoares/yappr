@@ -7,6 +7,7 @@ import { semantic } from "~/theme/semantic.js";
 import type { ScreenId } from "~/types.js";
 import { ChatHistory } from "./components/chat-history.js";
 import { ChatInput } from "./components/chat-input.js";
+import { EventStreamView } from "./components/event-stream-view.js";
 import { ChatProvider, useChatStore } from "./store.js";
 
 export interface ChatScreenProps {
@@ -39,7 +40,10 @@ function ChatScreenContent() {
 
   return (
     <Box flexDirection="column" padding={1} height="100%" width={terminalWidth}>
-      <Header title="Chat" subtitle={subtitle} />
+      <Header
+        title={state.isEventStreamOpen ? "Events" : "Chat"}
+        subtitle={subtitle}
+      />
 
       <Box
         flexDirection="column"
@@ -51,16 +55,26 @@ function ChatScreenContent() {
         paddingY={0}
         marginBottom={1}
       >
-        <ChatHistory
-          messages={state.messages}
-          streamingResponse={state.streamingResponse}
-          modelName={state.model}
-        />
+        {state.isEventStreamOpen ? (
+          <EventStreamView
+            events={state.events}
+            width={terminalWidth}
+            onClose={actions.closeEventStream}
+          />
+        ) : (
+          <ChatHistory
+            messages={state.messages}
+            streamingResponse={state.streamingResponse}
+            modelName={state.model}
+          />
+        )}
       </Box>
 
-      <Box flexDirection="column" marginBottom={1} minHeight={1}>
-        {state.statusContent}
-      </Box>
+      {!state.isEventStreamOpen && (
+        <Box flexDirection="column" marginBottom={1} minHeight={1}>
+          {state.statusContent}
+        </Box>
+      )}
 
       {state.slashNotice !== null && state.slashNotice !== "" && (
         <Box flexDirection="column" marginBottom={1}>
@@ -72,12 +86,14 @@ function ChatScreenContent() {
         </Box>
       )}
 
-      <ChatInput
-        value={state.value}
-        onChange={actions.handleInputChange}
-        onComposerSubmit={actions.handleComposerSubmit}
-        placeholder={`Message ${state.model}… (type / for commands)`}
-      />
+      {!state.isEventStreamOpen && (
+        <ChatInput
+          value={state.value}
+          onChange={actions.handleInputChange}
+          onComposerSubmit={actions.handleComposerSubmit}
+          placeholder={`Message ${state.model}… (type / for commands)`}
+        />
+      )}
 
       <Footer items={state.footerItems} />
     </Box>

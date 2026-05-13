@@ -16,12 +16,27 @@ const newId = (): string =>
 
 export type ConversationListScope = "active" | "archived" | "all";
 
+export interface ConversationListOptions {
+  limit?: number;
+}
+
+const clampLimit = (limit: number | undefined) =>
+  Math.min(Math.max(limit ?? 200, 1), 1_000);
+
 export function makeConversationsRepo(db: Db) {
   return {
-    list(scope: ConversationListScope = "active"): schema.Conversation[] {
+    list(
+      scope: ConversationListScope = "active",
+      options?: ConversationListOptions,
+    ): schema.Conversation[] {
       const order = desc(schema.conversations.updatedAt);
       if (scope === "all") {
-        return db.select().from(schema.conversations).orderBy(order).all();
+        return db
+          .select()
+          .from(schema.conversations)
+          .orderBy(order)
+          .limit(clampLimit(options?.limit))
+          .all();
       }
       const archivedInt = scope === "archived" ? 1 : 0;
       return db
@@ -29,6 +44,7 @@ export function makeConversationsRepo(db: Db) {
         .from(schema.conversations)
         .where(eq(schema.conversations.archived, archivedInt))
         .orderBy(order)
+        .limit(clampLimit(options?.limit))
         .all();
     },
 

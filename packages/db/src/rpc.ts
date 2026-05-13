@@ -1,7 +1,7 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { conversations, messages } from "./schema.js";
+import { agentEvents, conversations, messages } from "./schema.js";
 
 /**
  * Wire-format zod schemas + TS contract for the desktop's bun ↔ webview RPC
@@ -22,9 +22,11 @@ import { conversations, messages } from "./schema.js";
 
 export const ConversationSchema = createSelectSchema(conversations);
 export const MessageSchema = createSelectSchema(messages);
+export const AgentEventSchema = createSelectSchema(agentEvents);
 
 export type ConversationRow = z.infer<typeof ConversationSchema>;
 export type MessageRow = z.infer<typeof MessageSchema>;
+export type AgentEventRow = z.infer<typeof AgentEventSchema>;
 
 export const RoleSchema = z.enum(["user", "assistant", "system"]);
 export type Role = z.infer<typeof RoleSchema>;
@@ -48,6 +50,7 @@ export const ConversationsDeleteInput = z.object({ id: z.string().min(1) });
 export const ConversationsListInput = z
   .object({
     scope: z.enum(["active", "archived", "all"]).optional(),
+    limit: z.number().int().positive().max(1_000).optional(),
   })
   .optional();
 
@@ -58,6 +61,7 @@ export const ConversationsSetArchivedInput = z.object({
 
 export const MessagesListInput = z.object({
   conversationId: z.string().min(1),
+  limit: z.number().int().positive().max(5_000).optional(),
 });
 export const MessagesAppendInput = z.object({
   conversationId: z.string().min(1),
@@ -67,6 +71,22 @@ export const MessagesAppendInput = z.object({
   partsJson: z.string().max(12_000_000).optional(),
 });
 export const MessagesDeleteInput = z.object({ id: z.string().min(1) });
+export const AgentEventsListForConversationInput = z.object({
+  conversationId: z.string().min(1),
+  limit: z.number().int().positive().max(10_000).optional(),
+});
+export const AgentEventsListForRunInput = z.object({
+  runId: z.string().min(1),
+  limit: z.number().int().positive().max(10_000).optional(),
+});
+export const AgentEventsAppendInput = z.object({
+  id: z.string().min(1),
+  conversationId: z.string().min(1).nullable(),
+  runId: z.string().min(1),
+  type: z.string().min(1),
+  eventJson: z.string().max(12_000_000),
+  createdAt: z.number().int().nonnegative(),
+});
 
 // ---- Wire contract (Electrobun RPC schema) --------------------------------
 
@@ -124,6 +144,19 @@ export interface DbRpcSchema {
       "messages:delete": {
         params: z.infer<typeof MessagesDeleteInput>;
         response: void;
+      };
+
+      "agentEvents:listForConversation": {
+        params: z.infer<typeof AgentEventsListForConversationInput>;
+        response: AgentEventRow[];
+      };
+      "agentEvents:listForRun": {
+        params: z.infer<typeof AgentEventsListForRunInput>;
+        response: AgentEventRow[];
+      };
+      "agentEvents:append": {
+        params: z.infer<typeof AgentEventsAppendInput>;
+        response: AgentEventRow;
       };
     };
     messages: Record<string, never>;

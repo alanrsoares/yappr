@@ -5,7 +5,7 @@ import type { ChatMessage } from "../../../types.js";
 export function buildChatModelMessages(
   prompt: string,
   priorMessages: ChatMessage[],
-): ModelMessage<string>[] {
+): Array<ModelMessage<string>> {
   const priorWithoutSystem = priorMessages.filter((m) => m.role !== "system");
   return [
     ...priorWithoutSystem.map(

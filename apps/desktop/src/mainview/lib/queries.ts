@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { type VoiceId } from "@yappr/sdk/schemas";
+import type { VoiceId } from "@yappr/sdk/schemas";
 import { TTSClient } from "@yappr/sdk/tts";
 
 import { dbRpc } from "~/lib/db-rpc";
@@ -89,6 +89,6 @@ export const messagesOptions = (conversationId: string | null) =>
       if (!conversationId) return Promise.resolve([]);
       return dbRpc.request("messages:list", { conversationId });
     },
-    enabled: !!conversationId,
+    enabled: Boolean(conversationId),
     staleTime: Infinity, // streaming appends drive invalidation manually
   });

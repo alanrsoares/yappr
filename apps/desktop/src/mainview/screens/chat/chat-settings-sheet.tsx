@@ -1,6 +1,6 @@
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { type VoiceId } from "@yappr/sdk/schemas";
+import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 
 import { useVoiceStore } from "~/lib/voice-store";

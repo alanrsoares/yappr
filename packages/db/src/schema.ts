@@ -1,4 +1,11 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  integer,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 
 /**
  * Yappr SQLite schema. Schema-first per the project directive — Drizzle
@@ -32,27 +39,68 @@ export const preferences = sqliteTable("preferences", {
   updatedAt: integer("updated_at").notNull(),
 });
 
-export const conversations = sqliteTable("conversations", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  model: text("model"),
-  /** 0 = visible in main sidebar, 1 = archived only. Plain integers avoid SQLite boolean-mapping quirks in WHERE clauses. */
-  archived: integer("archived").notNull().default(0),
-  createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull(),
-});
+export const conversations = sqliteTable(
+  "conversations",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    model: text("model"),
+    /** 0 = visible in main sidebar, 1 = archived only. Plain integers avoid SQLite boolean-mapping quirks in WHERE clauses. */
+    archived: integer("archived").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    check("conversations_archived_check", sql`${table.archived} IN (0, 1)`),
+    index("idx_conversations_updated").on(table.updatedAt),
+  ],
+);
 
-export const messages = sqliteTable("messages", {
-  id: text("id").primaryKey(),
-  conversationId: text("conversation_id")
-    .notNull()
-    .references(() => conversations.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
-  content: text("content").notNull(),
-  /** JSON array of AI SDK UI parts (`text` + `file`) for multimodal user turns; null = legacy text-only. */
-  partsJson: text("parts_json"),
-  createdAt: integer("created_at").notNull(),
-});
+export const messages = sqliteTable(
+  "messages",
+  {
+    id: text("id").primaryKey(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
+    content: text("content").notNull(),
+    /** JSON array of AI SDK UI parts (`text` + `file`) for multimodal user turns; null = legacy text-only. */
+    partsJson: text("parts_json"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    check(
+      "messages_role_check",
+      sql`${table.role} IN ('user', 'assistant', 'system')`,
+    ),
+    index("idx_messages_conv_created").on(
+      table.conversationId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const agentEvents = sqliteTable(
+  "agent_events",
+  {
+    id: text("id").primaryKey(),
+    conversationId: text("conversation_id").references(() => conversations.id, {
+      onDelete: "cascade",
+    }),
+    runId: text("run_id").notNull(),
+    type: text("type").notNull(),
+    eventJson: text("event_json").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_agent_events_conv_created").on(
+      table.conversationId,
+      table.createdAt,
+    ),
+    index("idx_agent_events_run_created").on(table.runId, table.createdAt),
+  ],
+);
 
 export type Preference = typeof preferences.$inferSelect;
 export type NewPreference = typeof preferences.$inferInsert;
@@ -63,54 +111,5 @@ export type NewConversation = typeof conversations.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 
-export const SCHEMA_VERSION = 3;
-export const SCHEMA_VERSION_KEY = "_schema_version";
-
-/**
- * Idempotent schema bootstrap. Runs on every `createDb()` — `CREATE TABLE IF
- * NOT EXISTS` makes it safe to re-run. The `STRICT` keyword is the SQLite
- * 3.37+ feature that turns type-affinity hints into hard column constraints.
- *
- * When the schema needs to evolve, add `ALTER TABLE` statements below this
- * block guarded on `_schema_version` reads (see migrate.ts when it lands).
- */
-export const INIT_SQL = `
-  PRAGMA journal_mode = WAL;
-  PRAGMA synchronous = NORMAL;
-  PRAGMA foreign_keys = ON;
-  PRAGMA temp_store = MEMORY;
-  PRAGMA cache_size = -64000;
-  PRAGMA busy_timeout = 5000;
-
-  CREATE TABLE IF NOT EXISTS preferences (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
-  ) STRICT;
-
-  CREATE TABLE IF NOT EXISTS conversations (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    model TEXT,
-    archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0, 1)),
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  ) STRICT;
-
-  CREATE TABLE IF NOT EXISTS messages (
-    id TEXT PRIMARY KEY,
-    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
-    content TEXT NOT NULL,
-    parts_json TEXT,
-    created_at INTEGER NOT NULL
-  ) STRICT;
-
-  -- Composite index covers both filter-by-conversation and the chronological
-  -- ordering in one shot; avoids a separate index on conversation_id alone.
-  CREATE INDEX IF NOT EXISTS idx_messages_conv_created
-    ON messages(conversation_id, created_at);
-
-  CREATE INDEX IF NOT EXISTS idx_conversations_updated
-    ON conversations(updated_at DESC);
-`;
+export type AgentEvent = typeof agentEvents.$inferSelect;
+export type NewAgentEvent = typeof agentEvents.$inferInsert;

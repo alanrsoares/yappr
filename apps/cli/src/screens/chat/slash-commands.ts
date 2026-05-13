@@ -6,6 +6,7 @@ export interface SlashCommandContext {
   stopStt: () => void;
   quitApp: () => void;
   onBack: () => void;
+  openEvents: () => void;
   navigate: (screen: ScreenId) => void;
   showNotice: (message: string) => void;
   model: string;
@@ -92,6 +93,12 @@ const SLASH_COMMANDS: readonly SlashCommandDef[] = [
     name: "mcp",
     description: "Open MCP status",
     run: (ctx) => ctx.navigate("mcp"),
+  },
+  {
+    name: "events",
+    aliases: ["evt"],
+    description: "Inspect current chat event stream",
+    run: (ctx) => ctx.openEvents(),
   },
   {
     name: "model",
