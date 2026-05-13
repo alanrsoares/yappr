@@ -3,7 +3,7 @@ import type { ElectrobunConfig } from "electrobun";
 export default {
   app: {
     name: "Yappr",
-    identifier: "money.printr.yappr.desktop",
+    identifier: "alanrsoares.me.yappr.desktop",
     version: "0.0.1",
   },
   build: {
