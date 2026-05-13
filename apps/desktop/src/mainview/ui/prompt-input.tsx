@@ -9,14 +9,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { Textarea } from "~/app/ui/textarea";
+import { cn } from "~/lib/utils";
+import { Textarea } from "~/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "~/app/ui/tooltip";
-import { cn } from "~/lib/utils";
+} from "~/ui/tooltip";
 
 type PromptInputContextType = {
   isLoading: boolean;

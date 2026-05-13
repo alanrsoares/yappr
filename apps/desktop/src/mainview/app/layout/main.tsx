@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 
-import { TooltipProvider } from "~/app/ui/tooltip";
+import { TooltipProvider } from "~/ui/tooltip";
 
 /**
  * Minimal app shell. Each route paints its own chrome:

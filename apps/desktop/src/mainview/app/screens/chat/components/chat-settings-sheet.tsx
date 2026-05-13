@@ -3,16 +3,18 @@ import type { ReactNode } from "react";
 import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 
-import { Button } from "~/app/ui/button";
-import { Input } from "~/app/ui/input";
-import { Label } from "~/app/ui/label";
+import { useInputDevices } from "~/hooks";
+import { useVoiceStore } from "~/stores/voice";
+import { Button } from "~/ui/button";
+import { Input } from "~/ui/input";
+import { Label } from "~/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/app/ui/select";
+} from "~/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -20,10 +22,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "~/app/ui/sheet";
-import { Slider } from "~/app/ui/slider";
-import { useInputDevices } from "~/hooks";
-import { useVoiceStore } from "~/stores/voice";
+} from "~/ui/sheet";
+import { Slider } from "~/ui/slider";
 import { useChatStore } from "../store";
 
 interface ChatSettingsSheetProps {

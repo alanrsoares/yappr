@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Loader2, Mic, Square } from "lucide-react";
 
-import { Button } from "~/app/ui/button";
-import { PromptInputAction } from "~/app/ui/prompt-input";
 import { cn } from "~/lib/utils";
 import { blobToWavBlob } from "~/lib/wav";
+import { Button } from "~/ui/button";
+import { PromptInputAction } from "~/ui/prompt-input";
 
 // Heuristic thresholds for short-circuiting before the server roundtrip.
 // Whisper hallucinates "You" / "Thank you" on near-silent or sub-second clips.

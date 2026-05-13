@@ -3,19 +3,19 @@ import { useCallback, useState, type ReactNode } from "react";
 import { convertFileListToFileUIParts, type FileUIPart } from "ai";
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 
-import { Button } from "~/app/ui/button";
+import { cn } from "~/lib/utils";
+import { Button } from "~/ui/button";
 import {
   FileUpload,
   FileUploadContent,
   FileUploadTrigger,
-} from "~/app/ui/file-upload";
+} from "~/ui/file-upload";
 import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
-} from "~/app/ui/prompt-input";
-import { cn } from "~/lib/utils";
+} from "~/ui/prompt-input";
 import { MicButton } from "./mic-button";
 
 const MAX_ATTACHMENTS = 6;

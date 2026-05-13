@@ -1,11 +1,11 @@
-import { Avatar, AvatarFallback, AvatarImage } from "~/app/ui/avatar";
+import { cn } from "~/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "~/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "~/app/ui/tooltip";
-import { cn } from "~/lib/utils";
+} from "~/ui/tooltip";
 import { Markdown } from "./markdown";
 
 export type MessageProps = {

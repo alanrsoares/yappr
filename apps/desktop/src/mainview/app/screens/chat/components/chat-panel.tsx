@@ -6,19 +6,6 @@ import type { MessageRow } from "@yappr/db/rpc";
 import { isFileUIPart, type FileUIPart, type UIMessage } from "ai";
 import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
 
-import { Button } from "~/app/ui/button";
-import {
-  ChatContainerContent,
-  ChatContainerRoot,
-  ChatContainerScrollAnchor,
-} from "~/app/ui/chat-container";
-import { DotsLoader } from "~/app/ui/loader";
-import {
-  Message,
-  MessageAction,
-  MessageActions,
-  MessageContent,
-} from "~/app/ui/message";
 import { dbRpc } from "~/lib/db-rpc";
 import {
   conversationsQueryRootKey,
@@ -28,6 +15,19 @@ import {
 import { cn } from "~/lib/utils";
 import { OllamaTransport } from "~/services/ollama/transport";
 import { useVoiceStore } from "~/stores/voice";
+import { Button } from "~/ui/button";
+import {
+  ChatContainerContent,
+  ChatContainerRoot,
+  ChatContainerScrollAnchor,
+} from "~/ui/chat-container";
+import { DotsLoader } from "~/ui/loader";
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+} from "~/ui/message";
 import { useChatStore } from "../store";
 import { Composer } from "./composer";
 
