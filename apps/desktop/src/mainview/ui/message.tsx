@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 import { cn } from "~/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "~/ui/avatar";
 import {
@@ -13,11 +15,14 @@ export type MessageProps = {
   className?: string;
 } & React.HTMLProps<HTMLDivElement>;
 
-const Message = ({ children, className, ...props }: MessageProps) => (
-  <div className={cn("flex gap-3", className)} {...props}>
-    {children}
-  </div>
+const Message = forwardRef<HTMLDivElement, MessageProps>(
+  ({ children, className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex gap-3", className)} {...props}>
+      {children}
+    </div>
+  ),
 );
+Message.displayName = "Message";
 
 export type MessageAvatarProps = {
   src: string;

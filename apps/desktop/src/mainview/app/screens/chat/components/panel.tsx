@@ -7,6 +7,7 @@ import { isFileUIPart, type FileUIPart, type UIMessage } from "ai";
 import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
+import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import {
   conversationsQueryRootKey,
   messagesOptions,
@@ -361,6 +362,31 @@ const MessageBubble = memo(function MessageBubble({
     "gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100",
     isLast && "opacity-100",
   );
+  const messageRef = useRef<HTMLDivElement | null>(null);
+  const [userBubbleWidth, setUserBubbleWidth] = useState<number | null>(null);
+  const shouldMeasureUserBubble =
+    role === "user" &&
+    fileAttachments.length === 0 &&
+    content.trim().length > 0;
+
+  useEffect(() => {
+    const node = messageRef.current;
+    if (!node || !shouldMeasureUserBubble) {
+      setUserBubbleWidth(null);
+      return;
+    }
+    const update = () => {
+      const rowWidth = node.getBoundingClientRect().width;
+      const ratio = window.matchMedia("(min-width: 640px)").matches
+        ? 0.75
+        : 0.85;
+      setUserBubbleWidth(measureUserTextBubbleWidth(content, rowWidth * ratio));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [content, shouldMeasureUserBubble]);
 
   if (role === "assistant") {
     return (
@@ -414,11 +440,19 @@ const MessageBubble = memo(function MessageBubble({
   }
 
   return (
-    <Message className="group mx-auto flex w-full max-w-3xl flex-col items-end gap-1">
+    <Message
+      ref={messageRef}
+      className="group mx-auto flex w-full max-w-3xl flex-col items-end gap-1"
+    >
       <div
         className={cn(
           "flex max-w-[85%] flex-col gap-2 rounded-3xl bg-secondary px-4 py-2 text-foreground break-words sm:max-w-[75%]",
         )}
+        style={
+          userBubbleWidth === null
+            ? undefined
+            : { width: `${userBubbleWidth}px` }
+        }
       >
         {fileAttachments.length > 0 ? (
           <ul className="flex flex-col gap-2">
