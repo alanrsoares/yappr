@@ -13,17 +13,28 @@ export interface NewMessageInput {
   partsJson?: string | null;
 }
 
+export interface MessageListOptions {
+  limit?: number;
+}
+
 const newId = (): string =>
   `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+const clampLimit = (limit: number | undefined) =>
+  Math.min(Math.max(limit ?? 500, 1), 5_000);
+
 export function makeMessagesRepo(db: Db) {
   return {
-    list(conversationId: string): schema.Message[] {
+    list(
+      conversationId: string,
+      options?: MessageListOptions,
+    ): schema.Message[] {
       return db
         .select()
         .from(schema.messages)
         .where(eq(schema.messages.conversationId, conversationId))
         .orderBy(asc(schema.messages.createdAt))
+        .limit(clampLimit(options?.limit))
         .all();
     },
 

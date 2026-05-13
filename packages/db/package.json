@@ -4,6 +4,9 @@
   "description": "Yappr persistence — bun:sqlite + Drizzle. Shared by CLI and desktop. DB lives at ~/.yappr/yappr.db.",
   "type": "module",
   "private": true,
+  "scripts": {
+    "db:generate": "cd ../.. && drizzle-kit generate --config packages/db/drizzle.config.ts"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
@@ -16,5 +19,8 @@
     "drizzle-zod": "^0.8.3",
     "neverthrow": "^8.2.0",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
   }
 }
