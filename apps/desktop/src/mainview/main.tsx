@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import "./index.css";
 
-import App from "./app/app";
+import App from "./app";
 
 // Side-effect import: instantiates Electroview + opens the bun ↔ webview
 // RPC socket before any component tries to call `dbRpc.request(...)`.
