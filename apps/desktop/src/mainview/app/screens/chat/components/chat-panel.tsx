@@ -28,8 +28,8 @@ import {
   MessageActions,
   MessageContent,
 } from "~/ui/message";
+import { Composer } from "../../../components/composer";
 import { useChatStore } from "../store";
-import { Composer } from "./composer";
 
 interface ChatPanelProps {
   model: string;

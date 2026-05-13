@@ -1,12 +1,12 @@
 import { Settings } from "lucide-react";
 
+import { ModelPicker } from "~/app/components/model-picker";
 import { DRAG, NO_DRAG } from "~/lib/drag-region";
 import { useVoiceStore } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import { SidebarTrigger } from "~/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/ui/tooltip";
 import { ChatSettingsSheet } from "./chat-settings-sheet";
-import { ModelPicker } from "./model-picker";
 
 interface ChatTopBarProps {
   model: string;

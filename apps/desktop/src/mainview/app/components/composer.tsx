@@ -3,6 +3,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { convertFileListToFileUIParts, type FileUIPart } from "ai";
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 
+import { MicButton } from "~/app/components/mic-button";
 import { cn } from "~/lib/utils";
 import { Button } from "~/ui/button";
 import {
@@ -16,7 +17,6 @@ import {
   PromptInputActions,
   PromptInputTextarea,
 } from "~/ui/prompt-input";
-import { MicButton } from "./mic-button";
 
 const MAX_ATTACHMENTS = 6;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
