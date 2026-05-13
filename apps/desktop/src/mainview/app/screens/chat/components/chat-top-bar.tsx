@@ -14,7 +14,7 @@ interface ChatTopBarProps {
 }
 
 export function ChatTopBar({ model, onModelChange }: ChatTopBarProps) {
-  const { health } = useVoiceStore();
+  const [{ health }] = useVoiceStore();
   const isHealthy = health.kind === "ok";
 
   return (

@@ -4,7 +4,7 @@ import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 
 import { useInputDevices } from "~/hooks";
-import { useVoiceStore } from "~/stores/voice";
+import { useVoiceStore, type VoiceStoreState } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import { Input } from "~/ui/input";
 import { Label } from "~/ui/label";
@@ -36,17 +36,10 @@ interface ChatSettingsSheetProps {
 const INPUT_DEFAULT_SENTINEL = "__system_default__";
 
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
-  const {
-    serverUrl,
-    setServerUrl,
-    voice,
-    setVoice,
-    voices,
-    speed,
-    setSpeed,
-    health,
-    checkHealth,
-  } = useVoiceStore();
+  const [
+    { serverUrl, voice, voices, speed, health },
+    { setServerUrl, setVoice, setSpeed, checkHealth },
+  ] = useVoiceStore();
   const { inputDeviceId, setInputDeviceId } = useChatStore();
   const inputDevices = useInputDevices();
 
@@ -226,9 +219,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   );
 }
 
-const healthLine = (
-  health: ReturnType<typeof useVoiceStore>["health"],
-): string => {
+const healthLine = (health: VoiceStoreState["health"]): string => {
   if (health.kind === "idle") return "Not checked.";
   if (health.kind === "checking") return "Probing…";
   if (health.kind === "ok") return `Online — ${health.voices} voices.`;

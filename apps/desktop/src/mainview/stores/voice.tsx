@@ -21,16 +21,19 @@ import { dbRpc } from "~/lib/db-rpc";
 import { preferencesOptions, voicesOptions } from "~/lib/queries";
 import type { HealthState, TtsState } from "~/types";
 
-type VoiceStoreValue = {
+export type VoiceStoreState = {
   serverUrl: string;
-  setServerUrl: (v: string) => void;
   health: HealthState;
   voices: VoiceId[];
   voice: VoiceId;
-  setVoice: (v: VoiceId) => void;
   speed: number;
-  setSpeed: (v: number) => void;
   tts: TtsState;
+};
+
+type VoiceStoreActions = {
+  setServerUrl: (v: string) => void;
+  setVoice: (v: VoiceId) => void;
+  setSpeed: (v: number) => void;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;
   stopAudio: () => void;
@@ -39,6 +42,8 @@ type VoiceStoreValue = {
   /** Send a recorded audio Blob to the STT endpoint. Resolves with transcript. */
   transcribe: (blob: Blob) => Promise<string>;
 };
+
+type VoiceStoreValue = readonly [VoiceStoreState, VoiceStoreActions];
 
 function useVoiceStoreLogic(): VoiceStoreValue {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
@@ -178,38 +183,26 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     [],
   );
 
-  return useMemo<VoiceStoreValue>(
-    () => ({
-      serverUrl,
-      setServerUrl: setServerUrlPersist,
-      health,
-      voices,
-      voice,
-      setVoice: setVoicePersist,
-      speed,
-      setSpeed: setSpeedPersist,
-      tts,
-      checkHealth,
-      stopAudio,
-      speak,
-      transcribe,
-    }),
-    [
-      serverUrl,
-      setServerUrlPersist,
-      health,
-      voices,
-      voice,
-      setVoicePersist,
-      speed,
-      setSpeedPersist,
-      tts,
-      checkHealth,
-      stopAudio,
-      speak,
-      transcribe,
-    ],
-  );
+  const state = {
+    serverUrl,
+    health,
+    voices,
+    voice,
+    speed,
+    tts,
+  };
+
+  const actions = {
+    setServerUrl: setServerUrlPersist,
+    setVoice: setVoicePersist,
+    setSpeed: setSpeedPersist,
+    checkHealth,
+    stopAudio,
+    speak,
+    transcribe,
+  };
+
+  return [state, actions] as const;
 }
 
 export const { useContainer: useVoiceStore, Provider: VoiceStoreProvider } =
