@@ -9,17 +9,7 @@ export interface RecordOptions {
 
 export type { TTSOptions } from "./tts.js";
 
-export interface McpServerConfig {
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  name?: string;
-}
-
-export interface McpConfig {
-  mcpServers: Record<string, McpServerConfig>;
-}
+export type { McpConfig, McpServerConfig } from "./schemas.js";
 
 export type TransportKind = "stdio" | "streamable-http" | "sse";
 
