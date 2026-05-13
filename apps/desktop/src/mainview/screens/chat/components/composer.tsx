@@ -16,7 +16,7 @@ import {
   PromptInputActions,
   PromptInputTextarea,
 } from "~/ui/prompt-input";
-import { MicButton } from "./components/mic-button";
+import { MicButton } from "./mic-button";
 
 const MAX_ATTACHMENTS = 6;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;

@@ -54,7 +54,7 @@ export const disposeAudio = (handle: AudioHandle): void => {
   URL.revokeObjectURL(handle.url);
 };
 
-/** Format speed as a cassette-deck readout: "1.00×" */
+/** Format speed as a settings/readout value: "1.00×" */
 export const formatSpeed = (speed: number): string => `${speed.toFixed(2)}×`;
 
 /** Format voice count for the LCD readout: zero-padded. */

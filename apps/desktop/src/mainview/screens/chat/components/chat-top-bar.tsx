@@ -6,7 +6,7 @@ import { Button } from "~/ui/button";
 import { SidebarTrigger } from "~/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/ui/tooltip";
 import { ChatSettingsSheet } from "./chat-settings-sheet";
-import { ModelPicker } from "./components/model-picker";
+import { ModelPicker } from "./model-picker";
 
 interface ChatTopBarProps {
   model: string;

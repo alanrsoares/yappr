@@ -13,7 +13,7 @@ const rootRoute = createRootRoute({
 });
 
 // Chat-first: a single root surface. Voice controls live inside the chat
-// (settings sheet + per-message speak); the cassette deck route was retired.
+// through the settings sheet and per-message speak actions.
 const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",

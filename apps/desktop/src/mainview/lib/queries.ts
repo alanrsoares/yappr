@@ -3,7 +3,7 @@ import type { VoiceId } from "@yappr/sdk/schemas";
 import { TTSClient } from "@yappr/sdk/tts";
 
 import { dbRpc } from "~/lib/db-rpc";
-import { listOllamaModels } from "~/lib/ollama";
+import { listOllamaModels } from "~/services/ollama";
 
 /**
  * Shared TanStack Query options. Keep keys + queryFns here so call sites stay

@@ -53,9 +53,7 @@ const mainWindow = new BrowserWindow({
   title: "Yappr",
   url,
   rpc,
-  // Keep macOS traffic lights, drop the system titlebar so the chassis chrome
-  // reads as the title bar. Custom drag region lives on `<SerialPlate>` via
-  // `-webkit-app-region: drag`.
+  // Keep macOS traffic lights while the renderer owns the custom drag regions.
   titleBarStyle: "hiddenInset",
   // Nudge the close/min/max trio down + right so they sit inside the brand
   // strip without colliding with the engraved "Yappr · Y-1" lettering.

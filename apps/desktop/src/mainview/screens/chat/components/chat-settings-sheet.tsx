@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 
-import { useInputDevices } from "~/lib/audio-devices";
+import { useInputDevices } from "~/hooks";
 import { useVoiceStore } from "~/lib/voice-store";
 import { Button } from "~/ui/button";
 import { Input } from "~/ui/input";
@@ -24,7 +24,7 @@ import {
   SheetTrigger,
 } from "~/ui/sheet";
 import { Slider } from "~/ui/slider";
-import { useChatStore } from "./store";
+import { useChatStore } from "../store";
 
 interface ChatSettingsSheetProps {
   children: ReactNode;
@@ -57,8 +57,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>
-            Inference server, voice, and speech rate. Shared with the cassette
-            deck at /voice.
+            Inference server, voice, speech rate, and microphone input.
           </SheetDescription>
         </SheetHeader>
 

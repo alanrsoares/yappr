@@ -10,13 +10,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { DRAG } from "~/lib/drag-region";
-import { DEFAULT_CHAT_MODEL, pickModel } from "~/lib/ollama";
 import { ollamaModelsOptions, preferencesOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";
+import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
 import { SidebarInset, SidebarProvider } from "~/ui/sidebar";
+import { ChatStoreProvider } from "../store";
 import { ChatSidebar } from "./chat-sidebar";
 import { ChatTopBar } from "./chat-top-bar";
-import { ChatStoreProvider } from "./store";
 
 interface ChatLayoutProps {
   renderMain: (props: {

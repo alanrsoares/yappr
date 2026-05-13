@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { createOllama } from "ollama-ai-provider-v2";
 
-import { ollamaRoot } from "~/lib/ollama";
+import { ollamaRoot } from "./index";
 
 /**
  * AI SDK v6 `ChatTransport` that streams from the local Ollama daemon

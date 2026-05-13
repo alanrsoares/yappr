@@ -7,7 +7,6 @@ import { isFileUIPart, type FileUIPart, type UIMessage } from "ai";
 import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
-import { OllamaTransport } from "~/lib/ollama-transport";
 import {
   conversationsQueryRootKey,
   messagesOptions,
@@ -15,6 +14,7 @@ import {
 } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { useVoiceStore } from "~/lib/voice-store";
+import { OllamaTransport } from "~/services/ollama/transport";
 import { Button } from "~/ui/button";
 import {
   ChatContainerContent,
@@ -28,8 +28,8 @@ import {
   MessageActions,
   MessageContent,
 } from "~/ui/message";
+import { useChatStore } from "../store";
 import { Composer } from "./composer";
-import { useChatStore } from "./store";
 
 interface ChatPanelProps {
   model: string;
