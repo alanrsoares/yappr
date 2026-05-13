@@ -27,3 +27,19 @@ export const TranscribeResponseSchema = z.object({
   text: z.string(),
 });
 export type TranscribeResponse = z.infer<typeof TranscribeResponseSchema>;
+
+export const McpServerConfigSchema = z.object({
+  command: z.string().optional(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
+  url: z.string().optional(),
+  name: z.string().optional(),
+  /** Per-server tool-call timeout in ms. Falls back to manager default. */
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+
+export const McpConfigSchema = z.object({
+  mcpServers: z.record(z.string(), McpServerConfigSchema),
+});
+export type McpConfig = z.infer<typeof McpConfigSchema>;

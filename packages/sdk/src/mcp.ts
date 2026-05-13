@@ -11,40 +11,102 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import { toolDefinition, type SchemaInput, type Tool } from "@tanstack/ai";
 import { toError } from "@yappr/lib/result";
-import { errAsync, ResultAsync } from "neverthrow";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
 
 import { resolveMcpConfigPath } from "./paths.js";
-import type {
-  McpConfig,
-  McpServerConfig,
-  ServerStatus,
-  TransportKind,
-} from "./types.js";
+import { McpConfigSchema } from "./schemas.js";
+import type { McpServerConfig, ServerStatus, TransportKind } from "./types.js";
+
+export type McpLifecycleEvent =
+  | { type: "server.connecting"; serverId: string; transport?: TransportKind }
+  | {
+      type: "server.connected";
+      serverId: string;
+      transport: TransportKind;
+      toolCount: number;
+      elapsedMs: number;
+    }
+  | {
+      type: "server.error";
+      serverId: string;
+      phase: "connect" | "list-tools" | "call-tool";
+      error: string;
+      toolName?: string;
+    }
+  | { type: "server.disconnected"; serverId: string }
+  | {
+      type: "tool.call.timeout";
+      serverId: string;
+      toolName: string;
+      timeoutMs: number;
+    };
+
+export interface McpManagerOptions {
+  /** Default timeout (ms) for tool calls when a server config doesn't specify one. */
+  defaultTimeoutMs?: number;
+  /** Fire-and-forget lifecycle callback. Synchronous; do not throw. */
+  onEvent?: (event: McpLifecycleEvent) => void;
+}
+
+const DEFAULT_TOOL_CALL_TIMEOUT_MS = 30_000;
 
 export class McpManager {
   private clients: Map<string, Client> = new Map();
   private tools: Map<string, { server: string; tool: McpTool }> = new Map();
+  private serverTimeouts: Map<string, number> = new Map();
+  private readonly defaultTimeoutMs: number;
+  private readonly onEvent: (event: McpLifecycleEvent) => void;
+
+  constructor(options: McpManagerOptions = {}) {
+    this.defaultTimeoutMs =
+      options.defaultTimeoutMs ?? DEFAULT_TOOL_CALL_TIMEOUT_MS;
+    this.onEvent = options.onEvent ?? (() => {});
+  }
+
+  private emit(event: McpLifecycleEvent): void {
+    try {
+      this.onEvent(event);
+    } catch (err) {
+      console.warn("[yappr] mcp onEvent threw:", err);
+    }
+  }
+
+  private resolveTimeoutMs(serverId: string): number {
+    return this.serverTimeouts.get(serverId) ?? this.defaultTimeoutMs;
+  }
 
   loadConfigAndGetStatuses(
     configPath: string = resolveMcpConfigPath(),
   ): ResultAsync<ServerStatus[], Error> {
     return ResultAsync.fromPromise(
-      (async (): Promise<ServerStatus[]> => {
+      (async () => {
         const file = Bun.file(configPath);
-        if (!(await file.exists())) return [];
-
-        const content = await file.text();
-        const config = JSON.parse(content) as McpConfig;
-        const results: ServerStatus[] = [];
-        for (const [id, serverConfig] of Object.entries(config.mcpServers)) {
-          const status = await this.connectToServer(id, serverConfig);
-          results.push(status);
-        }
-        return results;
+        return (await file.exists()) ? await file.text() : null;
       })(),
       toError,
-    );
+    ).andThen((content) => {
+      if (content === null) return okAsync([] as ServerStatus[]);
+      const parsed = McpConfigSchema.safeParse(JSON.parse(content));
+      if (!parsed.success) {
+        return errAsync(
+          new Error(`Invalid MCP config: ${parsed.error.message}`),
+        );
+      }
+      return ResultAsync.fromSafePromise(
+        this.connectAll(parsed.data.mcpServers),
+      );
+    });
+  }
+
+  private async connectAll(
+    servers: Record<string, McpServerConfig>,
+  ): Promise<ServerStatus[]> {
+    const results: ServerStatus[] = [];
+    for (const [id, serverConfig] of Object.entries(servers)) {
+      results.push(await this.connectToServer(id, serverConfig));
+    }
+    return results;
   }
 
   /** True when Streamable HTTP failed with 4xx — retry with SSE. */
@@ -60,11 +122,20 @@ export class McpManager {
     id: string,
     config: McpServerConfig,
   ): Promise<ServerStatus> {
+    if (config.timeoutMs !== undefined) {
+      this.serverTimeouts.set(id, config.timeoutMs);
+    }
     try {
       if (config.command) {
+        this.emit({
+          type: "server.connecting",
+          serverId: id,
+          transport: "stdio",
+        });
         return await this.connectWithStdio(id, config);
       }
       if (config.url) {
+        this.emit({ type: "server.connecting", serverId: id });
         return await this.connectWithUrl(id, config.url);
       }
       return {
@@ -84,6 +155,12 @@ export class McpManager {
       } else if (msg.includes("Non-200")) {
         msg = "Auth/Connection Err";
       }
+      this.emit({
+        type: "server.error",
+        serverId: id,
+        phase: "connect",
+        error: msg,
+      });
       return { id, status: "[FAIL] Failed", tools: 0, message: msg };
     }
   }
@@ -148,13 +225,32 @@ export class McpManager {
     client: Client,
     transport: TransportKind,
   ): Promise<ServerStatus> {
-    const result = await client.listTools();
+    const startedAt = Date.now();
+    let result;
+    try {
+      result = await client.listTools();
+    } catch (err) {
+      this.emit({
+        type: "server.error",
+        serverId: id,
+        phase: "list-tools",
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
     const toolCount = result.tools?.length ?? 0;
     if (result.tools) {
       for (const tool of result.tools) {
         this.tools.set(tool.name, { server: id, tool });
       }
     }
+    this.emit({
+      type: "server.connected",
+      serverId: id,
+      transport,
+      toolCount,
+      elapsedMs: Date.now() - startedAt,
+    });
     return {
       id,
       status: "[OK] Connected",
@@ -213,20 +309,62 @@ export class McpManager {
       );
     }
 
+    const timeoutMs = this.resolveTimeoutMs(server);
+    const ac = new AbortController();
+    const timer = setTimeout(() => {
+      ac.abort(
+        new Error(
+          `MCP tool '${name}' on server '${server}' timed out after ${timeoutMs}ms`,
+        ),
+      );
+    }, timeoutMs);
+
     console.log(`Calling MCP tool '${name}' on server '${server}'...`);
     return ResultAsync.fromPromise(
-      client.callTool({ name, arguments: args }) as Promise<CallToolResult>,
+      client.callTool({ name, arguments: args }, undefined, {
+        signal: ac.signal,
+        timeout: timeoutMs,
+      }) as Promise<CallToolResult>,
       toError,
-    );
+    )
+      .mapErr((err) =>
+        ac.signal.aborted && ac.signal.reason instanceof Error
+          ? ac.signal.reason
+          : err,
+      )
+      .orTee((err) => {
+        if (ac.signal.aborted) {
+          this.emit({
+            type: "tool.call.timeout",
+            serverId: server,
+            toolName: name,
+            timeoutMs,
+          });
+        } else {
+          this.emit({
+            type: "server.error",
+            serverId: server,
+            phase: "call-tool",
+            error: err.message,
+            toolName: name,
+          });
+        }
+      })
+      .andTee(() => clearTimeout(timer))
+      .orTee(() => clearTimeout(timer));
   }
 
   async close(): Promise<void> {
-    for (const client of this.clients.values()) {
+    for (const [id, client] of this.clients.entries()) {
       try {
         await client.close();
       } catch {
         /* ignore */
       }
+      this.emit({ type: "server.disconnected", serverId: id });
     }
+    this.clients.clear();
+    this.tools.clear();
+    this.serverTimeouts.clear();
   }
 }
