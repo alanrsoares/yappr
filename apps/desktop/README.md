@@ -19,6 +19,23 @@ bun run dev       # Electrobun loading bundled assets (no HMR)
 bun run start     # build once then run Electrobun against bundled assets
 ```
 
+### Ollama CORS
+
+Ollama (since 0.1.24) only accepts cross-origin requests from origins
+on its allow-list. The packaged build loads from `views://mainview`,
+which is not on the default list, so `bun run start` will see
+`403 Access-Control-Allow-Origin` on every Ollama call. Fix by
+exporting one of these before `ollama serve`:
+
+```bash
+export OLLAMA_ORIGINS='views://*'    # narrowest — only Electrobun renderers
+# or
+export OLLAMA_ORIGINS='*'            # any origin — convenient for local dev
+```
+
+`bun run dev:hmr` is unaffected because Vite proxies `/ollama` →
+`127.0.0.1:11434` (see `vite.config.ts` and `lib/ollama.ts`).
+
 ## How it fits together
 
 - **`src/bun/`** — Electrobun main process. Owns the `~/.yappr/yappr.db` SQLite handle (shared with the CLI) and registers the typed `@yappr/db/rpc` request handlers.
