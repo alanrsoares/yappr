@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 
+import { useInputDevices } from "~/lib/audio-devices";
 import { useVoiceStore } from "~/lib/voice-store";
 import { Button } from "~/ui/button";
 import { Input } from "~/ui/input";
@@ -28,6 +29,11 @@ interface ChatSettingsSheetProps {
   children: ReactNode;
 }
 
+/** Sentinel value used by the Select to represent "use system default mic"
+ *  — radix Select disallows empty-string values, and `null` isn't a valid
+ *  Select value, so we round-trip through this stable string. */
+const INPUT_DEFAULT_SENTINEL = "__system_default__";
+
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   const {
     serverUrl,
@@ -37,9 +43,12 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
     voices,
     speed,
     setSpeed,
+    inputDeviceId,
+    setInputDeviceId,
     health,
     checkHealth,
   } = useVoiceStore();
+  const inputDevices = useInputDevices();
 
   return (
     <Sheet>
@@ -127,6 +136,64 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
                 )}
               </SelectContent>
             </Select>
+          </section>
+
+          <section className="space-y-2">
+            <Label
+              htmlFor="settings-input-device"
+              className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+            >
+              Input device
+            </Label>
+            {!inputDevices.permissionGranted ? (
+              <div className="space-y-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void inputDevices.requestPermission()}
+                  className="w-full"
+                >
+                  Grant mic access
+                </Button>
+                <p className="font-mono text-[0.65rem] text-muted-foreground">
+                  macOS will prompt once; labels appear after access is granted.
+                </p>
+              </div>
+            ) : (
+              <Select
+                value={inputDeviceId ?? INPUT_DEFAULT_SENTINEL}
+                onValueChange={(v) =>
+                  setInputDeviceId(v === INPUT_DEFAULT_SENTINEL ? null : v)
+                }
+                disabled={inputDevices.devices.length === 0}
+              >
+                <SelectTrigger
+                  id="settings-input-device"
+                  aria-label="Input device"
+                  className="font-mono text-sm"
+                >
+                  <SelectValue placeholder="System default" />
+                </SelectTrigger>
+                <SelectContent translate="no" className="max-h-72">
+                  <SelectItem
+                    value={INPUT_DEFAULT_SENTINEL}
+                    className="font-mono text-sm"
+                  >
+                    System default
+                  </SelectItem>
+                  {inputDevices.devices.map((d) => (
+                    <SelectItem
+                      key={d.deviceId}
+                      value={d.deviceId}
+                      className="font-mono text-sm"
+                    >
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </section>
 
           <section className="space-y-2">

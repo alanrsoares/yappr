@@ -100,7 +100,7 @@ export function ChatPanel({
   // every render when the query is disabled (conversationId === null) and
   // `data` stays undefined.
   const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
-  const { tts, speak, stopAudio, transcribe } = useVoiceStore();
+  const { tts, speak, stopAudio, transcribe, inputDeviceId } = useVoiceStore();
   const isSpeaking = tts.kind === "speaking";
 
   const createConv = useMutation({
@@ -267,6 +267,7 @@ export function ChatPanel({
                   : "Loading models from Ollama…"
             }
             transcribe={transcribe}
+            inputDeviceId={inputDeviceId}
           />
         </div>
       </div>

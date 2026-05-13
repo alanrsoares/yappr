@@ -32,6 +32,8 @@ interface MicButtonProps {
   transcribe: (blob: Blob) => Promise<string>;
   /** Disable while another action (send/stop) is in flight. */
   disabled?: boolean;
+  /** MediaDevices deviceId to capture from. `null`/undefined = system default. */
+  inputDeviceId?: string | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export function MicButton({
   onTranscript,
   transcribe,
   disabled,
+  inputDeviceId,
 }: MicButtonProps) {
   const [state, setState] = useState<MicState>({ kind: "idle" });
   const streamRef = useRef<MediaStream | null>(null);
@@ -57,7 +60,10 @@ export function MicButton({
 
   const start = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const constraints: MediaStreamConstraints = {
+        audio: inputDeviceId ? { deviceId: { exact: inputDeviceId } } : true,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       const recorder = new MediaRecorder(stream, {
@@ -90,7 +96,7 @@ export function MicButton({
         reason: err instanceof Error ? err.message : "Mic unavailable",
       });
     }
-  }, []);
+  }, [inputDeviceId]);
 
   const stop = useCallback(async () => {
     if (state.kind !== "recording") return;

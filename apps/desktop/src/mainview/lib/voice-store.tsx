@@ -1,15 +1,7 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { createContainer } from "@yappr/lib/unstated";
 
 import {
   buildAudio,
@@ -28,7 +20,7 @@ import { preferencesOptions, voicesOptions } from "~/lib/queries";
 import { TTSClient, type VoiceId } from "~/services/yappr";
 import type { HealthState, TtsState } from "~/types";
 
-type VoiceStoreContextValue = {
+type VoiceStoreValue = {
   serverUrl: string;
   setServerUrl: (v: string) => void;
   health: HealthState;
@@ -37,6 +29,10 @@ type VoiceStoreContextValue = {
   setVoice: (v: VoiceId) => void;
   speed: number;
   setSpeed: (v: number) => void;
+  /** MediaDevices `deviceId` to use as `getUserMedia` input. `null` = system
+   *  default. Persisted across launches. */
+  inputDeviceId: string | null;
+  setInputDeviceId: (v: string | null) => void;
   tts: TtsState;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;
@@ -47,20 +43,11 @@ type VoiceStoreContextValue = {
   transcribe: (blob: Blob) => Promise<string>;
 };
 
-const VoiceStoreContext = createContext<VoiceStoreContextValue | null>(null);
-
-export function useVoiceStore() {
-  const ctx = useContext(VoiceStoreContext);
-  if (!ctx) {
-    throw new Error("useVoiceStore must be used within VoiceStoreProvider");
-  }
-  return ctx;
-}
-
-export function VoiceStoreProvider({ children }: { children: ReactNode }) {
+function useVoiceStoreLogic(): VoiceStoreValue {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
   const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
+  const [inputDeviceId, setInputDeviceId] = useState<string | null>(null);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
 
@@ -80,6 +67,9 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
     }
     if (typeof prefs.defaultSpeed === "number") {
       setSpeed(prefs.defaultSpeed);
+    }
+    if (typeof prefs.defaultInputDeviceId === "string") {
+      setInputDeviceId(prefs.defaultInputDeviceId || null);
     }
     hydratedRef.current = true;
   }, [prefs]);
@@ -107,6 +97,15 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
     (next: number) => {
       setSpeed(next);
       persistPrefs.mutate({ defaultSpeed: next });
+    },
+    [persistPrefs],
+  );
+  const setInputDeviceIdPersist = useCallback(
+    (next: string | null) => {
+      setInputDeviceId(next);
+      // Empty string represents "system default" on the wire; renderer
+      // hydrates it back to `null`.
+      persistPrefs.mutate({ defaultInputDeviceId: next ?? "" });
     },
     [persistPrefs],
   );
@@ -196,7 +195,7 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const value = useMemo<VoiceStoreContextValue>(
+  return useMemo<VoiceStoreValue>(
     () => ({
       serverUrl,
       setServerUrl: setServerUrlPersist,
@@ -206,6 +205,8 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
       setVoice: setVoicePersist,
       speed,
       setSpeed: setSpeedPersist,
+      inputDeviceId,
+      setInputDeviceId: setInputDeviceIdPersist,
       tts,
       checkHealth,
       stopAudio,
@@ -221,6 +222,8 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
       setVoicePersist,
       speed,
       setSpeedPersist,
+      inputDeviceId,
+      setInputDeviceIdPersist,
       tts,
       checkHealth,
       stopAudio,
@@ -228,10 +231,7 @@ export function VoiceStoreProvider({ children }: { children: ReactNode }) {
       transcribe,
     ],
   );
-
-  return (
-    <VoiceStoreContext.Provider value={value}>
-      {children}
-    </VoiceStoreContext.Provider>
-  );
 }
+
+export const { useContainer: useVoiceStore, Provider: VoiceStoreProvider } =
+  createContainer<VoiceStoreValue>(useVoiceStoreLogic);
