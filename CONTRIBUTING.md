@@ -34,9 +34,9 @@ Before submitting a PR, please ensure all checks pass.
 ### TypeScript
 
 ```bash
-bun run lint      # Linting
-bun run typecheck # TypeScript type checking
-bun test          # Run tests
+bun run check           # Format check, lint, typecheck, and Bun tests
+bun run deadcode        # Advisory Knip scan for unused files/deps/exports
+bun run deadcode:strict # Same scan, but exits non-zero on findings
 ```
 
 ### Python

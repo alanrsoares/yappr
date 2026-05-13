@@ -15,11 +15,43 @@ export default tseslint.config(
       "packages/*/dist/**",
       "bun.lock",
       "openapi.json",
+      "packages/sdk/src/schema.d.ts",
       "**/*.config.js",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        {
+          disallowTypeAnnotations: false,
+          fixStyle: "inline-type-imports",
+          prefer: "type-imports",
+        },
+      ],
+      "@typescript-eslint/no-import-type-side-effects": "error",
+      eqeqeq: ["error", "always", { null: "ignore" }],
+      "no-implicit-coercion": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*"],
+              message: "Use the package-local ~/ alias instead of @/.",
+            },
+          ],
+        },
+      ],
+      "no-useless-return": "error",
+      "object-shorthand": "error",
+      "prefer-template": "error",
+    },
+  },
   {
     files: ["**/*.{ts,tsx}"],
     plugins: {
