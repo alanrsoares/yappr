@@ -32,25 +32,11 @@ import { chatMessageText, useChatStore } from "../store";
 import { KaraokeCaptions } from "./karaoke-captions";
 
 export function ChatPanel() {
-  const [
-    { tts, caption },
-    { speak, pauseAudio, resumeAudio, restartAudio, stopAudio, transcribe },
-  ] = useVoiceStore();
-  const [
-    {
-      messages,
-      error,
-      isBusy,
-      showLoading,
-      modelReady,
-      modelsLoaded,
-      inputDeviceId,
-    },
-    { submit, regenerateMessage, stop },
-  ] = useChatStore();
-  const isSpeaking = tts.kind === "speaking";
+  const [voiceState, voiceActions] = useVoiceStore();
+  const [state, actions] = useChatStore();
+  const isSpeaking = voiceState.tts.kind === "speaking";
   const speakingMessageId =
-    caption.kind === "active" ? caption.messageId : null;
+    voiceState.caption.kind === "active" ? voiceState.caption.messageId : null;
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
 
@@ -68,56 +54,56 @@ export function ChatPanel() {
     <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col">
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
         <ChatContainerContent className="gap-6">
-          {messages.length === 0 && !showLoading && !error ? (
+          {state.messages.length === 0 && !state.showLoading && !state.error ? (
             <EmptyState />
           ) : (
-            messages.map((m, idx) => {
+            state.messages.map((m, idx) => {
               const text = chatMessageText(m);
               const fileParts =
                 m.parts?.filter((p): p is FileUIPart => isFileUIPart(p)) ?? [];
-              const isLast = idx === messages.length - 1;
+              const isLast = idx === state.messages.length - 1;
               return (
                 <MessageBubble
                   key={m.id}
                   role={m.role === "system" ? "assistant" : m.role}
-                  content={text || (isBusy ? "…" : "")}
+                  content={text || (state.isBusy ? "…" : "")}
                   fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
                   canRegenerate={
                     m.role === "assistant" &&
                     isLast &&
-                    !isBusy &&
+                    !state.isBusy &&
                     text.trim().length > 0
                   }
                   isSpeaking={
                     isSpeaking &&
                     (speakingMessageId === m.id || speakingMessageId === null)
                   }
-                  onRegenerate={() => void regenerateMessage(m.id)}
+                  onRegenerate={() => void actions.regenerateMessage(m.id)}
                   onSpeak={() =>
-                    void speak(markdownToNarrationText(text), {
+                    void voiceActions.speak(markdownToNarrationText(text), {
                       messageId: m.id,
                     })
                   }
-                  onStop={stopAudio}
+                  onStop={voiceActions.stopAudio}
                 />
               );
             })
           )}
-          {showLoading ? <LoadingMessage /> : null}
-          {error ? <ErrorMessage message={error.message} /> : null}
+          {state.showLoading ? <LoadingMessage /> : null}
+          {state.error ? <ErrorMessage message={state.error.message} /> : null}
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
       </ChatContainerRoot>
 
       <KaraokeCaptions
-        caption={caption}
+        caption={voiceState.caption}
         bottomOffset={composerHeight + 16}
-        onPause={pauseAudio}
-        onResume={resumeAudio}
-        onRestart={restartAudio}
-        onStop={stopAudio}
+        onPause={voiceActions.pauseAudio}
+        onResume={voiceActions.resumeAudio}
+        onRestart={voiceActions.restartAudio}
+        onStop={voiceActions.stopAudio}
       />
 
       <div
@@ -126,19 +112,21 @@ export function ChatPanel() {
       >
         <div className="mx-auto max-w-3xl">
           <Composer
-            onSend={(t, f) => void submit(t, f)}
-            isBusy={isBusy}
+            onSend={(t, f) => void actions.submit(t, f)}
+            isBusy={state.isBusy}
             onStop={stop}
-            disabled={!modelReady}
+            disabled={!state.modelReady}
             placeholder={
-              modelReady
+              state.modelReady
                 ? "Ask the local model… (Shift+Enter for newline)"
-                : modelsLoaded
+                : state.modelsLoaded
                   ? "Select an installed model to start chatting…"
-                  : "Loading models from Ollama…"
+                  : state.modelsLoaded
+                    ? "Loading models from Ollama…"
+                    : "Loading models from Ollama…"
             }
-            transcribe={transcribe}
-            inputDeviceId={inputDeviceId}
+            transcribe={voiceActions.transcribe}
+            inputDeviceId={state.inputDeviceId}
           />
         </div>
       </div>
