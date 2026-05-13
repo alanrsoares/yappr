@@ -62,6 +62,42 @@ describe("chat events", () => {
     expect(deriveStreamingResponse(events)).toBe("");
   });
 
+  test("isReplace streaming event resets accumulated content", () => {
+    const events: ChatEvent[] = [
+      createChatEvent({
+        ...base,
+        type: "message.assistant.streaming",
+        messageId: "msg_1",
+        delta: "partial reply",
+        isComplete: false,
+      }),
+      createChatEvent({
+        ...base,
+        type: "message.assistant.streaming",
+        messageId: "msg_1",
+        delta: "totally different start",
+        isComplete: false,
+        isReplace: true,
+      }),
+    ];
+
+    expect(deriveStreamingResponse(events)).toBe("totally different start");
+
+    events.push(
+      createChatEvent({
+        ...base,
+        type: "message.assistant.streaming",
+        messageId: "msg_1",
+        delta: " continued",
+        isComplete: false,
+      }),
+    );
+
+    expect(deriveStreamingResponse(events)).toBe(
+      "totally different start continued",
+    );
+  });
+
   test("derives active tool from unmatched call/result events", () => {
     const first = "tool_1";
     const second = "tool_2";

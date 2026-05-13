@@ -62,7 +62,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const runStartedAtRef = useRef(0);
   const lastStreamingTextRef = useRef("");
   const firstTokenAtRef = useRef<number | null>(null);
-  const ttsStartedAtRef = useRef(0);
+  const ttsStartedAtRef = useRef<number | null>(null);
+  const ttsModeRef = useRef<"direct" | "narration" | null>(null);
   const sttRunIdRef = useRef<string | null>(null);
   const sttStartedAtRef = useRef(0);
   const activeToolIdsRef = useRef(
@@ -167,11 +168,11 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       mcpConfigPath,
       messages: priorMessages,
       onUpdate: (text) => {
-        if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now();
+        if (firstTokenAtRef.current === null)
+          firstTokenAtRef.current = Date.now();
         const previous = lastStreamingTextRef.current;
-        const delta = text.startsWith(previous)
-          ? text.slice(previous.length)
-          : text;
+        const isReplace = !text.startsWith(previous);
+        const delta = isReplace ? text : text.slice(previous.length);
         lastStreamingTextRef.current = text;
         if (!delta) return;
         emit({
@@ -181,6 +182,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           messageId: assistantMessageId,
           delta,
           isComplete: false,
+          ...(isReplace && { isReplace: true }),
         });
       },
       abortController: chatAbortRef.current,
@@ -222,7 +224,24 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       .andThen((text) => {
         if (!text) return okAsync(null);
         const modelForNarration = narrationModel || model;
+        const beginTtsPhase = (mode: "direct" | "narration") => {
+          ttsStartedAtRef.current = Date.now();
+          ttsModeRef.current = mode;
+        };
+        const endTtsPhase = (status: "success") => {
+          const startedAt = ttsStartedAtRef.current ?? Date.now();
+          ttsStartedAtRef.current = null;
+          ttsModeRef.current = null;
+          emit({
+            type: "tts.end",
+            runId,
+            conversationId: conversationIdRef.current,
+            status,
+            elapsedMs: Date.now() - startedAt,
+          });
+        };
         if (useNarrationForTTS && modelForNarration) {
+          beginTtsPhase("narration");
           emit({
             type: "tts.start",
             runId,
@@ -239,7 +258,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           })
             .map((narration) => narration.trim() || text)
             .andThen((toSpeak) => {
-              ttsStartedAtRef.current = Date.now();
+              endTtsPhase("success");
+              beginTtsPhase("direct");
               emit({
                 type: "tts.start",
                 runId,
@@ -249,18 +269,12 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
                 contentLength: toSpeak.length,
               });
               return speak(toSpeak, { voice }).map(() => {
-                emit({
-                  type: "tts.end",
-                  runId,
-                  conversationId: conversationIdRef.current,
-                  status: "success",
-                  elapsedMs: Date.now() - ttsStartedAtRef.current,
-                });
+                endTtsPhase("success");
                 return text;
               });
             });
         }
-        ttsStartedAtRef.current = Date.now();
+        beginTtsPhase("direct");
         emit({
           type: "tts.start",
           runId,
@@ -270,13 +284,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           contentLength: text.length,
         });
         return speak(text, { voice }).map(() => {
-          emit({
-            type: "tts.end",
-            runId,
-            conversationId: conversationIdRef.current,
-            status: "success",
-            elapsedMs: Date.now() - ttsStartedAtRef.current,
-          });
+          endTtsPhase("success");
           return text;
         });
       })
@@ -290,7 +298,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
             messageId: assistantMessageId,
             content: res,
             finishReason: "stop",
-            ...(firstTokenAtRef.current && {
+            ...(firstTokenAtRef.current !== null && {
               ttftMs: firstTokenAtRef.current - runStartedAtRef.current,
             }),
             ttltMs,
@@ -328,6 +336,18 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       .mapErr((err) => {
         const elapsedMs = Date.now() - runStartedAtRef.current;
         const status = err.name === "AbortError" ? "cancelled" : "error";
+        if (ttsStartedAtRef.current !== null) {
+          emit({
+            type: "tts.end",
+            runId,
+            conversationId: conversationIdRef.current,
+            status,
+            elapsedMs: Date.now() - ttsStartedAtRef.current,
+            error: err.message,
+          });
+          ttsStartedAtRef.current = null;
+          ttsModeRef.current = null;
+        }
         emit({
           type: "system",
           runId,
@@ -382,8 +402,23 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
             elapsedMs,
           });
         }
+        sttRunIdRef.current = null;
         if (transcript)
           setValue((p) => (p ? `${p} ${transcript}` : transcript));
+      },
+      onError: (err) => {
+        const runId = sttRunIdRef.current;
+        if (!runId) return;
+        const status = err.name === "AbortError" ? "cancelled" : "error";
+        emit({
+          type: "stt.end",
+          runId,
+          conversationId: conversationIdRef.current,
+          status,
+          elapsedMs: Date.now() - sttStartedAtRef.current,
+          error: err.message,
+        });
+        sttRunIdRef.current = null;
       },
     },
   );

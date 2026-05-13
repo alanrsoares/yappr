@@ -33,6 +33,9 @@ export interface AssistantStreamingMessageEvent extends BaseChatEvent {
   messageId: string;
   delta: string;
   isComplete: boolean;
+  /** When true, `delta` replaces the accumulated text instead of being appended.
+   *  Used when the provider replays content from the start mid-stream. */
+  isReplace?: boolean;
 }
 
 export interface AssistantMessageEvent extends BaseChatEvent {
@@ -68,7 +71,7 @@ export interface TtsStartEvent extends BaseChatEvent {
 
 export interface TtsEndEvent extends BaseChatEvent {
   type: "tts.end";
-  status: "success" | "error";
+  status: "success" | "error" | "cancelled";
   elapsedMs: number;
   error?: string;
 }
@@ -172,7 +175,8 @@ export function deriveMessages(events: readonly ChatEvent[]): ChatMessage[] {
     } else if (event.type === "message.assistant.streaming") {
       if (!finalizedMessageIds.has(event.messageId)) {
         const current = streamingByMessageId.get(event.messageId) ?? "";
-        streamingByMessageId.set(event.messageId, current + event.delta);
+        const next = event.isReplace ? event.delta : current + event.delta;
+        streamingByMessageId.set(event.messageId, next);
       }
     } else if (event.type === "message.assistant") {
       finalizedMessageIds.add(event.messageId);
@@ -196,7 +200,8 @@ export function deriveStreamingResponse(events: readonly ChatEvent[]): string {
       latestMessageId = event.messageId;
       if (!finalizedMessageIds.has(event.messageId)) {
         const current = streamingByMessageId.get(event.messageId) ?? "";
-        streamingByMessageId.set(event.messageId, current + event.delta);
+        const next = event.isReplace ? event.delta : current + event.delta;
+        streamingByMessageId.set(event.messageId, next);
       }
     } else if (event.type === "message.assistant") {
       finalizedMessageIds.add(event.messageId);

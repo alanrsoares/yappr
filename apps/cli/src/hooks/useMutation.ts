@@ -13,15 +13,16 @@ export interface UseMutationResult<T, E, V> {
   reset: () => void;
 }
 
-export interface UseMutationOptions<T> {
+export interface UseMutationOptions<T, E = Error> {
   onSuccess?: (data: T) => void;
+  onError?: (err: E) => void;
 }
 
 export function useMutation<T, E = Error, V = void>(
   mutationFn: (variables: V) => ResultAsync<T, E>,
-  options?: UseMutationOptions<T>,
+  options?: UseMutationOptions<T, E>,
 ): UseMutationResult<T, E, V> {
-  const { onSuccess } = options ?? {};
+  const { onSuccess, onError } = options ?? {};
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<E | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -40,6 +41,7 @@ export function useMutation<T, E = Error, V = void>(
         .orTee((err) => {
           setError(err);
           setData(undefined);
+          onError?.(err);
         })
         .match(
           () => setIsPending(false),
@@ -47,7 +49,7 @@ export function useMutation<T, E = Error, V = void>(
         );
       return ok(undefined);
     },
-    [mutationFn, onSuccess],
+    [mutationFn, onSuccess, onError],
   );
 
   const mutateAsync = useCallback(
@@ -64,11 +66,12 @@ export function useMutation<T, E = Error, V = void>(
         .orTee((err) => {
           setError(err);
           setData(undefined);
+          onError?.(err);
         })
         .andTee(() => setIsPending(false))
         .orTee(() => setIsPending(false));
     },
-    [mutationFn, onSuccess],
+    [mutationFn, onSuccess, onError],
   );
 
   const reset = useCallback(() => {
