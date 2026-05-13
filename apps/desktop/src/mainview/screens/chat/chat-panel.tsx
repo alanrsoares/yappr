@@ -3,8 +3,8 @@ import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MessageRow } from "@yappr/db/rpc";
-import type { UIMessage } from "ai";
-import { AlertTriangle, Copy, Square, Volume2 } from "lucide-react";
+import { isFileUIPart, type FileUIPart, type UIMessage } from "ai";
+import { AlertTriangle, Copy, FileIcon, Square, Volume2 } from "lucide-react";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { OllamaTransport } from "~/lib/ollama-transport";
@@ -43,6 +43,20 @@ function truncateTitle(text: string): string {
 }
 
 function dbToUIMessage(m: MessageRow): UIMessage {
+  if (m.partsJson) {
+    try {
+      const parsed = JSON.parse(m.partsJson) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return {
+          id: m.id,
+          role: m.role,
+          parts: parsed as UIMessage["parts"],
+        };
+      }
+    } catch {
+      /* legacy / corrupt row — fall through */
+    }
+  }
   return {
     id: m.id,
     role: m.role,
@@ -50,8 +64,22 @@ function dbToUIMessage(m: MessageRow): UIMessage {
   };
 }
 
+function buildUserParts(text: string, files: FileUIPart[]): UIMessage["parts"] {
+  const trimmed = text.trim();
+  const out: UIMessage["parts"] = [...files];
+  if (trimmed) out.push({ type: "text", text: trimmed });
+  return out;
+}
+
+function userRowContent(text: string, files: FileUIPart[]): string {
+  const t = text.trim();
+  if (t) return t;
+  if (!files.length) return "";
+  return files.map((f) => f.filename ?? f.mediaType).join(", ");
+}
+
 function uiTextOf(m: UIMessage): string {
-  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+  return m.parts.map((p) => (p.type === "text" ? (p.text ?? "") : "")).join("");
 }
 
 export function ChatPanel({
@@ -84,6 +112,7 @@ export function ChatPanel({
       conversationId: string;
       role: "user" | "assistant";
       content: string;
+      partsJson?: string;
     }) => dbRpc.request("messages:append", params),
   });
 
@@ -142,10 +171,13 @@ export function ChatPanel({
   }, [conversationId, persisted, status]);
 
   const handleSubmit = useCallback(
-    async (text: string) => {
+    async (text: string, files: FileUIPart[]) => {
+      if (!text.trim() && files.length === 0) return;
+      const titleSeed = userRowContent(text, files);
+
       let convId = conversationId;
       if (!convId) {
-        const conv = await createConv.mutateAsync(truncateTitle(text));
+        const conv = await createConv.mutateAsync(truncateTitle(titleSeed));
         convId = conv.id;
         onConversationChange(convId);
         queryClient.invalidateQueries({
@@ -153,12 +185,21 @@ export function ChatPanel({
         });
       }
       liveConvIdRef.current = convId;
+      const parts = buildUserParts(text, files);
+      const partsJson = files.length > 0 ? JSON.stringify(parts) : undefined;
       await appendMessage.mutateAsync({
         conversationId: convId,
         role: "user",
-        content: text,
+        content: userRowContent(text, files),
+        partsJson,
       });
-      sendMessage({ text });
+      if (files.length > 0) {
+        const trimmed = text.trim();
+        if (trimmed) await sendMessage({ text: trimmed, files });
+        else await sendMessage({ files });
+      } else {
+        await sendMessage({ text: text.trim() });
+      }
     },
     [
       conversationId,
@@ -187,12 +228,15 @@ export function ChatPanel({
           ) : (
             messages.map((m, idx) => {
               const text = uiTextOf(m);
+              const fileParts =
+                m.parts?.filter((p): p is FileUIPart => isFileUIPart(p)) ?? [];
               const isLast = idx === messages.length - 1;
               return (
                 <MessageBubble
                   key={m.id}
                   role={m.role === "system" ? "assistant" : m.role}
                   content={text || (isBusy ? "…" : "")}
+                  fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
                   isSpeaking={isSpeaking}
@@ -211,7 +255,7 @@ export function ChatPanel({
       <div className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto max-w-3xl">
           <Composer
-            onSend={(t) => void handleSubmit(t)}
+            onSend={(t, f) => void handleSubmit(t, f)}
             isBusy={isBusy}
             onStop={stop}
             disabled={!modelReady}
@@ -244,6 +288,7 @@ function EmptyState() {
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
+  fileAttachments: FileUIPart[];
   isLast: boolean;
   canSpeak: boolean;
   isSpeaking: boolean;
@@ -254,6 +299,7 @@ interface MessageBubbleProps {
 const MessageBubble = memo(function MessageBubble({
   role,
   content,
+  fileAttachments,
   isLast,
   canSpeak,
   isSpeaking,
@@ -261,7 +307,16 @@ const MessageBubble = memo(function MessageBubble({
   onStop,
 }: MessageBubbleProps) {
   const copy = () => {
-    void navigator.clipboard.writeText(content);
+    const names = fileAttachments
+      .map((f) => f.filename ?? f.mediaType)
+      .join(", ");
+    const payload =
+      names && content.trim()
+        ? `${content}\n\n[attachments: ${names}]`
+        : names
+          ? `[attachments: ${names}]`
+          : content;
+    void navigator.clipboard.writeText(payload);
   };
 
   // Actions are hover-only by default but stay on for the latest message —
@@ -324,9 +379,40 @@ const MessageBubble = memo(function MessageBubble({
 
   return (
     <Message className="group mx-auto flex w-full max-w-3xl flex-col items-end gap-1">
-      <MessageContent className="max-w-[85%] rounded-3xl bg-secondary px-4 py-2 text-foreground whitespace-pre-wrap sm:max-w-[75%]">
-        {content}
-      </MessageContent>
+      <div
+        className={cn(
+          "flex max-w-[85%] flex-col gap-2 rounded-3xl bg-secondary px-4 py-2 text-foreground break-words sm:max-w-[75%]",
+        )}
+      >
+        {fileAttachments.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {fileAttachments.map((f, i) => (
+              <li
+                key={`att-${i}-${f.filename ?? f.mediaType}`}
+                className="overflow-hidden rounded-lg border border-border/60 bg-background/40"
+              >
+                {f.mediaType.startsWith("image/") ? (
+                  <img
+                    src={f.url}
+                    alt={f.filename ?? "attachment"}
+                    className="max-h-40 w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
+                    <FileIcon className="size-3.5 shrink-0" aria-hidden />
+                    <span className="truncate">
+                      {f.filename ?? f.mediaType}
+                    </span>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {content.trim() ? (
+          <span className="whitespace-pre-wrap">{content}</span>
+        ) : null}
+      </div>
       <MessageActions className={actionsClass}>
         <MessageAction tooltip="Copy" delayDuration={100}>
           <Button
