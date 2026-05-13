@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,7 @@ import {
 } from "~/ui/message";
 import { Composer } from "../../../components/composer";
 import { useChatStore } from "../store";
+import { KaraokeCaptions } from "./karaoke-captions";
 
 interface ChatPanelProps {
   model: string;
@@ -101,9 +102,16 @@ export function ChatPanel({
   // every render when the query is disabled (conversationId === null) and
   // `data` stays undefined.
   const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
-  const [{ tts }, { speak, stopAudio, transcribe }] = useVoiceStore();
+  const [
+    { tts, caption },
+    { speak, pauseAudio, resumeAudio, restartAudio, stopAudio, transcribe },
+  ] = useVoiceStore();
   const { inputDeviceId } = useChatStore();
   const isSpeaking = tts.kind === "speaking";
+  const speakingMessageId =
+    caption.kind === "active" ? caption.messageId : null;
+  const composerShellRef = useRef<HTMLDivElement | null>(null);
+  const [composerHeight, setComposerHeight] = useState(0);
 
   const createConv = useMutation({
     mutationFn: (title: string) =>
@@ -221,8 +229,18 @@ export function ChatPanel({
     status === "submitted" &&
     !messages.some((m) => m.role === "assistant" && uiTextOf(m).length > 0);
 
+  useEffect(() => {
+    const node = composerShellRef.current;
+    if (!node) return;
+    const update = () => setComposerHeight(node.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
+    <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col">
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
         <ChatContainerContent className="gap-6">
           {messages.length === 0 && !showLoading && !error ? (
@@ -241,8 +259,11 @@ export function ChatPanel({
                   fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
-                  isSpeaking={isSpeaking}
-                  onSpeak={() => void speak(text)}
+                  isSpeaking={
+                    isSpeaking &&
+                    (speakingMessageId === m.id || speakingMessageId === null)
+                  }
+                  onSpeak={() => void speak(text, { messageId: m.id })}
                   onStop={stopAudio}
                 />
               );
@@ -254,7 +275,19 @@ export function ChatPanel({
         </ChatContainerContent>
       </ChatContainerRoot>
 
-      <div className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <KaraokeCaptions
+        caption={caption}
+        bottomOffset={composerHeight + 16}
+        onPause={pauseAudio}
+        onResume={resumeAudio}
+        onRestart={restartAudio}
+        onStop={stopAudio}
+      />
+
+      <div
+        ref={composerShellRef}
+        className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70"
+      >
         <div className="mx-auto max-w-3xl">
           <Composer
             onSend={(t, f) => void handleSubmit(t, f)}
