@@ -15,8 +15,8 @@ import { cn } from "~/lib/utils";
 import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
 import { SidebarInset, SidebarProvider } from "~/ui/sidebar";
 import { ChatStoreProvider } from "../store";
-import { ChatSidebar } from "./chat-sidebar";
-import { ChatTopBar } from "./chat-top-bar";
+import { ChatSidebar } from "./sidebar";
+import { ChatTopBar } from "./top-bar";
 
 interface ChatLayoutProps {
   renderMain: (props: {

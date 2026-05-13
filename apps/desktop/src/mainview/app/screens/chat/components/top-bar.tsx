@@ -6,7 +6,7 @@ import { useVoiceStore } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import { SidebarTrigger } from "~/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/ui/tooltip";
-import { ChatSettingsSheet } from "./chat-settings-sheet";
+import { ChatSettingsSheet } from "./settings-sheet";
 
 interface ChatTopBarProps {
   model: string;

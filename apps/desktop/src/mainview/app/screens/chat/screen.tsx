@@ -1,5 +1,5 @@
-import { ChatLayout } from "./components/chat-layout";
-import { ChatPanel } from "./components/chat-panel";
+import { ChatLayout } from "./components/layout";
+import { ChatPanel } from "./components/panel";
 
 export function ChatScreen() {
   return (
