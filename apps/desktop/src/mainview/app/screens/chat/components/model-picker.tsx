@@ -3,10 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, RefreshCcw } from "lucide-react";
 
-import { ollamaModelsOptions } from "~/lib/queries";
-import { cn } from "~/lib/utils";
-import { formatModelSize } from "~/services/ollama";
-import { Button } from "~/ui/button";
+import { Button } from "~/app/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -14,8 +11,11 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "~/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "~/ui/popover";
+} from "~/app/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "~/app/ui/popover";
+import { ollamaModelsOptions } from "~/lib/queries";
+import { cn } from "~/lib/utils";
+import { formatModelSize } from "~/services/ollama";
 
 interface ModelPickerProps {
   value: string;

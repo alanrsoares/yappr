@@ -8,12 +8,12 @@ import {
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { SidebarInset, SidebarProvider } from "~/app/ui/sidebar";
 import { dbRpc } from "~/lib/db-rpc";
 import { DRAG } from "~/lib/drag-region";
 import { ollamaModelsOptions, preferencesOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";
 import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
-import { SidebarInset, SidebarProvider } from "~/ui/sidebar";
 import { ChatStoreProvider } from "../store";
 import { ChatSidebar } from "./chat-sidebar";
 import { ChatTopBar } from "./chat-top-bar";

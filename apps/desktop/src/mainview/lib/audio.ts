@@ -1,8 +1,9 @@
 /**
  * Web Audio playback helpers for the desktop webview.
- * Pairs with `~/services/yappr` on the CLI (Bun runtime + WAV file) — same Kokoro contract, different transport.
+ * Pairs with the CLI's Bun audio runtime: same Kokoro contract, different transport.
  */
-import type { VoiceId } from "~/services/yappr";
+import type { VoiceId } from "@yappr/sdk/schemas";
+
 import type { HealthState, TtsState } from "../types";
 
 export const DEFAULT_VOICE: VoiceId = "af_aoede";

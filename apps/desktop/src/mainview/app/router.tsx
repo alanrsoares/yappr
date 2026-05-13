@@ -5,11 +5,11 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 
-import { ChatScreen } from "~/screens/chat";
-import { AppLayout } from "../shell/app-layout";
+import { ChatScreen } from "~/app/screens/chat";
+import { MainLayout } from "./layout/main";
 
 const rootRoute = createRootRoute({
-  component: AppLayout,
+  component: MainLayout,
 });
 
 // Chat-first: a single root surface. Voice controls live inside the chat

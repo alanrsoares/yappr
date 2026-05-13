@@ -39,7 +39,7 @@ export OLLAMA_ORIGINS='*'            # any origin — convenient for local dev
 ## How it fits together
 
 - **`src/bun/`** — Electrobun main process. Owns the `~/.yappr/yappr.db` SQLite handle (shared with the CLI) and registers the typed `@yappr/db/rpc` request handlers.
-- **`src/mainview/`** — webview (React). Talks to the bun side over the Electrobun socket via `lib/db-rpc.ts`; talks to the Python inference server over HTTP via `services/yappr` (`@yappr/sdk`). All async reads go through `@tanstack/react-query` — see `lib/queries.ts` for the canonical query options.
+- **`src/mainview/`** — webview (React). Talks to the bun side over the Electrobun socket via `lib/db-rpc.ts`; talks to the Python inference server through `@yappr/sdk` clients. All async reads go through `@tanstack/react-query` — see `lib/queries.ts` for the canonical query options.
 - **`src/mainview/screens/chat/`** — current home surface. `screen.tsx` and `store.tsx` own the screen boundary; `components/` contains the sidebar, chat panel, composer, settings sheet, and model picker.
 
 ## Conventions

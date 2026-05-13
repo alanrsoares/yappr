@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 
-import { VoiceStoreProvider } from "~/lib/voice-store";
+import { VoiceStoreProvider } from "~/stores/voice";
 import { router } from "./router";
 
 const queryClient = new QueryClient({

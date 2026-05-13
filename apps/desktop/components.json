@@ -11,12 +11,12 @@
     "prefix": ""
   },
   "aliases": {
-    "components": "~/ui",
+    "components": "~/app/ui",
     "utils": "~/lib/utils",
-    "ui": "~/ui",
-    "lib": "~/lib",
-    "hooks": "~/hooks",
-    "services": "~/services"
+    "ui": "~/app/ui",
+    "lib": "~/app/lib",
+    "hooks": "~/app/hooks",
+    "services": "~/app/services"
   },
   "iconLibrary": "lucide",
   "registries": {

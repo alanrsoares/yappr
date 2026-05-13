@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContainer } from "@yappr/lib/unstated";
+import type { VoiceId } from "@yappr/sdk/schemas";
+import { TTSClient } from "@yappr/sdk/tts";
 
 import {
   buildAudio,
@@ -17,7 +19,6 @@ import {
 } from "~/lib/audio";
 import { dbRpc } from "~/lib/db-rpc";
 import { preferencesOptions, voicesOptions } from "~/lib/queries";
-import { TTSClient, type VoiceId } from "~/services/yappr";
 import type { HealthState, TtsState } from "~/types";
 
 type VoiceStoreValue = {

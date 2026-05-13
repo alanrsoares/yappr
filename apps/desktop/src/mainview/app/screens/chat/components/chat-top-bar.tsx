@@ -1,10 +1,10 @@
 import { Settings } from "lucide-react";
 
+import { Button } from "~/app/ui/button";
+import { SidebarTrigger } from "~/app/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/app/ui/tooltip";
 import { DRAG, NO_DRAG } from "~/lib/drag-region";
-import { useVoiceStore } from "~/lib/voice-store";
-import { Button } from "~/ui/button";
-import { SidebarTrigger } from "~/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "~/ui/tooltip";
+import { useVoiceStore } from "~/stores/voice";
 import { ChatSettingsSheet } from "./chat-settings-sheet";
 import { ModelPicker } from "./model-picker";
 

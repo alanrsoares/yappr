@@ -11,21 +11,13 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { dbRpc } from "~/lib/db-rpc";
-import { DRAG, NO_DRAG } from "~/lib/drag-region";
-import {
-  archivedConversationsOptions,
-  conversationsOptions,
-  conversationsQueryRootKey,
-} from "~/lib/queries";
-import { cn } from "~/lib/utils";
-import { Button } from "~/ui/button";
+import { Button } from "~/app/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "~/ui/dropdown-menu";
+} from "~/app/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -36,7 +28,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "~/ui/sidebar";
+} from "~/app/ui/sidebar";
+import { dbRpc } from "~/lib/db-rpc";
+import { DRAG, NO_DRAG } from "~/lib/drag-region";
+import {
+  archivedConversationsOptions,
+  conversationsOptions,
+  conversationsQueryRootKey,
+} from "~/lib/queries";
+import { cn } from "~/lib/utils";
 
 interface ChatSidebarProps {
   activeConversationId: string | null;
