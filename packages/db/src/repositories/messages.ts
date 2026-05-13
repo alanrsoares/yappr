@@ -10,6 +10,7 @@ export interface NewMessageInput {
   conversationId: string;
   role: "user" | "assistant" | "system";
   content: string;
+  partsJson?: string | null;
 }
 
 const newId = (): string =>
@@ -33,6 +34,7 @@ export function makeMessagesRepo(db: Db) {
         conversationId: input.conversationId,
         role: input.role,
         content: input.content,
+        partsJson: input.partsJson ?? null,
         createdAt: now,
       };
       // Append message + bump the conversation's updatedAt in one transaction

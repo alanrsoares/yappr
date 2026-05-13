@@ -74,6 +74,10 @@ export function createDb(options: CreateDbOptions): YapprDb {
     sqlite.exec("UPDATE conversations SET archived = 0");
   }
 
+  if (!tableHasColumn(sqlite, "messages", "parts_json")) {
+    sqlite.exec("ALTER TABLE messages ADD COLUMN parts_json TEXT");
+  }
+
   preferences.set(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
 
   return {

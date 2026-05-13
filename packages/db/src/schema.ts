@@ -49,6 +49,8 @@ export const messages = sqliteTable("messages", {
     .references(() => conversations.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
   content: text("content").notNull(),
+  /** JSON array of AI SDK UI parts (`text` + `file`) for multimodal user turns; null = legacy text-only. */
+  partsJson: text("parts_json"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -61,7 +63,7 @@ export type NewConversation = typeof conversations.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const SCHEMA_VERSION_KEY = "_schema_version";
 
 /**
@@ -100,6 +102,7 @@ export const INIT_SQL = `
     conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
+    parts_json TEXT,
     created_at INTEGER NOT NULL
   ) STRICT;
 

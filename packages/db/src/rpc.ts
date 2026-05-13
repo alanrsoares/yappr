@@ -63,6 +63,8 @@ export const MessagesAppendInput = z.object({
   conversationId: z.string().min(1),
   role: RoleSchema,
   content: z.string(),
+  /** JSON-encoded `UIMessage["parts"]` subset (e.g. text + file); omit for plain text. */
+  partsJson: z.string().max(12_000_000).optional(),
 });
 export const MessagesDeleteInput = z.object({ id: z.string().min(1) });
 
