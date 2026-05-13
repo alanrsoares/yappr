@@ -1,5 +1,8 @@
-import { type YapprDb } from "@yappr/db";
+import type { YapprDb } from "@yappr/db";
 import {
+  AgentEventsAppendInput,
+  AgentEventsListForConversationInput,
+  AgentEventsListForRunInput,
   ConversationsCreateInput,
   ConversationsDeleteInput,
   ConversationsGetInput,
@@ -37,7 +40,7 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
     "conversations:list": (params) => {
       const parsed = ConversationsListInput.parse(params);
       const scope = parsed?.scope ?? "active";
-      return db.conversations.list(scope);
+      return db.conversations.list(scope, { limit: parsed?.limit });
     },
     "conversations:get": (params) => {
       const { id } = ConversationsGetInput.parse(params);
@@ -60,8 +63,8 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
       db.conversations.setArchived(id, archived);
     },
     "messages:list": (params) => {
-      const { conversationId } = MessagesListInput.parse(params);
-      return db.messages.list(conversationId);
+      const { conversationId, limit } = MessagesListInput.parse(params);
+      return db.messages.list(conversationId, { limit });
     },
     "messages:append": (params) => {
       const input = MessagesAppendInput.parse(params);
@@ -70,6 +73,21 @@ export function makeDbRpcHandlers(db: YapprDb): Handlers {
     "messages:delete": (params) => {
       const { id } = MessagesDeleteInput.parse(params);
       db.messages.delete(id);
+    },
+    "agentEvents:listForConversation": (params) => {
+      const { conversationId, limit } =
+        AgentEventsListForConversationInput.parse(params);
+      return db.agentEvents.listForConversation(conversationId, {
+        limit,
+      });
+    },
+    "agentEvents:listForRun": (params) => {
+      const { runId, limit } = AgentEventsListForRunInput.parse(params);
+      return db.agentEvents.listForRun(runId, { limit });
+    },
+    "agentEvents:append": (params) => {
+      const input = AgentEventsAppendInput.parse(params);
+      return db.agentEvents.append(input);
     },
   };
 }
