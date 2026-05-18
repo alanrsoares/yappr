@@ -34,11 +34,11 @@
     "format": "prettier --write .",
     "prepare": "husky",
     "serve": "bun run start:py",
-    "tui": "bun --filter @yappr/cli tui",
-    "speak": "bun --filter @yappr/cli speak",
-    "chat": "bun --filter @yappr/cli chat",
-    "voices": "bun --filter @yappr/cli voices",
-    "dev": "bun --filter @yappr/cli dev",
+    "tui": "cd apps/cli && bun run tui",
+    "speak": "cd apps/cli && bun run speak",
+    "chat": "cd apps/cli && bun run chat",
+    "voices": "cd apps/cli && bun run voices",
+    "dev": "cd apps/cli && bun run dev",
     "desktop": "bun --filter @yappr/desktop dev:hmr"
   },
   "devDependencies": {

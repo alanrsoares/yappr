@@ -6,3 +6,5 @@ export { Loading } from "./loading";
 export type { LoadingProps } from "./loading";
 export { Markdown } from "./markdown";
 export type { MarkdownProps } from "./markdown";
+export { Splash } from "./splash";
+export type { SplashProps } from "./splash";

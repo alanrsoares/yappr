@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { Box } from "ink";
 
+import pkg from "../package.json" with { type: "json" };
+import { Splash } from "./components/index.js";
 import { useTerminalHeight, useTerminalWidth } from "./hooks/index.js";
 import { ChatScreen } from "./screens/chat/index.js";
 import { MainMenuScreen } from "./screens/main-menu/index.js";
@@ -12,12 +14,25 @@ import type { ScreenId } from "./types.js";
 
 export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");
+  const [showSplash, setShowSplash] = useState(true);
   const terminalWidth = useTerminalWidth();
   const terminalHeight = useTerminalHeight();
 
   const goBack = useCallback(() => {
     setScreen("menu");
   }, []);
+
+  const dismissSplash = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
+        <Splash version={pkg.version} onDismiss={dismissSplash} />
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
