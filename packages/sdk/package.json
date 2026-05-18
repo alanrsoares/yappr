@@ -21,8 +21,11 @@
     "./audio-devices": "./src/audio-devices.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tanstack/ai": "^0.15.0",
     "@yappr/lib": "workspace:*",
     "neverthrow": "^8.2.0",
+    "ollama": "^0.6.3",
     "zod": "^4.4.3"
   }
 }

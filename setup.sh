@@ -19,7 +19,7 @@ if command -v brew >/dev/null 2>&1; then
 fi
 
 # 2. Install JS dependencies
-echo "yarn Installing JS dependencies..."
+echo "📦 Installing JS dependencies..."
 bun install
 
 # 3. Setup Python environment

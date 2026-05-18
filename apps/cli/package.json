@@ -14,8 +14,25 @@
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
+    "@tanstack/ai": "^0.15.0",
+    "@tanstack/ai-ollama": "^0.6.15",
     "@yappr/db": "workspace:*",
     "@yappr/lib": "workspace:*",
-    "@yappr/sdk": "workspace:*"
+    "@yappr/sdk": "workspace:*",
+    "cli-highlight": "^2.1.11",
+    "ink": "^7.0.3",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "marked": "18.0.3",
+    "marked-terminal": "^7.3.0",
+    "neverthrow": "^8.2.0",
+    "ollama": "^0.6.3",
+    "react": "^19.2.6",
+    "string-width": "^8.2.1",
+    "ts-pattern": "^5.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/marked-terminal": "^6.1.1"
   }
 }
