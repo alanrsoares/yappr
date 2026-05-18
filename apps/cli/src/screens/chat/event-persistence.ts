@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { okAsync, ResultAsync } from "neverthrow";
+import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
 
 import { getDb } from "~/lib/db.js";
 import type { ChatEvent } from "./events.js";
@@ -40,17 +40,17 @@ export function persistChatEvent(event: ChatEvent): ResultAsync<void, Error> {
   );
 }
 
-function parsePersistedEvent(eventJson: string): ChatEvent | null {
+function parsePersistedEvent(eventJson: string): Result<ChatEvent, Error> {
   try {
     const parsed = JSON.parse(eventJson) as ChatEvent;
     return typeof parsed.id === "string" &&
       typeof parsed.runId === "string" &&
       typeof parsed.type === "string" &&
       typeof parsed.timestamp === "number"
-      ? parsed
-      : null;
-  } catch {
-    return null;
+      ? ok(parsed)
+      : err(new Error("Persisted chat event is missing required fields"));
+  } catch (error) {
+    return err(toError(error));
   }
 }
 
@@ -63,7 +63,8 @@ export function listPersistedChatEvents(
       return db.agentEvents
         .listForConversation(conversationId)
         .map((row) => parsePersistedEvent(row.eventJson))
-        .filter((event): event is ChatEvent => event !== null);
+        .filter((event) => event.isOk())
+        .map((event) => event.value);
     })(),
     toError,
   );
