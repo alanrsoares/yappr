@@ -1,4 +1,5 @@
 import { Settings } from "lucide-react";
+import { match } from "ts-pattern";
 
 import { ModelPicker } from "~/app/components/model-picker";
 import { DRAG, NO_DRAG } from "~/lib/drag-region";
@@ -69,17 +70,21 @@ export function ChatTopBar({ model, onModelChange }: ChatTopBarProps) {
 }
 
 const healthLabel = (kind: "idle" | "checking" | "ok" | "fail"): string => {
-  if (kind === "ok") return "online";
-  if (kind === "checking") return "probing";
-  if (kind === "fail") return "offline";
-  return "idle";
+  return match(kind)
+    .with("ok", () => "online")
+    .with("checking", () => "probing")
+    .with("fail", () => "offline")
+    .with("idle", () => "idle")
+    .exhaustive();
 };
 
 const healthDescription = (
   kind: "idle" | "checking" | "ok" | "fail",
 ): string => {
-  if (kind === "ok") return "Inference server reachable";
-  if (kind === "checking") return "Probing inference server…";
-  if (kind === "fail") return "Inference server unreachable — open Settings";
-  return "Inference server not checked — open Settings to probe";
+  return match(kind)
+    .with("ok", () => "Inference server reachable")
+    .with("checking", () => "Probing inference server…")
+    .with("fail", () => "Inference server unreachable — open Settings")
+    .with("idle", () => "Inference server not checked — open Settings to probe")
+    .exhaustive();
 };

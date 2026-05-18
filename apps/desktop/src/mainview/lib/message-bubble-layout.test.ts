@@ -15,7 +15,7 @@ const installMeasureShim = () => {
         return {
           font: "",
           measureText: (text: string) => ({
-            width: Array.from(text).length * 8,
+            width: [...text].length * 8,
           }),
         } as OffscreenCanvasRenderingContext2D;
       }

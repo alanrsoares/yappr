@@ -107,18 +107,22 @@ function commitTextEditorSession(
 ) {
   const v = session.value.trim();
   switch (session.field) {
-    case "ollamaUrl":
+    case "ollamaUrl": {
       savePreferences({ ollamaBaseUrl: v || "http://localhost:11434" });
       break;
-    case "mcpPath":
+    }
+    case "mcpPath": {
       if (v) savePreferences({ mcpConfigPath: v });
       break;
-    case "chatModel":
+    }
+    case "chatModel": {
       if (v) savePreferences({ defaultChatModel: v });
       break;
-    case "openrouterKey":
+    }
+    case "openrouterKey": {
       savePreferences({ openrouterApiKey: v });
       break;
+    }
   }
 }
 
@@ -307,7 +311,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     };
 
     switch (selectedRow) {
-      case R.chatProvider:
+      case R.chatProvider: {
         beginList(
           "provider",
           Math.max(
@@ -320,13 +324,14 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           "zero",
         );
         break;
+      }
       case R.chatModel: {
         if (preferences.defaultChatProvider === "openrouter") {
           if (openRouterModels.length > 0) {
             const idx = openRouterModels.findIndex(
               (m) => m.id === preferences.defaultChatModel,
             );
-            const i = idx >= 0 ? idx : 0;
+            const i = Math.max(idx, 0);
             beginList("openRouterModel", i, openRouterModels.length);
           } else {
             setTextEditorSession({
@@ -375,24 +380,27 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         beginList("narrationModel", narrIdx, narrationModelList.length);
         break;
       }
-      case R.ollamaUrl:
+      case R.ollamaUrl: {
         setTextEditorSession({
           field: "ollamaUrl",
           value: preferences.ollamaBaseUrl,
         });
         break;
-      case R.openrouterApiKey:
+      }
+      case R.openrouterApiKey: {
         setTextEditorSession({
           field: "openrouterKey",
           value: preferences.openrouterApiKey,
         });
         break;
-      case R.mcpConfigPath:
+      }
+      case R.mcpConfigPath: {
         setTextEditorSession({
           field: "mcpPath",
           value: preferences.mcpConfigPath,
         });
         break;
+      }
     }
   }, [
     selectedRow,

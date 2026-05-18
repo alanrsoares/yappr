@@ -5,8 +5,8 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "os";
-import path from "path";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { expect, test } from "bun:test";
 
 import {
@@ -45,7 +45,7 @@ test("savePreferences merges with defaults and persists", async () => {
     };
 
     await savePreferences(partial).match(
-      () => undefined,
+      () => {},
       (err) => {
         throw err;
       },
@@ -84,7 +84,7 @@ test("loadPreferences migrates legacy defaultOllamaModel into chat defaults", as
         null,
         2,
       ),
-      "utf-8",
+      "utf8",
     );
 
     const prefs = await loadPreferences().match(
@@ -116,7 +116,7 @@ test("loadPreferences skips invalid fields and keeps valid ones", async () => {
         null,
         2,
       ),
-      "utf-8",
+      "utf8",
     );
 
     const prefs = await loadPreferences().match(

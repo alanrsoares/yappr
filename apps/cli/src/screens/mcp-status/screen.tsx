@@ -13,6 +13,30 @@ export interface McpStatusScreenProps {
   onBack: () => void;
 }
 
+function McpStatusBody({
+  loading,
+  error,
+  statuses,
+  counts,
+}: {
+  loading: boolean;
+  error: string | null;
+  statuses: ReturnType<typeof useMcpStatuses>["statuses"];
+  counts: ReturnType<typeof getSummaryCounts>;
+}) {
+  if (loading) return <Loading message="Connecting..." />;
+  if (error) return <Text color={semantic.error}>{error}</Text>;
+  if (statuses.length === 0)
+    return <Text dimColor>No config at path or no servers defined.</Text>;
+
+  return (
+    <>
+      <StatusTable rows={statuses} />
+      <Summary counts={counts} />
+    </>
+  );
+}
+
 export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
   const { preferences } = usePreferences();
   const { statuses, loading, error, refresh } = useMcpStatuses({
@@ -32,18 +56,12 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
     <Box flexDirection="column" padding={1}>
       <Header title="MCP servers" subtitle={preferences.mcpConfigPath} />
 
-      {loading ? (
-        <Loading message="Connecting..." />
-      ) : error ? (
-        <Text color={semantic.error}>{error}</Text>
-      ) : statuses.length === 0 ? (
-        <Text dimColor>No config at path or no servers defined.</Text>
-      ) : (
-        <>
-          <StatusTable rows={statuses} />
-          <Summary counts={counts} />
-        </>
-      )}
+      <McpStatusBody
+        loading={loading}
+        error={error}
+        statuses={statuses}
+        counts={counts}
+      />
 
       <Footer items={FOOTER_MCP_STATUS} />
     </Box>

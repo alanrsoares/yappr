@@ -12,7 +12,7 @@ export const SynthesizeRequestSchema = z.object({
   speed: z
     .number()
     .positive()
-    .default(1.0)
+    .default(1)
     .describe("Speaking-rate multiplier (1.0 = model default)."),
 });
 export type SynthesizeRequest = z.infer<typeof SynthesizeRequestSchema>;

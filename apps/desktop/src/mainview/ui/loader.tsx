@@ -69,7 +69,7 @@ export function ClassicLoader({
   return (
     <div className={cn("relative", sizeClasses[size], className)}>
       <div className="absolute h-full w-full">
-        {[...Array(12)].map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
             className="bg-primary absolute animate-[spinner-fade_1.2s_linear_infinite] rounded-full"
@@ -167,7 +167,7 @@ export function DotsLoader({
         className,
       )}
     >
-      {[...Array(3)].map((_, i) => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
           className={cn(
@@ -211,7 +211,7 @@ export function TypingLoader({
         className,
       )}
     >
-      {[...Array(3)].map((_, i) => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
           className={cn(
@@ -261,7 +261,7 @@ export function WaveLoader({
         className,
       )}
     >
-      {[...Array(5)].map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
           className={cn(
@@ -300,7 +300,7 @@ export function BarsLoader({
 
   return (
     <div className={cn("flex", containerSizes[size], className)}>
-      {[...Array(3)].map((_, i) => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
           className={cn(
@@ -464,34 +464,47 @@ function Loader({
   className,
 }: LoaderProps) {
   switch (variant) {
-    case "circular":
+    case "circular": {
       return <CircularLoader size={size} className={className} />;
-    case "classic":
+    }
+    case "classic": {
       return <ClassicLoader size={size} className={className} />;
-    case "pulse":
+    }
+    case "pulse": {
       return <PulseLoader size={size} className={className} />;
-    case "pulse-dot":
+    }
+    case "pulse-dot": {
       return <PulseDotLoader size={size} className={className} />;
-    case "dots":
+    }
+    case "dots": {
       return <DotsLoader size={size} className={className} />;
-    case "typing":
+    }
+    case "typing": {
       return <TypingLoader size={size} className={className} />;
-    case "wave":
+    }
+    case "wave": {
       return <WaveLoader size={size} className={className} />;
-    case "bars":
+    }
+    case "bars": {
       return <BarsLoader size={size} className={className} />;
-    case "terminal":
+    }
+    case "terminal": {
       return <TerminalLoader size={size} className={className} />;
-    case "text-blink":
+    }
+    case "text-blink": {
       return <TextBlinkLoader text={text} size={size} className={className} />;
-    case "text-shimmer":
+    }
+    case "text-shimmer": {
       return (
         <TextShimmerLoader text={text} size={size} className={className} />
       );
-    case "loading-dots":
+    }
+    case "loading-dots": {
       return <TextDotsLoader text={text} size={size} className={className} />;
-    default:
+    }
+    default: {
       return <CircularLoader size={size} className={className} />;
+    }
   }
 }
 

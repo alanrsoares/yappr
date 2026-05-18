@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Loader2, Mic, Square } from "lucide-react";
+import { match } from "ts-pattern";
 
 import { cn } from "~/lib/utils";
 import { blobToWavBlob } from "~/lib/wav";
@@ -34,6 +35,29 @@ interface MicButtonProps {
   disabled?: boolean;
   /** MediaDevices deviceId to capture from. `null`/undefined = system default. */
   inputDeviceId?: string | null;
+}
+
+function getMicLabel(state: MicState) {
+  return match(state)
+    .with({ kind: "idle" }, () => "Start dictation")
+    .with({ kind: "recording" }, () => "Stop dictation")
+    .with({ kind: "processing" }, () => "Transcribing…")
+    .with({ kind: "error" }, ({ reason }) => `Mic error — ${reason}`)
+    .exhaustive();
+}
+
+function MicStateIcon({ state }: { state: MicState }) {
+  return match(state)
+    .with({ kind: "recording" }, () => (
+      <Square className="size-3.5" aria-hidden="true" />
+    ))
+    .with({ kind: "processing" }, () => (
+      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+    ))
+    .with({ kind: "idle" }, { kind: "error" }, () => (
+      <Mic className="size-4" aria-hidden="true" />
+    ))
+    .exhaustive();
 }
 
 /**
@@ -90,10 +114,10 @@ export function MicButton({
           return stoppedPromise;
         },
       });
-    } catch (err) {
+    } catch (error) {
       setState({
         kind: "error",
-        reason: err instanceof Error ? err.message : "Mic unavailable",
+        reason: error instanceof Error ? error.message : "Mic unavailable",
       });
     }
   }, [inputDeviceId]);
@@ -134,11 +158,11 @@ export function MicButton({
       }
       onTranscript(trimmed);
       setState({ kind: "idle" });
-    } catch (err) {
-      console.error("[mic] error:", err);
+    } catch (error) {
+      console.error("[mic] error:", error);
       setState({
         kind: "error",
-        reason: err instanceof Error ? err.message : "Transcription failed",
+        reason: error instanceof Error ? error.message : "Transcription failed",
       });
     }
   }, [state, transcribe, onTranscript]);
@@ -146,14 +170,7 @@ export function MicButton({
   const onClick = state.kind === "recording" ? stop : start;
   const isBusy = state.kind === "processing";
 
-  const label =
-    state.kind === "recording"
-      ? "Stop dictation"
-      : state.kind === "processing"
-        ? "Transcribing…"
-        : state.kind === "error"
-          ? `Mic error — ${state.reason}`
-          : "Start dictation";
+  const label = getMicLabel(state);
 
   return (
     <PromptInputAction tooltip={label} side="top">
@@ -171,13 +188,7 @@ export function MicButton({
           state.kind === "error" && "text-destructive",
         )}
       >
-        {state.kind === "recording" ? (
-          <Square className="size-3.5" aria-hidden="true" />
-        ) : state.kind === "processing" ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Mic className="size-4" aria-hidden="true" />
-        )}
+        <MicStateIcon state={state} />
       </Button>
     </PromptInputAction>
   );

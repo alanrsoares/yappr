@@ -5,6 +5,8 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "tui": "bun run src/app.tsx",
     "speak": "bun run src/index.ts speak",
     "chat": "bun run src/index.ts chat",

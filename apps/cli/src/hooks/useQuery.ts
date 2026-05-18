@@ -21,7 +21,7 @@ export function useQuery<T, E = Error>(
   options: UseQueryOptions = {},
 ): UseQueryResult<T, E> {
   const { enabled = true, deps = [] } = options;
-  const [data, setData] = useState<T | undefined>(undefined);
+  const [data, setData] = useState<T | undefined>();
   const [error, setError] = useState<E | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const queryFnRef = useRef(queryFn);

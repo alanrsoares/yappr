@@ -148,7 +148,7 @@ export function resolveSlashSubmit(
   explicitPrimaryName: string | undefined,
 ) {
   const t = rawLine.trim();
-  if (!t.startsWith("/")) return undefined;
+  if (!t.startsWith("/")) return;
   const body = t.slice(1).trim();
   const token = body.split(/\s+/)[0]?.toLowerCase() ?? "";
 
@@ -163,6 +163,4 @@ export function resolveSlashSubmit(
     const matches = filterSlashCommands(token);
     if (matches.length === 1) return matches[0];
   }
-
-  return undefined;
 }

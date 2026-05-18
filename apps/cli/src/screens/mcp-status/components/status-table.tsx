@@ -14,18 +14,24 @@ function statusColor(status: ServerStatus["status"]) {
 
 function getCell(row: ServerStatus, col: (typeof HEADERS)[number]): string {
   switch (col) {
-    case "Server":
+    case "Server": {
       return row.id;
-    case "Status":
+    }
+    case "Status": {
       return row.status;
-    case "Tools":
+    }
+    case "Tools": {
       return String(row.tools);
-    case "Transport":
+    }
+    case "Transport": {
       return row.transport ?? "—";
-    case "Message":
+    }
+    case "Message": {
       return row.message;
-    default:
+    }
+    default: {
       return "";
+    }
   }
 }
 

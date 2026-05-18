@@ -60,7 +60,7 @@ export const voicesOptions = (serverUrl: string) =>
  */
 export const preferencesOptions = queryOptions({
   queryKey: ["db", "preferences"] as const,
-  queryFn: () => dbRpc.request("preferences:getAll", undefined),
+  queryFn: () => dbRpc.request("preferences:getAll"),
   staleTime: Infinity,
 });
 

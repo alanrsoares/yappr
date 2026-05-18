@@ -32,7 +32,7 @@ const clampProgress = (value: number): number =>
   Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 
 const lineWeight = (text: string): number => {
-  const length = Array.from(text.trim()).length;
+  const length = [...text.trim()].length;
   return length > 0 ? length : 1;
 };
 
@@ -44,8 +44,8 @@ const activeLineIndexFor = (
   const totalWeight = lines.reduce((sum, line) => sum + line.weight, 0);
   const target = clampProgress(progress) * totalWeight;
   let cursor = 0;
-  for (let i = 0; i < lines.length; i++) {
-    cursor += lines[i]?.weight ?? 0;
+  for (const [i, line] of lines.entries()) {
+    cursor += line?.weight ?? 0;
     if (target <= cursor) return i;
   }
   return lines.length - 1;

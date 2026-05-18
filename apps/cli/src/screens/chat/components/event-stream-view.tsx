@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 
+import { match } from "ts-pattern";
+
 import {
   getEffectiveKey,
   type ExtendedKey,
@@ -64,36 +66,56 @@ function previewText(value: string, width: number) {
 
 function summarizeEvent(event: ChatEvent, width: number) {
   const detailWidth = Math.max(12, width - 38);
-  switch (event.type) {
-    case "run.start":
-      return `${event.model} / ${event.provider}`;
-    case "run.end":
-      return `${event.status} ${event.elapsedMs}ms${event.error ? ` ${previewText(event.error, detailWidth)}` : ""}`;
-    case "message.user":
-      return previewText(event.content, detailWidth);
-    case "message.assistant.streaming":
-      return `delta ${event.delta.length} chars`;
-    case "message.assistant": {
+  return match(event)
+    .with(
+      { type: "run.start" },
+      (event) => `${event.model} / ${event.provider}`,
+    )
+    .with(
+      { type: "run.end" },
+      (event) =>
+        `${event.status} ${event.elapsedMs}ms${event.error ? ` ${previewText(event.error, detailWidth)}` : ""}`,
+    )
+    .with({ type: "message.user" }, (event) =>
+      previewText(event.content, detailWidth),
+    )
+    .with(
+      { type: "message.assistant.streaming" },
+      (event) => `delta ${event.delta.length} chars`,
+    )
+    .with({ type: "message.assistant" }, (event) => {
       const ttft = event.ttftMs ? ` TTFT ${event.ttftMs}ms` : "";
       return `${event.content.length} chars${ttft} TTLT ${event.ttltMs ?? 0}ms`;
-    }
-    case "tool.call":
-      return `${event.name} started`;
-    case "tool.result":
-      return `${event.name} ${event.error ? "error" : "done"} ${event.elapsedMs}ms`;
-    case "tts.start":
-      return `${event.mode} ${event.voice} ${event.contentLength} chars`;
-    case "tts.end":
-      return `${event.status} ${event.elapsedMs}ms`;
-    case "stt.start":
-      return `device ${event.deviceIndex}`;
-    case "stt.transcript":
-      return `${event.elapsedMs}ms ${previewText(event.content, detailWidth)}`;
-    case "stt.end":
-      return `${event.status} ${event.elapsedMs}ms`;
-    case "system":
-      return `${event.level} ${previewText(event.message, detailWidth)}`;
-  }
+    })
+    .with({ type: "tool.call" }, (event) => `${event.name} started`)
+    .with(
+      { type: "tool.result" },
+      (event) =>
+        `${event.name} ${event.error ? "error" : "done"} ${event.elapsedMs}ms`,
+    )
+    .with(
+      { type: "tts.start" },
+      (event) => `${event.mode} ${event.voice} ${event.contentLength} chars`,
+    )
+    .with(
+      { type: "tts.end" },
+      (event) => `${event.status} ${event.elapsedMs}ms`,
+    )
+    .with({ type: "stt.start" }, (event) => `device ${event.deviceIndex}`)
+    .with(
+      { type: "stt.transcript" },
+      (event) =>
+        `${event.elapsedMs}ms ${previewText(event.content, detailWidth)}`,
+    )
+    .with(
+      { type: "stt.end" },
+      (event) => `${event.status} ${event.elapsedMs}ms`,
+    )
+    .with(
+      { type: "system" },
+      (event) => `${event.level} ${previewText(event.message, detailWidth)}`,
+    )
+    .exhaustive();
 }
 
 function eventColor(event: ChatEvent) {
@@ -102,7 +124,6 @@ function eventColor(event: ChatEvent) {
     return semantic.success;
   if (event.type.endsWith(".start") || event.type === "tool.call")
     return semantic.accent;
-  return undefined;
 }
 
 function eventDetailLines(event: ChatEvent) {

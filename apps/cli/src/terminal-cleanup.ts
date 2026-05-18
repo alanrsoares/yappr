@@ -1,8 +1,8 @@
 import fs from "node:fs";
 
 /** xterm-style alternate screen: preserve main-buffer scrollback while the TUI runs. */
-const ENTER_ALTERNATE_SCREEN = "\x1b[?1049h";
-const LEAVE_ALTERNATE_SCREEN = "\x1b[?1049l";
+const ENTER_ALTERNATE_SCREEN = "\u001B[?1049h";
+const LEAVE_ALTERNATE_SCREEN = "\u001B[?1049l";
 
 let alternateScreenActive = false;
 
@@ -40,9 +40,9 @@ export function enterAlternateScreenSync(): void {
  * Leaves alternate screen first, then bracketed paste / mouse / SGR reset.
  */
 const AFTER_ALT_BUFFER_CLEANUP =
-  "\x1b[?2004l" + // bracketed paste off
-  "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l" + // mouse off
-  "\x1b[0m"; // SGR reset
+  "\u001B[?2004l" + // bracketed paste off
+  "\u001B[?1000l\u001B[?1002l\u001B[?1003l\u001B[?1006l" + // mouse off
+  "\u001B[0m"; // SGR reset
 
 export function cleanupTerminalModesSync(): void {
   try {

@@ -14,23 +14,29 @@ function inlineTokensToSpeech(tokens: readonly Token[] = []): string {
     tokens.map((token) => {
       switch (token.type) {
         case "text":
-        case "escape":
+        case "escape": {
           return "tokens" in token && token.tokens
             ? inlineTokensToSpeech(token.tokens)
             : token.text;
+        }
         case "strong":
         case "em":
         case "del":
-        case "link":
+        case "link": {
           return inlineTokensToSpeech(token.tokens ?? []);
-        case "codespan":
+        }
+        case "codespan": {
           return `code ${token.text}`;
-        case "br":
+        }
+        case "br": {
           return "\n";
-        case "image":
+        }
+        case "image": {
           return token.text ? `image: ${token.text}` : "image";
-        default:
+        }
+        default: {
           return "";
+        }
       }
     }),
   );
@@ -38,21 +44,26 @@ function inlineTokensToSpeech(tokens: readonly Token[] = []): string {
 
 function blockTokenToSpeech(token: Token): string {
   switch (token.type) {
-    case "space":
+    case "space": {
       return "";
-    case "heading":
+    }
+    case "heading": {
       return inlineTokensToSpeech(token.tokens ?? []);
-    case "paragraph":
+    }
+    case "paragraph": {
       return inlineTokensToSpeech(token.tokens ?? []);
-    case "blockquote":
+    }
+    case "blockquote": {
       return joinParts((token.tokens ?? []).map(blockTokenToSpeech));
-    case "list":
+    }
+    case "list": {
       return joinParts(
         token.items.map((item: Tokens.ListItem, index: number) => {
           const body = joinParts((item.tokens ?? []).map(blockTokenToSpeech));
           return body ? `Item ${index + 1}. ${body}` : "";
         }),
       );
+    }
     case "code": {
       const language = token.lang ? `${token.lang} ` : "";
       return `${language}code block omitted`;
@@ -66,12 +77,14 @@ function blockTokenToSpeech(token: Token): string {
         .join(", ");
       return header ? `Table with columns: ${header}` : "Table omitted";
     }
-    case "hr":
+    case "hr": {
       return "";
-    default:
+    }
+    default: {
       return "text" in token && typeof token.text === "string"
         ? token.text
         : "";
+    }
   }
 }
 

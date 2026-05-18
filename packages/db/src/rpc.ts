@@ -50,7 +50,7 @@ export const ConversationsDeleteInput = z.object({ id: z.string().min(1) });
 export const ConversationsListInput = z
   .object({
     scope: z.enum(["active", "archived", "all"]).optional(),
-    limit: z.number().int().positive().max(1_000).optional(),
+    limit: z.number().int().positive().max(1000).optional(),
   })
   .optional();
 
@@ -61,7 +61,7 @@ export const ConversationsSetArchivedInput = z.object({
 
 export const MessagesListInput = z.object({
   conversationId: z.string().min(1),
-  limit: z.number().int().positive().max(5_000).optional(),
+  limit: z.number().int().positive().max(5000).optional(),
 });
 export const MessagesAppendInput = z.object({
   conversationId: z.string().min(1),

@@ -4,8 +4,6 @@ import { ResultAsync } from "neverthrow";
 
 import type { AudioDevice } from "./types.js";
 
-export type { AudioDevice };
-
 export function listInputDevices(): ResultAsync<AudioDevice[], Error> {
   return ResultAsync.fromPromise(
     new Promise<AudioDevice[]>((resolve, reject) => {
@@ -59,7 +57,7 @@ function parseAvFoundationDevices(output: string): AudioDevice[] {
       const match = line.match(/\[(\d+)\]\s+(.+)$/);
       if (match?.[1] != null && match[2] != null) {
         devices.push({
-          index: parseInt(match[1], 10),
+          index: Number.parseInt(match[1], 10),
           name: match[2].trim(),
         });
       }
@@ -75,3 +73,5 @@ const OUTPUT_SYSTEM_DEFAULT: AudioDevice[] = [
 export function listOutputDevices(): ResultAsync<AudioDevice[], Error> {
   return ResultAsync.fromSafePromise(Promise.resolve(OUTPUT_SYSTEM_DEFAULT));
 }
+
+export { type AudioDevice } from "./types.js";

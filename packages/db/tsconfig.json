@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"],
+      "@yappr/lib/*": ["../../packages/lib/src/*"],
+      "@yappr/sdk": ["../../packages/sdk/src/index.ts"],
+      "@yappr/sdk/*": ["../../packages/sdk/src/*"],
+      "@yappr/db": ["./src/index.ts"],
+      "@yappr/db/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "drizzle.config.ts"],
+  "exclude": ["node_modules", "dist", "build"]
+}

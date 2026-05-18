@@ -50,6 +50,13 @@ export function ChatPanel() {
     return () => observer.disconnect();
   }, []);
 
+  let composerPlaceholder = "Loading models from Ollama…";
+  if (state.modelReady) {
+    composerPlaceholder = "Ask the local model… (Shift+Enter for newline)";
+  } else if (state.modelsLoaded) {
+    composerPlaceholder = "Select an installed model to start chatting…";
+  }
+
   return (
     <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col">
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
@@ -116,15 +123,7 @@ export function ChatPanel() {
             isBusy={state.isBusy}
             onStop={stop}
             disabled={!state.modelReady}
-            placeholder={
-              state.modelReady
-                ? "Ask the local model… (Shift+Enter for newline)"
-                : state.modelsLoaded
-                  ? "Select an installed model to start chatting…"
-                  : state.modelsLoaded
-                    ? "Loading models from Ollama…"
-                    : "Loading models from Ollama…"
-            }
+            placeholder={composerPlaceholder}
             transcribe={voiceActions.transcribe}
             inputDeviceId={state.inputDeviceId}
           />
@@ -204,7 +203,7 @@ const MessageBubble = memo(function MessageBubble({
     }
     const update = () => {
       const rowWidth = node.getBoundingClientRect().width;
-      const ratio = window.matchMedia("(min-width: 640px)").matches
+      const ratio = globalThis.matchMedia("(min-width: 640px)").matches
         ? 0.75
         : 0.85;
       setUserBubbleWidth(measureUserTextBubbleWidth(content, rowWidth * ratio));

@@ -21,7 +21,7 @@ export interface ConversationListOptions {
 }
 
 const clampLimit = (limit: number | undefined) =>
-  Math.min(Math.max(limit ?? 200, 1), 1_000);
+  Math.min(Math.max(limit ?? 200, 1), 1000);
 
 export function makeConversationsRepo(db: Db) {
   return {

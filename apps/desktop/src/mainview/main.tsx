@@ -9,7 +9,7 @@ import App from "./app";
 // RPC socket before any component tries to call `dbRpc.request(...)`.
 import "./lib/db-rpc";
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.querySelector("#root")!).render(
   <StrictMode>
     <App />
   </StrictMode>,

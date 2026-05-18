@@ -36,8 +36,8 @@ function rmsEnergy(buffer: AudioBuffer): number {
   let count = 0;
   for (let c = 0; c < buffer.numberOfChannels; c++) {
     const data = buffer.getChannelData(c);
-    for (let i = 0; i < data.length; i++) {
-      const v = data[i] ?? 0;
+    for (const datum of data) {
+      const v = datum ?? 0;
       sumSquares += v * v;
       count++;
     }
@@ -81,7 +81,7 @@ function encodeWavBlob(buffer: AudioBuffer): Blob {
       const sample = clamp(channels[c]![i] ?? 0, -1, 1);
       view.setInt16(
         offset,
-        sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+        sample < 0 ? sample * 0x80_00 : sample * 0x7f_ff,
         true,
       );
       offset += 2;
@@ -92,8 +92,9 @@ function encodeWavBlob(buffer: AudioBuffer): Blob {
 }
 
 const writeAscii = (view: DataView, offset: number, s: string): void => {
-  for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  for (let i = 0; i < s.length; i++)
+    view.setUint8(offset + i, s.codePointAt(i) ?? 0);
 };
 
 const clamp = (v: number, lo: number, hi: number): number =>
-  v < lo ? lo : v > hi ? hi : v;
+  v < lo ? lo : Math.min(v, hi);

@@ -30,6 +30,11 @@ function VoicesPreviewStatusLine({
   return null;
 }
 
+function EmptyVoicesMessage({ voices }: { voices: readonly string[] }) {
+  if (voices.length === 0) return <Text dimColor>No voices returned.</Text>;
+  return <Text dimColor>No voices match filter.</Text>;
+}
+
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
   return (
     <VoicesProvider initialState={{ onBack }}>
@@ -54,59 +59,58 @@ function VoicesScreenContent() {
     filterText,
   } = state;
 
+  let content = (
+    <Box flexDirection="column" marginTop={1}>
+      {phraseCustom ? (
+        <Box flexDirection="column" marginBottom={1}>
+          <Text dimColor>
+            Preview phrase (↑/↓ change voice). Enter plays, Esc leaves phrase
+            mode, Ctrl+e closes editor.
+          </Text>
+          <Text>{phrase}</Text>
+        </Box>
+      ) : (
+        <Text dimColor>
+          Ctrl+p fixed sample · Ctrl+e type your own · Enter plays sample for
+          selection
+        </Text>
+      )}
+      <Box marginTop={phraseCustom ? 0 : 1}>
+        <Text dimColor>Filter: </Text>
+        <Text>{filterText || "(type to filter)"}</Text>
+      </Box>
+      <VoicesPreviewStatusLine
+        status={previewStatus}
+        previewError={previewError}
+      />
+      <Box flexDirection="column" marginTop={1}>
+        {filtered.map((v, i) => (
+          <Text
+            key={v}
+            color={i === effectiveIndex ? semantic.accent : undefined}
+          >
+            {listSelectionPrefix(i === effectiveIndex)}
+            {v}
+          </Text>
+        ))}
+      </Box>
+    </Box>
+  );
+  if (isLoading) {
+    content = <Loading message="Loading voices..." />;
+  } else if (error) {
+    content = <Text color={semantic.error}>{error.message}</Text>;
+  } else if (len === 0) {
+    content = <EmptyVoicesMessage voices={voices} />;
+  }
+
   return (
     <Box flexDirection="column" padding={1}>
       <Header
         title="Voices"
         subtitle="TTS from server — ↑/↓ select · Ctrl+p sample · Ctrl+e custom phrase · Enter play"
       />
-      {isLoading ? (
-        <Loading message="Loading voices..." />
-      ) : error ? (
-        <Text color={semantic.error}>{error.message}</Text>
-      ) : len === 0 ? (
-        <Text dimColor>
-          {voices.length === 0
-            ? "No voices returned."
-            : "No voices match filter."}
-        </Text>
-      ) : (
-        <Box flexDirection="column" marginTop={1}>
-          {phraseCustom ? (
-            <Box flexDirection="column" marginBottom={1}>
-              <Text dimColor>
-                Preview phrase (↑/↓ change voice). Enter plays, Esc leaves
-                phrase mode, Ctrl+e closes editor.
-              </Text>
-              <Text>{phrase}</Text>
-            </Box>
-          ) : (
-            <Text dimColor>
-              Ctrl+p fixed sample · Ctrl+e type your own · Enter plays sample
-              for selection
-            </Text>
-          )}
-          <Box marginTop={phraseCustom ? 0 : 1}>
-            <Text dimColor>Filter: </Text>
-            <Text>{filterText || "(type to filter)"}</Text>
-          </Box>
-          <VoicesPreviewStatusLine
-            status={previewStatus}
-            previewError={previewError}
-          />
-          <Box flexDirection="column" marginTop={1}>
-            {filtered.map((v, i) => (
-              <Text
-                key={v}
-                color={i === effectiveIndex ? semantic.accent : undefined}
-              >
-                {listSelectionPrefix(i === effectiveIndex)}
-                {v}
-              </Text>
-            ))}
-          </Box>
-        </Box>
-      )}
+      {content}
       <Footer items={footerVoices(phraseCustom ? "phrase" : "back")} />
     </Box>
   );

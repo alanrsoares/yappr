@@ -9,7 +9,7 @@ import type { HealthState, TtsState } from "../types";
 export const DEFAULT_VOICE: VoiceId = "af_aoede";
 export const DEFAULT_SERVER_URL = "http://localhost:8000";
 export const DEFAULT_TEXT = "Hello from Yappr.";
-export const DEFAULT_SPEED = 1.0;
+export const DEFAULT_SPEED = 1;
 
 /** Pure: pick a voice from a fresh list, preserving the current selection when valid. */
 export const pickVoice =

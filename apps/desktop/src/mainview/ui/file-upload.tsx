@@ -42,7 +42,7 @@ function FileUpload({
 
   const handleFiles = useCallback(
     (files: FileList) => {
-      const newFiles = Array.from(files);
+      const newFiles = [...files];
       if (multiple) {
         onFilesAdded(newFiles);
       } else {
@@ -79,16 +79,16 @@ function FileUpload({
       }
     };
 
-    window.addEventListener("dragenter", handleDragIn);
-    window.addEventListener("dragleave", handleDragOut);
-    window.addEventListener("dragover", handleDrag);
-    window.addEventListener("drop", handleDrop);
+    globalThis.addEventListener("dragenter", handleDragIn);
+    globalThis.addEventListener("dragleave", handleDragOut);
+    globalThis.addEventListener("dragover", handleDrag);
+    globalThis.addEventListener("drop", handleDrop);
 
     return () => {
-      window.removeEventListener("dragenter", handleDragIn);
-      window.removeEventListener("dragleave", handleDragOut);
-      window.removeEventListener("dragover", handleDrag);
-      window.removeEventListener("drop", handleDrop);
+      globalThis.removeEventListener("dragenter", handleDragIn);
+      globalThis.removeEventListener("dragleave", handleDragOut);
+      globalThis.removeEventListener("dragover", handleDrag);
+      globalThis.removeEventListener("drop", handleDrop);
     };
   }, [handleFiles]);
 

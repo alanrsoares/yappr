@@ -1,4 +1,4 @@
-import { parseArgs } from "util";
+import { parseArgs } from "node:util";
 
 import { chat, listVoices, speak } from "./services/yappr";
 
@@ -17,13 +17,14 @@ const command = positionals[0];
 
 async function run() {
   switch (command) {
-    case "serve":
+    case "serve": {
       console.log("Starting inference server...");
       console.log(
         "Please use 'bun run start:py' to start the python inference server.",
       );
       break;
-    case "voices":
+    }
+    case "voices": {
       {
         const voices = await listVoices();
         voices.match(
@@ -32,7 +33,8 @@ async function run() {
         );
       }
       break;
-    case "speak":
+    }
+    case "speak": {
       {
         const text = positionals.slice(1).join(" ");
         if (!text) {
@@ -43,7 +45,7 @@ async function run() {
         }
         const speakRes = await speak(text, {
           voice: values.voice,
-          speed: values.speed ? parseFloat(values.speed) : 1.0,
+          speed: values.speed ? Number.parseFloat(values.speed) : 1,
         });
         speakRes.match(
           () => {},
@@ -51,7 +53,8 @@ async function run() {
         );
       }
       break;
-    case "chat":
+    }
+    case "chat": {
       {
         const prompt = positionals.slice(1).join(" ");
         if (!prompt) {
@@ -76,7 +79,8 @@ async function run() {
         );
       }
       break;
-    default:
+    }
+    default: {
       console.log(`
 Yappr CLI
 
@@ -88,6 +92,7 @@ Usage:
   bun run voices        List available TTS voices
       `);
       break;
+    }
   }
 }
 

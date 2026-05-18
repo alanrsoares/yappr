@@ -22,7 +22,7 @@ export const isDurableChatEvent = (event: ChatEvent) =>
   DURABLE_EVENT_TYPES.has(event.type);
 
 export function persistChatEvent(event: ChatEvent): ResultAsync<void, Error> {
-  if (!isDurableChatEvent(event)) return okAsync(undefined);
+  if (!isDurableChatEvent(event)) return okAsync();
 
   return ResultAsync.fromPromise(
     (async () => {

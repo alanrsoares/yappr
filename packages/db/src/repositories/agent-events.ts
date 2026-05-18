@@ -19,7 +19,7 @@ export interface AgentEventListOptions {
 }
 
 const clampLimit = (limit: number | undefined) =>
-  Math.min(Math.max(limit ?? 1_000, 1), 10_000);
+  Math.min(Math.max(limit ?? 1000, 1), 10_000);
 
 export function makeAgentEventsRepo(db: Db) {
   return {

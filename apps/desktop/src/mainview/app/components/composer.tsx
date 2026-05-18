@@ -107,7 +107,7 @@ export function Composer({
 
   const onFilesAdded = useCallback(
     (files: File[]) => {
-      if (!files.length) return;
+      if (files.length === 0) return;
       void ingestFileList(filesToFileList(files));
     },
     [ingestFileList],

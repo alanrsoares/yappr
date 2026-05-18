@@ -34,6 +34,64 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
 
   const models = data ?? [];
   const current = models.find((m) => m.name === value);
+  let commandContent = (
+    <>
+      <CommandEmpty className="px-3 py-4 text-center font-mono text-xs text-muted-foreground">
+        No match.
+      </CommandEmpty>
+      <CommandGroup heading="Installed">
+        {models.map((m) => (
+          <CommandItem
+            key={m.name}
+            value={m.name}
+            onSelect={(v) => {
+              onChange(v);
+              setOpen(false);
+            }}
+            className="flex items-center justify-between gap-2 font-mono"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Check
+                className={cn(
+                  "size-3.5 shrink-0",
+                  m.name === value ? "opacity-100 text-led-amber" : "opacity-0",
+                )}
+                aria-hidden="true"
+              />
+              <span className="truncate text-sm">{m.name}</span>
+            </span>
+            <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+              {m.details?.parameter_size ?? formatModelSize(m.size)}
+            </span>
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    </>
+  );
+
+  if (isPending) {
+    commandContent = (
+      <div className="px-3 py-6 text-center font-mono text-xs text-muted-foreground">
+        Loading models…
+      </div>
+    );
+  } else if (isError) {
+    commandContent = (
+      <FailState
+        reason={error instanceof Error ? error.message : "Unknown error"}
+        onRetry={() => void refetch()}
+      />
+    );
+  } else if (models.length === 0) {
+    commandContent = (
+      <CommandEmpty>
+        <div className="px-3 py-4 text-center font-mono text-xs text-muted-foreground">
+          No models installed. Run{" "}
+          <code className="text-foreground">ollama pull …</code> first.
+        </div>
+      </CommandEmpty>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,60 +118,7 @@ export function ModelPicker({ value, onChange }: ModelPickerProps) {
             className="font-mono text-sm"
           />
           <CommandList>
-            {isPending ? (
-              <div className="px-3 py-6 text-center font-mono text-xs text-muted-foreground">
-                Loading models…
-              </div>
-            ) : isError ? (
-              <FailState
-                reason={
-                  error instanceof Error ? error.message : "Unknown error"
-                }
-                onRetry={() => void refetch()}
-              />
-            ) : models.length === 0 ? (
-              <CommandEmpty>
-                <div className="px-3 py-4 text-center font-mono text-xs text-muted-foreground">
-                  No models installed. Run{" "}
-                  <code className="text-foreground">ollama pull …</code> first.
-                </div>
-              </CommandEmpty>
-            ) : (
-              <>
-                <CommandEmpty className="px-3 py-4 text-center font-mono text-xs text-muted-foreground">
-                  No match.
-                </CommandEmpty>
-                <CommandGroup heading="Installed">
-                  {models.map((m) => (
-                    <CommandItem
-                      key={m.name}
-                      value={m.name}
-                      onSelect={(v) => {
-                        onChange(v);
-                        setOpen(false);
-                      }}
-                      className="flex items-center justify-between gap-2 font-mono"
-                    >
-                      <span className="flex items-center gap-2 min-w-0">
-                        <Check
-                          className={cn(
-                            "size-3.5 shrink-0",
-                            m.name === value
-                              ? "opacity-100 text-led-amber"
-                              : "opacity-0",
-                          )}
-                          aria-hidden="true"
-                        />
-                        <span className="truncate text-sm">{m.name}</span>
-                      </span>
-                      <span className="shrink-0 text-[0.65rem] text-muted-foreground">
-                        {m.details?.parameter_size ?? formatModelSize(m.size)}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </>
-            )}
+            {commandContent}
 
             {!isPending && !isError ? (
               <div className="border-t border-border px-2 py-1.5">

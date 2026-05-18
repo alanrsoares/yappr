@@ -21,7 +21,7 @@ const newId = (): string =>
   `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
 const clampLimit = (limit: number | undefined) =>
-  Math.min(Math.max(limit ?? 500, 1), 5_000);
+  Math.min(Math.max(limit ?? 500, 1), 5000);
 
 export function makeMessagesRepo(db: Db) {
   return {

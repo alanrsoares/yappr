@@ -4,6 +4,10 @@
   "description": "Shared utilities for Yappr (Result helpers, unstated container).",
   "type": "module",
   "private": true,
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     "./result": "./src/result.ts",
     "./unstated": "./src/unstated.tsx"

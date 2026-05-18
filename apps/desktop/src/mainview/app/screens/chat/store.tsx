@@ -88,7 +88,7 @@ const buildUserParts = (
 const userRowContent = (text: string, files: FileUIPart[]): string => {
   const t = text.trim();
   if (t) return t;
-  if (!files.length) return "";
+  if (files.length === 0) return "";
   return files.map((f) => f.filename ?? f.mediaType).join(", ");
 };
 
@@ -277,8 +277,9 @@ function useChatStoreLogic(): ChatStoreValue {
       });
       if (files.length > 0) {
         const trimmed = text.trim();
-        if (trimmed) await sendMessage({ text: trimmed, files });
-        else await sendMessage({ files });
+        await (trimmed
+          ? sendMessage({ text: trimmed, files })
+          : sendMessage({ files }));
       } else {
         await sendMessage({ text: text.trim() });
       }

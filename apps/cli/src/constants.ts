@@ -1,8 +1,6 @@
-import { resolveMcpConfigPath, userHomeDir } from "@yappr/sdk/paths";
+import { resolveMcpConfigPath } from "@yappr/sdk/paths";
 
 import type { ScreenId } from "./types.js";
-
-export { userHomeDir };
 
 /**
  * Default MCP config path. Resolved via cascade:
@@ -28,3 +26,5 @@ export const MENU_ITEMS: Array<{ id: ScreenId; label: string }> = [
   { id: "voices", label: "List voices" },
   { id: "settings", label: "Settings" },
 ];
+
+export { userHomeDir } from "@yappr/sdk/paths";

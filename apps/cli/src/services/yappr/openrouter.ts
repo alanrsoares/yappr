@@ -130,7 +130,7 @@ export function listOpenRouterModels(
           id: m.id,
           name: m.name ?? m.id,
         }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .toSorted((a, b) => a.name.localeCompare(b.name));
     })(),
     toError,
   );

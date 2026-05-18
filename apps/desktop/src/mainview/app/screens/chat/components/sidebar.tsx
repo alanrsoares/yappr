@@ -60,6 +60,9 @@ function bucket(now: number, updatedAt: number): string {
 
 const BUCKET_ORDER = ["Today", "Yesterday", "Previous 7 days", "Older"];
 
+const isConvGroup = (group: ConvGroup | undefined): group is ConvGroup =>
+  group !== undefined;
+
 function buildGroups(
   list: Array<{ id: string; title: string; updatedAt: number }>,
   now: number,
@@ -71,9 +74,7 @@ function buildGroups(
     if (!byLabel.has(label)) byLabel.set(label, { label, items: [] });
     byLabel.get(label)!.items.push({ id: c.id, title: c.title });
   }
-  return BUCKET_ORDER.map((label) => byLabel.get(label)).filter(
-    (g): g is ConvGroup => Boolean(g),
-  );
+  return BUCKET_ORDER.map((label) => byLabel.get(label)).filter(isConvGroup);
 }
 
 export function ChatSidebar({

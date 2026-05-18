@@ -4,6 +4,10 @@
   "description": "Yappr SDK — TTS/STT clients, MCP manager, audio devices, MCP path cascade.",
   "type": "module",
   "private": true,
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./paths": "./src/paths.ts",

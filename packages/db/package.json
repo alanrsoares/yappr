@@ -5,6 +5,8 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "db:generate": "cd ../.. && drizzle-kit generate --config packages/db/drizzle.config.ts"
   },
   "exports": {

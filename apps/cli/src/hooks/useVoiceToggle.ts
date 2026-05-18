@@ -41,7 +41,7 @@ export function useVoiceToggle({
     // Filter out 't' or control-T if it's added within 200ms of a toggle press
     return (
       now - lastToggleRef.current < 200 &&
-      (nextVal.endsWith("t") || nextVal.endsWith("\x14")) &&
+      (nextVal.endsWith("t") || nextVal.endsWith("\u0014")) &&
       nextVal.length === currentVal.length + 1
     );
   }, []);

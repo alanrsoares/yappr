@@ -1,3 +1,5 @@
+import { match, P } from "ts-pattern";
+
 import type { ChatMessage, ChatProvider } from "~/types.js";
 import type { ChatPhase } from "./components/chat-status.js";
 
@@ -161,7 +163,7 @@ export function mergeChatEvents(
   const byId = new Map<string, ChatEvent>();
   for (const event of persistedEvents) byId.set(event.id, event);
   for (const event of localEvents) byId.set(event.id, event);
-  return Array.from(byId.values()).sort((a, b) => a.timestamp - b.timestamp);
+  return [...byId.values()].toSorted((a, b) => a.timestamp - b.timestamp);
 }
 
 export function deriveMessages(events: readonly ChatEvent[]): ChatMessage[] {
@@ -170,21 +172,25 @@ export function deriveMessages(events: readonly ChatEvent[]): ChatMessage[] {
   const finalizedMessageIds = new Set<string>();
 
   for (const event of events) {
-    if (event.type === "message.user") {
-      messages.push({ role: "user", content: event.content });
-    } else if (event.type === "message.assistant.streaming") {
-      if (!finalizedMessageIds.has(event.messageId)) {
-        const current = streamingByMessageId.get(event.messageId) ?? "";
-        const next = event.isReplace ? event.delta : current + event.delta;
-        streamingByMessageId.set(event.messageId, next);
-      }
-    } else if (event.type === "message.assistant") {
-      finalizedMessageIds.add(event.messageId);
-      streamingByMessageId.delete(event.messageId);
-      if (event.content) {
-        messages.push({ role: "assistant", content: event.content });
-      }
-    }
+    match(event)
+      .with({ type: "message.user" }, (event) => {
+        messages.push({ role: "user", content: event.content });
+      })
+      .with({ type: "message.assistant.streaming" }, (event) => {
+        if (!finalizedMessageIds.has(event.messageId)) {
+          const current = streamingByMessageId.get(event.messageId) ?? "";
+          const next = event.isReplace ? event.delta : current + event.delta;
+          streamingByMessageId.set(event.messageId, next);
+        }
+      })
+      .with({ type: "message.assistant" }, (event) => {
+        finalizedMessageIds.add(event.messageId);
+        streamingByMessageId.delete(event.messageId);
+        if (event.content) {
+          messages.push({ role: "assistant", content: event.content });
+        }
+      })
+      .otherwise(() => {});
   }
 
   return messages;
@@ -220,16 +226,20 @@ export function deriveActiveToolCall(
   const open = new Map<string, string>();
 
   for (const event of events) {
-    if (event.type === "tool.call") {
-      open.set(event.toolCallId, event.name);
-    } else if (event.type === "tool.result") {
-      open.delete(event.toolCallId);
-    } else if (event.type === "run.end") {
-      open.clear();
-    }
+    match(event)
+      .with({ type: "tool.call" }, (event) => {
+        open.set(event.toolCallId, event.name);
+      })
+      .with({ type: "tool.result" }, (event) => {
+        open.delete(event.toolCallId);
+      })
+      .with({ type: "run.end" }, () => {
+        open.clear();
+      })
+      .otherwise(() => {});
   }
 
-  const latest = Array.from(open.values()).at(-1);
+  const latest = [...open.values()].at(-1);
   return latest ?? null;
 }
 
@@ -242,42 +252,64 @@ export function deriveLatestRunToolSummaries(
   const summaries = new Map<string, ToolCallSummary>();
   for (const event of events) {
     if (event.runId !== latestRunId) continue;
-    if (event.type === "tool.call") {
-      summaries.set(event.toolCallId, {
-        toolCallId: event.toolCallId,
-        name: event.name,
-        status: "running",
-      });
-    } else if (event.type === "tool.result") {
-      summaries.set(event.toolCallId, {
-        toolCallId: event.toolCallId,
-        name: event.name,
-        status: event.error ? "error" : "done",
-        elapsedMs: event.elapsedMs,
-        error: event.error,
-      });
-    }
+    match(event)
+      .with({ type: "tool.call" }, (event) => {
+        summaries.set(event.toolCallId, {
+          toolCallId: event.toolCallId,
+          name: event.name,
+          status: "running",
+        });
+      })
+      .with({ type: "tool.result" }, (event) => {
+        summaries.set(event.toolCallId, {
+          toolCallId: event.toolCallId,
+          name: event.name,
+          status: event.error ? "error" : "done",
+          elapsedMs: event.elapsedMs,
+          error: event.error,
+        });
+      })
+      .otherwise(() => {});
   }
 
-  return Array.from(summaries.values());
+  return [...summaries.values()];
 }
 
 export function deriveChatPhase(events: readonly ChatEvent[]): ChatPhase {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
     if (!event) continue;
-    if (event.type === "tts.end" || event.type === "run.end") return "idle";
-    if (event.type === "tts.start") {
-      return event.mode === "narration" ? "narrating" : "speaking";
-    }
-    if (
-      event.type === "run.start" ||
-      event.type === "tool.call" ||
-      event.type === "tool.result" ||
-      event.type === "message.assistant.streaming"
-    ) {
-      return "thinking";
-    }
+    const phase = match(event)
+      .returnType<ChatPhase | null>()
+      .with({ type: P.union("tts.end", "run.end") }, () => "idle")
+      .with({ type: "tts.start", mode: "narration" }, () => "narrating")
+      .with({ type: "tts.start", mode: "direct" }, () => "speaking")
+      .with(
+        {
+          type: P.union(
+            "run.start",
+            "tool.call",
+            "tool.result",
+            "message.assistant.streaming",
+          ),
+        },
+        () => "thinking",
+      )
+      .with(
+        {
+          type: P.union(
+            "message.user",
+            "message.assistant",
+            "stt.start",
+            "stt.transcript",
+            "stt.end",
+            "system",
+          ),
+        },
+        () => null,
+      )
+      .exhaustive();
+    if (phase) return phase;
   }
 
   return "idle";

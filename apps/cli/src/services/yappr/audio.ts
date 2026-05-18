@@ -1,16 +1,10 @@
 import { toError } from "@yappr/lib/result";
-import {
-  listInputDevices,
-  listOutputDevices,
-  type AudioDevice,
-} from "@yappr/sdk/audio-devices";
 import { DEFAULT_SPEED, DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
 import type { SpeakOptions } from "../../types.js";
 import { getDefaultAudioRuntime, type AudioRuntime } from "./audio-runtime.js";
 
-export type { AudioDevice };
 export {
   createAudioRuntime,
   createPlaybackPort,
@@ -23,8 +17,6 @@ export {
   type RecorderPort,
   type TtsPort,
 } from "./audio-runtime.js";
-
-export { listInputDevices, listOutputDevices };
 
 export function stopAudioPlayback(): void {
   getDefaultAudioRuntime().playback.stop();
@@ -93,3 +85,9 @@ export function recordAndTranscribeWithRuntime(
     .andThen(() => runtime.tts.transcribe(Bun.file(inputWav)))
     .map((t) => t?.trim() ?? "");
 }
+
+export {
+  listInputDevices,
+  listOutputDevices,
+  type AudioDevice,
+} from "@yappr/sdk/audio-devices";

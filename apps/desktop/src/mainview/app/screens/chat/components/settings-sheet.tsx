@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
+import { match } from "ts-pattern";
 
 import { useInputDevices } from "~/hooks";
 import { useVoiceStore, type VoiceStoreState } from "~/stores/voice";
@@ -206,7 +207,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
               aria-valuetext={formatSpeed(speed)}
               value={[speed]}
               min={0.5}
-              max={2.0}
+              max={2}
               step={0.05}
               onValueChange={([next]) => {
                 if (next !== undefined) setSpeed(next);
@@ -220,8 +221,10 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
 }
 
 const healthLine = (health: VoiceStoreState["health"]): string => {
-  if (health.kind === "idle") return "Not checked.";
-  if (health.kind === "checking") return "Probing…";
-  if (health.kind === "ok") return `Online — ${health.voices} voices.`;
-  return `Error: ${health.reason}`;
+  return match(health)
+    .with({ kind: "idle" }, () => "Not checked.")
+    .with({ kind: "checking" }, () => "Probing…")
+    .with({ kind: "ok" }, ({ voices }) => `Online — ${voices} voices.`)
+    .with({ kind: "fail" }, ({ reason }) => `Error: ${reason}`)
+    .exhaustive();
 };

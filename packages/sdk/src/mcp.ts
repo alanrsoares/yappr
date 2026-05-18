@@ -67,8 +67,8 @@ export class McpManager {
   private emit(event: McpLifecycleEvent): void {
     try {
       this.onEvent(event);
-    } catch (err) {
-      console.warn("[yappr] mcp onEvent threw:", err);
+    } catch (error) {
+      console.warn("[yappr] mcp onEvent threw:", error);
     }
   }
 
@@ -229,14 +229,14 @@ export class McpManager {
     let result;
     try {
       result = await client.listTools();
-    } catch (err) {
+    } catch (error) {
       this.emit({
         type: "server.error",
         serverId: id,
         phase: "list-tools",
-        error: err instanceof Error ? err.message : String(err),
+        error: error instanceof Error ? error.message : String(error),
       });
-      throw err;
+      throw error;
     }
     const toolCount = result.tools?.length ?? 0;
     if (result.tools) {
@@ -261,7 +261,7 @@ export class McpManager {
   }
 
   getOllamaTools(): OllamaTool[] {
-    return Array.from(this.tools.values()).map(({ tool }) => ({
+    return [...this.tools.values()].map(({ tool }) => ({
       type: "function",
       function: {
         name: tool.name,
@@ -272,7 +272,7 @@ export class McpManager {
   }
 
   getTanStackTools(): Array<Tool<SchemaInput, SchemaInput>> {
-    return Array.from(this.tools.values()).map(({ tool }) => {
+    return [...this.tools.values()].map(({ tool }) => {
       const def = toolDefinition({
         name: tool.name,
         description: tool.description || "",

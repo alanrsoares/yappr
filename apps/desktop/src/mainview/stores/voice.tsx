@@ -172,12 +172,12 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const resumeAudio = useCallback(() => {
     const handle = audioHandleRef.current;
     if (!handle) return;
-    void handle.audio.play().catch((err: unknown) => {
+    void handle.audio.play().catch((error: unknown) => {
       if (audioHandleRef.current !== handle) return;
       disposeAudio(handle);
       audioHandleRef.current = null;
       const message =
-        err instanceof Error ? err.message : "Audio playback failed";
+        error instanceof Error ? error.message : "Audio playback failed";
       setTts(toTtsError(message));
       setCaption({ kind: "idle" });
     });
@@ -243,31 +243,31 @@ function useVoiceStoreLogic(): VoiceStoreValue {
           });
         };
         updateCaption();
-        handle.audio.onloadedmetadata = updateCaption;
-        handle.audio.onpause = updateCaption;
-        handle.audio.onplay = updateCaption;
-        handle.audio.onplaying = updateCaption;
-        handle.audio.ontimeupdate = updateCaption;
-        handle.audio.onended = () => {
+        handle.audio.addEventListener("loadedmetadata", updateCaption);
+        handle.audio.addEventListener("pause", updateCaption);
+        handle.audio.addEventListener("play", updateCaption);
+        handle.audio.addEventListener("playing", updateCaption);
+        handle.audio.addEventListener("timeupdate", updateCaption);
+        handle.audio.addEventListener("ended", () => {
           if (audioHandleRef.current !== handle) return;
           disposeAudio(handle);
           audioHandleRef.current = null;
           setTts({ kind: "idle" });
           setCaption({ kind: "idle" });
-        };
-        handle.audio.onerror = () => {
+        });
+        handle.audio.addEventListener("error", () => {
           if (audioHandleRef.current !== handle) return;
           disposeAudio(handle);
           audioHandleRef.current = null;
           setTts(toTtsError("Audio playback failed"));
           setCaption({ kind: "idle" });
-        };
-        void handle.audio.play().catch((err: unknown) => {
+        });
+        void handle.audio.play().catch((error: unknown) => {
           if (audioHandleRef.current !== handle) return;
           disposeAudio(handle);
           audioHandleRef.current = null;
           const message =
-            err instanceof Error ? err.message : "Audio playback failed";
+            error instanceof Error ? error.message : "Audio playback failed";
           setTts(toTtsError(message));
           setCaption({ kind: "idle" });
         });

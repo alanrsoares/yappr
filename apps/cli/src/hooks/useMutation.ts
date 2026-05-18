@@ -23,7 +23,7 @@ export function useMutation<T, E = Error, V = void>(
   options?: UseMutationOptions<T, E>,
 ): UseMutationResult<T, E, V> {
   const { onSuccess, onError } = options ?? {};
-  const [data, setData] = useState<T | undefined>(undefined);
+  const [data, setData] = useState<T | undefined>();
   const [error, setError] = useState<E | null>(null);
   const [isPending, setIsPending] = useState(false);
 
@@ -47,7 +47,7 @@ export function useMutation<T, E = Error, V = void>(
           () => setIsPending(false),
           () => setIsPending(false),
         );
-      return ok(undefined);
+      return ok();
     },
     [mutationFn, onSuccess, onError],
   );

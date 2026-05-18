@@ -91,7 +91,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     const created = createChatEvent(event);
     setEvents((prev) => appendChatEvent(prev, created));
     void persistChatEvent(created).match(
-      () => undefined,
+      () => {},
       (err) => console.warn("[yappr] failed to persist agent event:", err),
     );
   }, []);
@@ -119,8 +119,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       try {
         const created = createConversationSync(prompt, model);
         conversationIdRef.current = created.id;
-      } catch (err) {
-        console.warn("[yappr] failed to persist conversation:", err);
+      } catch (error) {
+        console.warn("[yappr] failed to persist conversation:", error);
       }
     }
     emit({
@@ -154,7 +154,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       if (!convId) return;
       const result = await appendMessage(convId, userMessage);
       result.match(
-        () => undefined,
+        () => {},
         (err) => console.warn("[yappr] failed to persist user message:", err),
       );
     })();
@@ -209,7 +209,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         const active = activeCalls.at(-1);
         if (!active) return;
         const remaining = activeCalls.slice(0, -1);
-        if (remaining.length) activeToolIdsRef.current.set(name, remaining);
+        if (remaining.length > 0) activeToolIdsRef.current.set(name, remaining);
         else activeToolIdsRef.current.delete(name);
         emit({
           type: "tool.result",
@@ -321,7 +321,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
               content: res,
             }).then((result) =>
               result.match(
-                () => undefined,
+                () => {},
                 (err) =>
                   console.warn(
                     "[yappr] failed to persist assistant message:",

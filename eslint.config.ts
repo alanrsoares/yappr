@@ -1,6 +1,7 @@
 import eslint from "@eslint/js";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import unicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -10,17 +11,49 @@ export default tseslint.config(
       "docs/**",
       "node_modules/**",
       "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
       "apps/*/dist/**",
       "apps/*/build/**",
       "packages/*/dist/**",
       "bun.lock",
       "openapi.json",
       "packages/sdk/src/schema.d.ts",
+      "**/schema.d.ts",
       "**/*.config.js",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  unicorn.configs.recommended,
+  {
+    rules: {
+      // Disable rules that conflict with the stack or established conventions.
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/no-null": "off",
+      "unicorn/no-array-reduce": "off",
+      "unicorn/no-process-exit": "off",
+      "unicorn/prefer-top-level-await": "off",
+      "unicorn/consistent-function-scoping": "off",
+      "unicorn/no-negated-condition": "off",
+      "unicorn/no-nested-ternary": "off",
+      "unicorn/no-array-callback-reference": "off",
+      "unicorn/import-style": "off",
+      "unicorn/prefer-string-raw": "off",
+      "unicorn/prefer-string-replace-all": "off",
+      "unicorn/number-literal-case": "off",
+      "unicorn/filename-case": [
+        "error",
+        {
+          cases: {
+            camelCase: true,
+            kebabCase: true,
+            pascalCase: true,
+          },
+        },
+      ],
+    },
+  },
   {
     files: ["**/*.{ts,tsx}"],
     rules: {
@@ -86,7 +119,7 @@ export default tseslint.config(
   // Patterns like Math.random() for skeleton widths and custom data attributes
   // are upstream conventions, not bugs.
   {
-    files: ["apps/*/src/**/ui/**/*.{ts,tsx}"],
+    files: ["apps/*/src/**/ui/**/*.{ts,tsx}", "**/src/**/ui/**/*.{ts,tsx}"],
     rules: {
       "react-hooks/purity": "off",
       "react/no-unknown-property": "off",

@@ -4,6 +4,7 @@
   "description": "Yappr desktop companion (experimental) — voice loop + chat surface for the local-first Yappr stack",
   "private": true,
   "scripts": {
+    "lint": "eslint .",
     "start": "vite build && electrobun dev",
     "dev": "electrobun dev --watch",
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",

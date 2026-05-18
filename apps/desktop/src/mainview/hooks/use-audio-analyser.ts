@@ -22,8 +22,8 @@ export const ZERO_READINGS: StereoReadings = {
 
 const computeRMS = (data: Uint8Array): number => {
   let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    const v = (data[i] ?? 0) / 255;
+  for (const datum of data) {
+    const v = (datum ?? 0) / 255;
     sum += v * v;
   }
   return Math.sqrt(sum / data.length);

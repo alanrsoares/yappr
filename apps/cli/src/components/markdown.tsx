@@ -29,7 +29,7 @@ export function Markdown({ children }: MarkdownProps) {
   const content = useMemo(() => {
     try {
       return marked.parse(children) as string;
-    } catch (_) {
+    } catch {
       return children;
     }
   }, [children]);
