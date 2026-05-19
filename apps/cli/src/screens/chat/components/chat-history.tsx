@@ -1,5 +1,6 @@
 import { Box, Static, Text } from "ink";
 
+import { useTerminalHeight, useTerminalWidth } from "~/hooks";
 import {
   bubbleBorderForRole,
   streamingBubbleBorder,
@@ -13,15 +14,51 @@ export interface ChatHistoryProps {
   modelName: string;
 }
 
+const BUBBLE_OVERHEAD_ROWS = 4;
+const NON_HISTORY_ROWS = 12;
+const MIN_STREAM_ROWS = 4;
+
+function wrapToRows(content: string, innerCols: number): string[] {
+  const cols = Math.max(1, innerCols);
+  const rows: string[] = [];
+  for (const line of content.split("\n")) {
+    if (line.length === 0) {
+      rows.push("");
+      continue;
+    }
+    for (let i = 0; i < line.length; i += cols) {
+      rows.push(line.slice(i, i + cols));
+    }
+  }
+  return rows;
+}
+
+function tailContent(content: string, maxRows: number, innerCols: number) {
+  const rows = wrapToRows(content, innerCols);
+  if (rows.length <= maxRows) return content;
+  const keep = Math.max(1, maxRows - 1);
+  return ["…", ...rows.slice(rows.length - keep)].join("\n");
+}
+
 export function ChatHistory({
   messages,
   streamingResponse,
   modelName,
 }: ChatHistoryProps) {
   const isEmpty = messages.length === 0 && !streamingResponse;
+  const termRows = useTerminalHeight();
+  const termCols = useTerminalWidth();
+  const innerCols = Math.max(8, termCols - 8);
+  const streamBudgetRows = Math.max(
+    MIN_STREAM_ROWS,
+    termRows - NON_HISTORY_ROWS - BUBBLE_OVERHEAD_ROWS,
+  );
+  const streamContent = streamingResponse
+    ? tailContent(streamingResponse, streamBudgetRows, innerCols)
+    : null;
 
   return (
-    <Box flexDirection="column" marginBottom={0}>
+    <Box flexDirection="column" flexShrink={0}>
       {isEmpty && (
         <Box flexDirection="column" paddingY={1} gap={0}>
           <Text bold>No messages yet</Text>
@@ -31,9 +68,8 @@ export function ChatHistory({
         </Box>
       )}
 
-      {/* Static history for completed messages */}
-      <Static items={messages}>
-        {(msg, i) => (
+      <Static items={messages.map((msg, i) => ({ msg, i }))}>
+        {({ msg, i }) => (
           <MessageBubble
             key={`${i}-${msg.role}-${msg.content.slice(0, 12)}`}
             role={msg.role as "user" | "assistant"}
@@ -46,11 +82,10 @@ export function ChatHistory({
         )}
       </Static>
 
-      {/* Dynamic section for streaming response */}
-      {streamingResponse && (
+      {streamContent !== null && (
         <MessageBubble
           role="assistant"
-          content={streamingResponse}
+          content={streamContent}
           label={`${modelName} (streaming…)`}
           borderColor={streamingBubbleBorder()}
         />

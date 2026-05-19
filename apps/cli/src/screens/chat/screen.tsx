@@ -39,36 +39,42 @@ function ChatScreenContent() {
   const subtitle = truncateDisplayWidth(subtitleRaw, innerCols);
 
   return (
-    <Box flexDirection="column" padding={1} height="100%" width={terminalWidth}>
+    <Box
+      flexDirection="column"
+      padding={1}
+      width={terminalWidth}
+      flexShrink={0}
+      flexGrow={0}
+    >
       <Header
         title={state.isEventStreamOpen ? "Events" : "Chat"}
         subtitle={subtitle}
       />
 
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        minHeight={4}
-        borderStyle="round"
-        borderColor={semantic.border.historyFrame}
-        paddingX={1}
-        paddingY={0}
-        marginBottom={1}
-      >
-        {state.isEventStreamOpen ? (
+      {state.isEventStreamOpen ? (
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          minHeight={4}
+          borderStyle="round"
+          borderColor={semantic.border.historyFrame}
+          paddingX={1}
+          paddingY={0}
+          marginBottom={1}
+        >
           <EventStreamView
             events={state.events}
             width={terminalWidth}
             onClose={actions.closeEventStream}
           />
-        ) : (
-          <ChatHistory
-            messages={state.messages}
-            streamingResponse={state.streamingResponse}
-            modelName={state.model}
-          />
-        )}
-      </Box>
+        </Box>
+      ) : (
+        <ChatHistory
+          messages={state.messages}
+          streamingResponse={state.streamingResponse}
+          modelName={state.model}
+        />
+      )}
 
       {!state.isEventStreamOpen && (
         <Box flexDirection="column" marginBottom={1} minHeight={1}>
