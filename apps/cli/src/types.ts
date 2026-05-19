@@ -46,6 +46,8 @@ export interface SummaryCounts {
 export interface ChatMessage {
   role: string;
   content: string;
+  /** Local filesystem paths to images to attach to this message. */
+  images?: string[];
 }
 
 export interface SpeakOptions {
@@ -68,6 +70,8 @@ export interface ChatOptions {
   onUpdate?: (content: string) => void;
   /** Prior conversation messages for multi-turn chat (user/assistant only; system use systemPrompts). */
   messages?: ChatMessage[];
+  /** Image file paths to attach to the current user prompt (vision models). */
+  images?: string[];
   /** System prompt(s) sent as system context. Prefer over putting system in messages. */
   systemPrompts?: string[];
   /** AbortController to cancel in-flight chat. */

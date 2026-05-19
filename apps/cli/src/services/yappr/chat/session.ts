@@ -11,6 +11,17 @@ import type {
 import { buildChatModelMessages } from "./messages.js";
 import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
 
+function flattenContentToText(
+  content: ModelMessage["content"] | undefined,
+): string {
+  if (content == null) return "";
+  if (typeof content === "string") return content;
+  return content
+    .map((part) => (part.type === "text" ? part.content : ""))
+    .filter(Boolean)
+    .join("\n");
+}
+
 function throwIfChatAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
     const err = new Error("Chat was cancelled.");
@@ -69,6 +80,7 @@ export function chat(
     useTools = true,
     onUpdate,
     messages: priorMessages = [],
+    images = [],
     systemPrompts: explicitSystemPrompts,
     abortController,
     onToolCall,
@@ -77,22 +89,29 @@ export function chat(
   const mcp = runtime.createMcpManager();
 
   const systemPrompts: string[] = explicitSystemPrompts ?? [];
-  const messages: Array<ModelMessage<string>> = buildChatModelMessages(
+  const messages: ModelMessage[] = buildChatModelMessages(
     prompt,
     priorMessages,
+    images,
   );
 
   return mcp
     .loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH)
     .andThen(() => {
       if (provider === "openrouter") {
+        const textOnly = messages.map(
+          (m): OpenRouterTextMessage => ({
+            role: m.role,
+            content: flattenContentToText(m.content),
+          }),
+        );
         const openRouterMessages: OpenRouterTextMessage[] =
           systemPrompts.length > 0
             ? [
                 { role: "system", content: systemPrompts.join("\n\n") },
-                ...messages,
+                ...textOnly,
               ]
-            : messages;
+            : textOnly;
         const openRouterAdapter = runtime.createOpenRouterChat(
           model,
           openrouterApiKey ?? "",
@@ -162,7 +181,7 @@ async function streamOllamaAndCollect(
   runtime: ChatRuntime,
   args: {
     adapter: ReturnType<ChatRuntime["createOllamaChat"]>;
-    messages: Array<ModelMessage<string>>;
+    messages: ModelMessage[];
     systemPrompts: string[];
     tools: Array<Tool<SchemaInput, SchemaInput>>;
     abortController: AbortController | undefined;

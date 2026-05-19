@@ -11,6 +11,12 @@ import {
 } from "~/lib/chat-persistence.js";
 import { quit } from "~/quit.js";
 import {
+  imagePathExists,
+  looksLikeImagePath,
+  normalizeImagePath,
+  readClipboardImage,
+} from "~/services/clipboard.js";
+import {
   chat,
   narrateResponse,
   recordAndTranscribe,
@@ -57,6 +63,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const [events, setEvents] = useState<ChatEvent[]>([]);
   const [isEventStreamOpen, setIsEventStreamOpen] = useState(false);
   const [hasStoppedRecording, setHasStoppedRecording] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const chatAbortRef = useRef<AbortController | null>(null);
   const runStartedAtRef = useRef(0);
@@ -108,7 +115,11 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   );
   const phase = useMemo(() => deriveChatPhase(events), [events]);
 
-  const chatMutation = useMutation<string | null, Error, string>((prompt) => {
+  const chatMutation = useMutation<
+    string | null,
+    Error,
+    { prompt: string; images: string[] }
+  >(({ prompt, images }) => {
     const runId = createRunId();
     const assistantMessageId = createMessageId();
     runStartedAtRef.current = Date.now();
@@ -132,11 +143,17 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       voice,
       mcpConfigPath,
     });
+    const promptWithAttachmentHint =
+      images.length > 0
+        ? `${prompt}${prompt ? "\n\n" : ""}[attached: ${images
+            .map((p) => p.split("/").pop() ?? p)
+            .join(", ")}]`
+        : prompt;
     emit({
       type: "message.user",
       runId,
       conversationId: conversationIdRef.current,
-      content: prompt,
+      content: promptWithAttachmentHint,
     });
     chatAbortRef.current = new AbortController();
     const priorMessages: ChatMessage[] = messages.map((m) => ({
@@ -148,7 +165,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     // conversation row (titled from the prompt). Persistence failures are
     // logged but don't block the chat — the in-memory transcript still
     // renders so the user can keep working.
-    const userMessage: ChatMessage = { role: "user", content: prompt };
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: promptWithAttachmentHint,
+    };
     const persistUser = (async () => {
       const convId = conversationIdRef.current;
       if (!convId) return;
@@ -167,6 +187,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       openrouterApiKey,
       mcpConfigPath,
       messages: priorMessages,
+      images,
       onUpdate: (text) => {
         if (firstTokenAtRef.current === null)
           firstTokenAtRef.current = Date.now();
@@ -472,10 +493,29 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     activeToolIdsRef.current.clear();
     lastStreamingTextRef.current = "";
     firstTokenAtRef.current = null;
+    setPendingAttachments([]);
     // Detach from the current conversation row — next send will start a new
     // one. The previous conversation stays in the DB for browsing later.
     conversationIdRef.current = null;
   }, [stopChat, stopStt, chatMutation, sttMutation]);
+
+  const attachImageFromClipboard = useCallback(() => {
+    void readClipboardImage().match(
+      (path) => {
+        if (path) setPendingAttachments((p) => [...p, path]);
+        else setSlashNotice("No image on clipboard.");
+      },
+      (err) => setSlashNotice(`Clipboard read failed: ${err.message}`),
+    );
+  }, []);
+
+  const removeAttachment = useCallback((idx: number) => {
+    setPendingAttachments((p) => p.filter((_, i) => i !== idx));
+  }, []);
+
+  const clearAttachments = useCallback(() => {
+    setPendingAttachments([]);
+  }, []);
 
   const { isLeakage } = useVoiceToggle({
     isRecording: sttPhase === "recording",
@@ -487,7 +527,23 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const handleInputChange = useCallback(
     (val: string) => {
       setSlashNotice(null);
-      if (!isLeakage(val, value)) setValue(val);
+      if (isLeakage(val, value)) return;
+      if (looksLikeImagePath(val)) {
+        const path = normalizeImagePath(val);
+        void imagePathExists(path).match(
+          (exists) => {
+            if (exists) {
+              setPendingAttachments((p) => [...p, path]);
+              setValue("");
+            } else {
+              setValue(val);
+            }
+          },
+          () => setValue(val),
+        );
+        return;
+      }
+      setValue(val);
     },
     [isLeakage, value],
   );
@@ -547,7 +603,8 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const handleComposerSubmit = useCallback(
     (raw: string, slashPick?: string) => {
       const t = raw.trim();
-      if (!t) return;
+      const hasAttachments = pendingAttachments.length > 0;
+      if (!t && !hasAttachments) return;
       if (t.startsWith("/")) {
         const body = t.slice(1).trim();
         if (!body && !slashPick) {
@@ -568,10 +625,11 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         return;
       }
       sttMutation.reset();
-      chatMutation.mutate(t);
+      chatMutation.mutate({ prompt: t, images: pendingAttachments });
       setValue("");
+      setPendingAttachments([]);
     },
-    [buildSlashContext, chatMutation, sttMutation],
+    [buildSlashContext, chatMutation, sttMutation, pendingAttachments],
   );
 
   const dismissSlashOrBack = useCallback(() => {
@@ -615,6 +673,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     isEventStreamOpen,
     statusContent,
     slashNotice,
+    pendingAttachments,
     footerItems: buildChatFooterItems({
       isSlashPalette,
       isChatPending: chatMutation.isPending,
@@ -631,6 +690,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     stopStt,
     stopChat,
     closeEventStream: () => setIsEventStreamOpen(false),
+    attachImageFromClipboard,
+    removeAttachment,
+    clearAttachments,
   };
 
   return [state, actions] as const;

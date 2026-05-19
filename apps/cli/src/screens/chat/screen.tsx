@@ -31,6 +31,8 @@ function ChatScreenContent() {
     bindings: [
       { keys: ["escape"], action: actions.dismissSlashOrBack },
       { keys: ["ctrl+c"], action: actions.stopChat },
+      { keys: ["ctrl+v"], action: actions.attachImageFromClipboard },
+      { keys: ["ctrl+x"], action: actions.clearAttachments },
     ],
   });
 
@@ -89,6 +91,17 @@ function ChatScreenContent() {
               {line}
             </Text>
           ))}
+        </Box>
+      )}
+
+      {!state.isEventStreamOpen && state.pendingAttachments.length > 0 && (
+        <Box flexDirection="column" marginBottom={1}>
+          {state.pendingAttachments.map((path, i) => (
+            <Text key={`${i}-${path}`} color={semantic.accent}>
+              [img] {path.split("/").pop() ?? path}
+            </Text>
+          ))}
+          <Text dimColor>ctrl+x clears attachments</Text>
         </Box>
       )}
 
