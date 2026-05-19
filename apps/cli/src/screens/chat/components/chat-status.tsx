@@ -119,20 +119,6 @@ const CHAT_STATUS_RULES: readonly StatusRule[] = [
       </Text>
     ),
   },
-  {
-    when: (p) =>
-      !p.isChatPending &&
-      p.sttPhase === "idle" &&
-      !p.sttError &&
-      !(p.chatError && !isAbortError(p.chatError)) &&
-      p.messageCount > 0 &&
-      !p.hasStreamingResponse,
-    render: () => (
-      <Text dimColor>
-        Ready — Enter sends · ctrl+t voice · Esc back · /quit exit
-      </Text>
-    ),
-  },
 ];
 
 export function ChatStatus(props: ChatStatusProps) {
