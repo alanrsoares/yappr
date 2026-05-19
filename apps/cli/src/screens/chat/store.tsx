@@ -625,9 +625,26 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         return;
       }
       sttMutation.reset();
-      chatMutation.mutate({ prompt: t, images: pendingAttachments });
-      setValue("");
-      setPendingAttachments([]);
+      const submit = (prompt: string, images: string[]) => {
+        chatMutation.mutate({ prompt, images });
+        setValue("");
+        setPendingAttachments([]);
+      };
+      if (looksLikeImagePath(t)) {
+        const path = normalizeImagePath(t);
+        void imagePathExists(path).match(
+          (exists) => {
+            if (exists)
+              submit("What's in this image?", [...pendingAttachments, path]);
+            else submit(t, pendingAttachments);
+          },
+          () => submit(t, pendingAttachments),
+        );
+        return;
+      }
+      const finalPrompt =
+        !t && pendingAttachments.length > 0 ? "What's in this image?" : t;
+      submit(finalPrompt, pendingAttachments);
     },
     [buildSlashContext, chatMutation, sttMutation, pendingAttachments],
   );

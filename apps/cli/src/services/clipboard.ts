@@ -51,16 +51,22 @@ export function readClipboardImage(): ResultAsync<string | null, Error> {
   );
 }
 
-export function looksLikeImagePath(value: string): boolean {
-  const trimmed = normalizeImagePath(value);
-  return IMAGE_EXT_RE.test(trimmed);
+export function normalizeImagePath(value: string): string {
+  let s = value.trim();
+  s = s.replace(/^['"`]+|['"`]+$/g, "");
+  s = s.replace(/\\(.)/g, "$1");
+  if (s.startsWith("file://")) {
+    try {
+      s = decodeURI(s.slice("file://".length));
+    } catch {
+      // leave as-is
+    }
+  }
+  return s.trim();
 }
 
-export function normalizeImagePath(value: string): string {
-  return value
-    .trim()
-    .replace(/^['"]|['"]$/g, "")
-    .replace(/\\ /g, " ");
+export function looksLikeImagePath(value: string): boolean {
+  return IMAGE_EXT_RE.test(normalizeImagePath(value));
 }
 
 export function imagePathExists(path: string): ResultAsync<boolean, Error> {
