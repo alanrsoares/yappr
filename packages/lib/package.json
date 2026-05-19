@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./image-path": "./src/image-path.ts",
     "./result": "./src/result.ts",
     "./unstated": "./src/unstated.tsx"
   }

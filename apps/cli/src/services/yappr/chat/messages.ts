@@ -1,21 +1,12 @@
 import { readFileSync } from "node:fs";
-import { extname } from "node:path";
 import type { ContentPart, ModelMessage } from "@tanstack/ai";
+import { imageMimeForPath } from "@yappr/lib/image-path";
 
 import type { ChatMessage } from "../../../types.js";
 
-const MIME_BY_EXT: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".bmp": "image/bmp",
-};
-
 function imageToPart(path: string): ContentPart | null {
   try {
-    const mime = MIME_BY_EXT[extname(path).toLowerCase()];
+    const mime = imageMimeForPath(path);
     if (!mime) return null;
     const buf = readFileSync(path);
     return {

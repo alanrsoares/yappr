@@ -6,8 +6,13 @@ import { join } from "node:path";
 import { toError } from "@yappr/lib/result";
 import { okAsync, ResultAsync } from "neverthrow";
 
+export {
+  imageMimeForPath,
+  looksLikeImagePath,
+  normalizeImagePath,
+} from "@yappr/lib/image-path";
+
 const CACHE_DIR = join(homedir(), "Library", "Caches", "yappr", "paste");
-const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp)$/i;
 
 function ensureCacheDir(): string {
   mkdirSync(CACHE_DIR, { recursive: true });
@@ -49,24 +54,6 @@ export function readClipboardImage(): ResultAsync<string | null, Error> {
     writeFile(path, new Uint8Array(buf)).then(() => path),
     toError,
   );
-}
-
-export function normalizeImagePath(value: string): string {
-  let s = value.trim();
-  s = s.replace(/^['"`]+|['"`]+$/g, "");
-  s = s.replace(/\\(.)/g, "$1");
-  if (s.startsWith("file://")) {
-    try {
-      s = decodeURI(s.slice("file://".length));
-    } catch {
-      // leave as-is
-    }
-  }
-  return s.trim();
-}
-
-export function looksLikeImagePath(value: string): boolean {
-  return IMAGE_EXT_RE.test(normalizeImagePath(value));
 }
 
 export function imagePathExists(path: string): ResultAsync<boolean, Error> {
