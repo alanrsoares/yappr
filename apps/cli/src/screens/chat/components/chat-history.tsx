@@ -58,7 +58,12 @@ export function ChatHistory({
     : null;
 
   return (
-    <Box flexDirection="column" flexShrink={0}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      flexShrink={1}
+      justifyContent="flex-end"
+    >
       {isEmpty && (
         <Box flexDirection="column" paddingY={1} gap={0}>
           <Text bold>No messages yet</Text>
