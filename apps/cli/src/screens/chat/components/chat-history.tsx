@@ -15,7 +15,11 @@ export interface ChatHistoryProps {
 }
 
 const BUBBLE_OVERHEAD_ROWS = 4;
-const NON_HISTORY_ROWS = 12;
+// Header (2) + padding (2) + status (2) + composer (3) + footer (1) plus a
+// small markdown-rendering safety margin so a streaming bubble never grows
+// past the viewport (which would cause the terminal to scroll, leaving the
+// post-completion shrink visible as blank rows below the footer).
+const NON_HISTORY_ROWS = 14;
 const MIN_STREAM_ROWS = 4;
 
 function wrapToRows(content: string, innerCols: number): string[] {
@@ -58,12 +62,7 @@ export function ChatHistory({
     : null;
 
   return (
-    <Box
-      flexDirection="column"
-      flexGrow={1}
-      flexShrink={1}
-      justifyContent="flex-end"
-    >
+    <Box flexDirection="column" flexShrink={0}>
       {isEmpty && (
         <Box flexDirection="column" paddingY={1} gap={0}>
           <Text bold>No messages yet</Text>

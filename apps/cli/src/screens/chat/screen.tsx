@@ -1,7 +1,7 @@
 import { Box, Text } from "ink";
 
 import { Footer, Header } from "~/components";
-import { useKeyboard, useTerminalHeight, useTerminalWidth } from "~/hooks";
+import { useKeyboard, useTerminalWidth } from "~/hooks";
 import { truncateDisplayWidth } from "~/string-display.js";
 import { semantic } from "~/theme/semantic.js";
 import type { ScreenId } from "~/types.js";
@@ -26,7 +26,6 @@ export function ChatScreen({ onBack, onNavigate }: ChatScreenProps) {
 function ChatScreenContent() {
   const [state, actions] = useChatStore();
   const terminalWidth = useTerminalWidth();
-  const terminalHeight = useTerminalHeight();
 
   useKeyboard({
     bindings: [
@@ -46,7 +45,6 @@ function ChatScreenContent() {
       flexDirection="column"
       padding={1}
       width={terminalWidth}
-      height={terminalHeight}
       flexShrink={0}
       flexGrow={0}
     >
