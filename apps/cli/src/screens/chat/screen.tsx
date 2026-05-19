@@ -98,10 +98,10 @@ function ChatScreenContent() {
         <Box flexDirection="column" marginBottom={1}>
           {state.pendingAttachments.map((path, i) => (
             <Text key={`${i}-${path}`} color={semantic.accent}>
-              [img] {path.split("/").pop() ?? path}
+              [Image #{i + 1}] {path.split("/").pop() ?? path}
             </Text>
           ))}
-          <Text dimColor>ctrl+x clears attachments</Text>
+          <Text dimColor>ctrl+x clears all attachments</Text>
         </Box>
       )}
 

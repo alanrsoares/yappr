@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import {
+  findInsertedImagePath,
+  formatImageToken,
+  parseImageTokens,
+} from "@yappr/lib/image-path";
 import { createContainer } from "@yappr/lib/unstated";
 import { okAsync } from "neverthrow";
 
@@ -502,8 +507,19 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const attachImageFromClipboard = useCallback(() => {
     void readClipboardImage().match(
       (path) => {
-        if (path) setPendingAttachments((p) => [...p, path]);
-        else setSlashNotice("No image on clipboard.");
+        if (!path) {
+          setSlashNotice("No image on clipboard.");
+          return;
+        }
+        setPendingAttachments((prev) => {
+          const next = [...prev, path];
+          const token = formatImageToken(next.length);
+          setValue((v) => {
+            const sep = v.length > 0 && !v.endsWith(" ") ? " " : "";
+            return `${v}${sep}${token}`;
+          });
+          return next;
+        });
       },
       (err) => setSlashNotice(`Clipboard read failed: ${err.message}`),
     );
@@ -528,16 +544,24 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     (val: string) => {
       setSlashNotice(null);
       if (isLeakage(val, value)) return;
-      if (looksLikeImagePath(val)) {
-        const path = normalizeImagePath(val);
-        void imagePathExists(path).match(
+      const inserted = findInsertedImagePath(value, val);
+      if (inserted) {
+        void imagePathExists(inserted.path).match(
           (exists) => {
-            if (exists) {
-              setPendingAttachments((p) => [...p, path]);
-              setValue("");
-            } else {
+            if (!exists) {
               setValue(val);
+              return;
             }
+            setPendingAttachments((prev) => {
+              const next = [...prev, inserted.path];
+              const token = formatImageToken(next.length);
+              setValue(
+                val.slice(0, inserted.startIdx) +
+                  token +
+                  val.slice(inserted.endIdx),
+              );
+              return next;
+            });
           },
           () => setValue(val),
         );
@@ -642,9 +666,14 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
         );
         return;
       }
+      const { prompt: tokenStrippedPrompt, images: tokenImages } =
+        parseImageTokens(t, pendingAttachments);
+      const images = tokenImages.length > 0 ? tokenImages : pendingAttachments;
       const finalPrompt =
-        !t && pendingAttachments.length > 0 ? "What's in this image?" : t;
-      submit(finalPrompt, pendingAttachments);
+        !tokenStrippedPrompt && images.length > 0
+          ? "What's in this image?"
+          : tokenStrippedPrompt;
+      submit(finalPrompt, images);
     },
     [buildSlashContext, chatMutation, sttMutation, pendingAttachments],
   );

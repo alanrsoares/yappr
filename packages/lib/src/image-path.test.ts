@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  findInsertedImagePath,
+  formatImageToken,
   imageMimeForPath,
   looksLikeImagePath,
   normalizeImagePath,
+  parseImageTokens,
 } from "./image-path";
 
 describe("normalizeImagePath", () => {
@@ -51,6 +54,64 @@ describe("looksLikeImagePath", () => {
     expect(looksLikeImagePath("/Users/x/Desktop/Screenshot\\ 2026.png")).toBe(
       true,
     );
+  });
+});
+
+describe("formatImageToken", () => {
+  test("emits [Image #N]", () => {
+    expect(formatImageToken(1)).toBe("[Image #1]");
+    expect(formatImageToken(42)).toBe("[Image #42]");
+  });
+});
+
+describe("parseImageTokens", () => {
+  test("extracts tokens in order, dedupes", () => {
+    const result = parseImageTokens(
+      "look at [Image #1] then [Image #2] (and [Image #1] again)",
+      ["/a.png", "/b.png"],
+    );
+    expect(result.images).toEqual(["/a.png", "/b.png"]);
+    expect(result.prompt).toBe("look at then (and again)");
+  });
+
+  test("drops tokens that reference out-of-range indices", () => {
+    const result = parseImageTokens("describe [Image #1] and [Image #5]", [
+      "/a.png",
+    ]);
+    expect(result.images).toEqual(["/a.png"]);
+    expect(result.prompt).toBe("describe and");
+  });
+
+  test("returns empty images when text has no tokens", () => {
+    const result = parseImageTokens("hello world", ["/a.png"]);
+    expect(result.images).toEqual([]);
+    expect(result.prompt).toBe("hello world");
+  });
+});
+
+describe("findInsertedImagePath", () => {
+  test("detects a path inserted into empty composer", () => {
+    const r = findInsertedImagePath("", "/tmp/a.png");
+    expect(r).toEqual({ path: "/tmp/a.png", startIdx: 0, endIdx: 10 });
+  });
+
+  test("detects a path appended after existing text", () => {
+    const r = findInsertedImagePath("hi ", "hi /tmp/a.png");
+    expect(r).toEqual({ path: "/tmp/a.png", startIdx: 3, endIdx: 13 });
+  });
+
+  test("normalizes Terminal-escaped paths in delta", () => {
+    const r = findInsertedImagePath("describe ", "describe /tmp/foo\\ bar.png");
+    expect(r?.path).toBe("/tmp/foo bar.png");
+  });
+
+  test("returns null when delta isn't an image path", () => {
+    expect(findInsertedImagePath("hi", "hi there")).toBeNull();
+  });
+
+  test("returns null on deletion or unchanged input", () => {
+    expect(findInsertedImagePath("hello", "hi")).toBeNull();
+    expect(findInsertedImagePath("a", "a")).toBeNull();
   });
 });
 
