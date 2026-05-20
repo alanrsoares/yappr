@@ -12,7 +12,6 @@ export interface SlashCommandContext {
   model: string;
   provider: string;
   voice: string;
-  useNarrationForTTS: boolean;
 }
 
 export interface SlashCommandDef {
@@ -42,7 +41,7 @@ function runSlashStop(ctx: SlashCommandContext) {
 
 function runSlashModel(ctx: SlashCommandContext) {
   ctx.showNotice(
-    `Chat: ${ctx.model} (${ctx.provider})\nTTS voice: ${ctx.voice}\nNarration for TTS: ${ctx.useNarrationForTTS ? "on" : "off"}`,
+    `Chat: ${ctx.model} (${ctx.provider})\nTTS voice: ${ctx.voice}`,
   );
 }
 

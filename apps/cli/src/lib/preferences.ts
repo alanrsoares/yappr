@@ -15,8 +15,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultVoice: DEFAULT_VOICE,
   defaultInputDeviceIndex: 0,
   defaultOutputDeviceIndex: 0,
-  useNarrationForTTS: false,
-  narrationModel: "",
   openrouterApiKey: "",
   voice: DEFAULT_VOICE_CONFIG,
   firstRunCompleted: false,

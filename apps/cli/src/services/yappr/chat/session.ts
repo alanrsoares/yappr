@@ -3,7 +3,7 @@ import { toError } from "@yappr/lib/result";
 import { ResultAsync } from "neverthrow";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
-import type { ChatOptions, NarrationOptions } from "../../../types.js";
+import type { ChatOptions } from "../../../types.js";
 import type {
   createOpenRouterChat,
   OpenRouterTextMessage,
@@ -28,43 +28,6 @@ function throwIfChatAborted(signal: AbortSignal | undefined): void {
     err.name = "AbortError";
     throw err;
   }
-}
-
-const NARRATION_SYSTEM = `You are a narrator. Given an assistant's reply that may contain code, tables, diagrams, or markdown, produce a short spoken version suitable for text-to-speech.
-Rules: Output ONLY the narration, no preamble or "Here is the narration". Use plain language. Summarize or describe code blocks, tables, and diagrams instead of reading them verbatim. Keep the same meaning and tone.`;
-
-export function narrateResponse(
-  rawResponse: string,
-  options: NarrationOptions,
-): ResultAsync<string, Error> {
-  const {
-    model,
-    provider = "ollama",
-    ollamaBaseUrl,
-    openrouterApiKey,
-    runtime = defaultChatRuntime,
-  } = options;
-  const messages = [
-    { role: "system" as const, content: NARRATION_SYSTEM },
-    { role: "user" as const, content: rawResponse },
-  ];
-  if (provider === "openrouter" && openrouterApiKey?.trim()) {
-    return ResultAsync.fromPromise(
-      runtime.fetchOpenRouterChatCompletion(
-        model,
-        openrouterApiKey.trim(),
-        messages,
-      ),
-      toError,
-    );
-  }
-  const client = runtime.getOllamaClient(ollamaBaseUrl);
-  return ResultAsync.fromPromise(
-    client
-      .chat({ model, messages, stream: false })
-      .then((r) => r.message.content ?? ""),
-    toError,
-  );
 }
 
 export function chat(

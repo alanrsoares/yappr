@@ -30,7 +30,6 @@ export type PickerKind =
   | "voice"
   | "input"
   | "output"
-  | "narrationModel"
   | null;
 
 const PROVIDER_LABELS = ["Ollama", "OpenRouter"] as const;
@@ -57,11 +56,9 @@ export const SETTINGS_LIST_ROW = {
   defaultVoice: 2,
   inputDevice: 3,
   outputDevice: 4,
-  useNarrationForTts: 5,
-  narrationModel: 6,
-  ollamaUrl: 7,
-  openrouterApiKey: 8,
-  mcpConfigPath: 9,
+  ollamaUrl: 5,
+  openrouterApiKey: 6,
+  mcpConfigPath: 7,
 } as const;
 
 export const SETTINGS_MAIN_LIST_ROW_COUNT =
@@ -188,12 +185,6 @@ function commitPickerChoice(
       savePreferences({
         defaultOutputDeviceIndex: (selected as PickerDeviceRow).index,
       }),
-    narrationModel: () => {
-      const raw = selected as string;
-      savePreferences({
-        narrationModel: raw === "(same as chat)" ? "" : raw,
-      });
-    },
   };
   handlers[kind]();
 }
@@ -233,10 +224,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   const [textEditorSession, setTextEditorSession] =
     useState<SettingsTextEditorSession | null>(null);
 
-  const narrationModelList = useMemo(
-    () => ["(same as chat)", ...ollamaModels],
-    [ollamaModels],
-  );
   const pickerList = useMemo((): readonly PickerListItem[] | null => {
     if (!picker) return null;
     const lists: PickerListsByKind = {
@@ -246,7 +233,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       voice: voices,
       input: inputDevices,
       output: outputDevices,
-      narrationModel: narrationModelList,
     };
     return lists[picker];
   }, [
@@ -256,7 +242,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     voices,
     inputDevices,
     outputDevices,
-    narrationModelList,
   ]);
   const filteredPickerList = useMemo(
     () => filterPickerList(pickerList, pickerFilterText),
@@ -373,13 +358,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         beginList("output", outputIdx, outputDevices.length);
         break;
       }
-      case R.narrationModel: {
-        const narrIdx = preferences.narrationModel
-          ? Math.max(0, ollamaModels.indexOf(preferences.narrationModel) + 1)
-          : 0;
-        beginList("narrationModel", narrIdx, narrationModelList.length);
-        break;
-      }
       case R.ollamaUrl: {
         setTextEditorSession({
           field: "ollamaUrl",
@@ -409,7 +387,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     preferences.defaultVoice,
     preferences.defaultInputDeviceIndex,
     preferences.defaultOutputDeviceIndex,
-    preferences.narrationModel,
     preferences.ollamaBaseUrl,
     preferences.mcpConfigPath,
     preferences.openrouterApiKey,
@@ -418,7 +395,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     voices,
     inputDevices,
     outputDevices,
-    narrationModelList,
   ]);
 
   const setTextEditorValue = useCallback((value: string) => {
@@ -529,12 +505,6 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       }
       if (picker) {
         confirmPicker();
-        return;
-      }
-      if (selectedRow === SETTINGS_LIST_ROW.useNarrationForTts) {
-        savePreferences({
-          useNarrationForTTS: !preferences.useNarrationForTTS,
-        });
         return;
       }
       openPicker();

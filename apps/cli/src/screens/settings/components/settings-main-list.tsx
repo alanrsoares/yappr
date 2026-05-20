@@ -63,18 +63,6 @@ export function SettingsMainList() {
         value={outputDevicesLoading ? "…" : outputDeviceLabel}
       />
       <SettingsListRow
-        index={R.useNarrationForTts}
-        selectedRow={selectedRow}
-        label="Use narration for TTS: "
-        value={preferences.useNarrationForTTS ? "On" : "Off"}
-      />
-      <SettingsListRow
-        index={R.narrationModel}
-        selectedRow={selectedRow}
-        label="Narration model: "
-        value={preferences.narrationModel || "(same as chat)"}
-      />
-      <SettingsListRow
         index={R.ollamaUrl}
         selectedRow={selectedRow}
         label="Ollama URL: "

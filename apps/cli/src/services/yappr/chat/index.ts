@@ -3,4 +3,4 @@ export { createDefaultChatRuntime, defaultChatRuntime } from "./runtime.js";
 
 export { buildChatModelMessages } from "./messages.js";
 
-export { chat, narrateResponse } from "./session.js";
+export { chat } from "./session.js";

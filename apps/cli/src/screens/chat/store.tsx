@@ -21,12 +21,7 @@ import {
   normalizeImagePath,
   readClipboardImage,
 } from "~/services/clipboard.js";
-import {
-  chat,
-  narrateResponse,
-  recordAndTranscribe,
-  speak,
-} from "~/services/yappr";
+import { chat, recordAndTranscribe, speak } from "~/services/yappr";
 import type { ChatMessage, ScreenId } from "~/types.js";
 import { ChatStatus, type SttPhase } from "./components/chat-status.js";
 import {
@@ -87,7 +82,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const lastStreamingTextRef = useRef("");
   const firstTokenAtRef = useRef<number | null>(null);
   const ttsStartedAtRef = useRef<number | null>(null);
-  const ttsModeRef = useRef<"direct" | "narration" | null>(null);
+  const ttsModeRef = useRef<"direct" | null>(null);
   const sttRunIdRef = useRef<string | null>(null);
   const sttStartedAtRef = useRef(0);
   const activeToolIdsRef = useRef(
@@ -107,8 +102,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     defaultChatModel: model,
     openrouterApiKey,
     defaultVoice: voice,
-    useNarrationForTTS,
-    narrationModel,
   } = preferences;
 
   const emit = useCallback((event: ChatEventInput) => {
@@ -261,58 +254,9 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     })
       .andThen((text) => {
         if (!text) return okAsync(null);
-        const modelForNarration = narrationModel || model;
-        const beginTtsPhase = (mode: "direct" | "narration") => {
-          ttsStartedAtRef.current = Date.now();
-          ttsModeRef.current = mode;
-        };
-        const endTtsPhase = (status: "success") => {
-          const startedAt = ttsStartedAtRef.current ?? Date.now();
-          ttsStartedAtRef.current = null;
-          ttsModeRef.current = null;
-          emit({
-            type: "tts.end",
-            runId,
-            conversationId: conversationIdRef.current,
-            status,
-            elapsedMs: Date.now() - startedAt,
-          });
-        };
-        if (useNarrationForTTS && modelForNarration) {
-          beginTtsPhase("narration");
-          emit({
-            type: "tts.start",
-            runId,
-            conversationId: conversationIdRef.current,
-            voice,
-            mode: "narration",
-            contentLength: text.length,
-          });
-          return narrateResponse(text, {
-            model: modelForNarration,
-            provider: narrationModel ? "ollama" : provider,
-            ollamaBaseUrl,
-            openrouterApiKey: narrationModel ? undefined : openrouterApiKey,
-          })
-            .map((narration) => narration.trim() || text)
-            .andThen((toSpeak) => {
-              endTtsPhase("success");
-              beginTtsPhase("direct");
-              emit({
-                type: "tts.start",
-                runId,
-                conversationId: conversationIdRef.current,
-                voice,
-                mode: "direct",
-                contentLength: toSpeak.length,
-              });
-              return speak(toSpeak, { voice }).map(() => {
-                endTtsPhase("success");
-                return text;
-              });
-            });
-        }
-        beginTtsPhase("direct");
+        const startedAt = Date.now();
+        ttsStartedAtRef.current = startedAt;
+        ttsModeRef.current = "direct";
         emit({
           type: "tts.start",
           runId,
@@ -322,7 +266,15 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           contentLength: text.length,
         });
         return speak(text, { voice }).map(() => {
-          endTtsPhase("success");
+          ttsStartedAtRef.current = null;
+          ttsModeRef.current = null;
+          emit({
+            type: "tts.end",
+            runId,
+            conversationId: conversationIdRef.current,
+            status: "success",
+            elapsedMs: Date.now() - startedAt,
+          });
           return text;
         });
       })
@@ -620,7 +572,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       model,
       provider,
       voice,
-      useNarrationForTTS,
     };
   }, [
     clearConversation,
@@ -632,7 +583,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     model,
     provider,
     voice,
-    useNarrationForTTS,
   ]);
 
   const handleComposerSubmit = useCallback(
@@ -722,7 +672,6 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     provider,
     model,
     voice,
-    useNarrationForTTS,
     value,
     cursor,
     messages,

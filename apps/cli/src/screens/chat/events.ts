@@ -67,7 +67,7 @@ export interface ToolResultEvent extends BaseChatEvent {
 export interface TtsStartEvent extends BaseChatEvent {
   type: "tts.start";
   voice: string;
-  mode: "direct" | "narration";
+  mode: "direct";
   contentLength: number;
 }
 
@@ -282,7 +282,6 @@ export function deriveChatPhase(events: readonly ChatEvent[]): ChatPhase {
     const phase = match(event)
       .returnType<ChatPhase | null>()
       .with({ type: P.union("tts.end", "run.end") }, () => "idle")
-      .with({ type: "tts.start", mode: "narration" }, () => "narrating")
       .with({ type: "tts.start", mode: "direct" }, () => "speaking")
       .with(
         {

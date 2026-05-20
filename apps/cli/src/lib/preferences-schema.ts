@@ -14,8 +14,6 @@ const fields = {
   defaultVoice: z.string(),
   defaultInputDeviceIndex: z.number().int().nonnegative(),
   defaultOutputDeviceIndex: z.number().int().nonnegative(),
-  useNarrationForTTS: z.boolean(),
-  narrationModel: z.string(),
   openrouterApiKey: z.string(),
   voice: VoiceConfigSchema,
   firstRunCompleted: z.boolean(),

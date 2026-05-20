@@ -24,10 +24,6 @@ export interface Preferences {
   defaultVoice: string;
   defaultInputDeviceIndex: number;
   defaultOutputDeviceIndex: number;
-  /** When true, a separate model step turns the response into TTS-friendly narration (no code/tables verbatim). */
-  useNarrationForTTS: boolean;
-  /** Model used for narration (Ollama model name). If unset and useNarrationForTTS is true, the chat model is used. */
-  narrationModel: string;
   /** OpenRouter API key (required when defaultChatProvider is openrouter). */
   openrouterApiKey: string;
   /** Speech + transcription endpoints. Providers are presets over this shape. */
@@ -85,13 +81,5 @@ export interface ChatOptions {
   abortController?: AbortController;
   /** Called when an MCP tool call starts or ends (for UI status). */
   onToolCall?: (name: string, phase: "start" | "end") => void;
-  runtime?: ChatRuntime;
-}
-
-export interface NarrationOptions {
-  model: string;
-  provider?: ChatProvider;
-  ollamaBaseUrl?: string;
-  openrouterApiKey?: string;
   runtime?: ChatRuntime;
 }

@@ -29,7 +29,6 @@ export {
   chat,
   createDefaultChatRuntime,
   defaultChatRuntime,
-  narrateResponse,
 } from "./chat/index.js";
 export type { ChatRuntime } from "./chat/index.js";
 

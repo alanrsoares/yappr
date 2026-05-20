@@ -236,11 +236,11 @@ describe("chat events", () => {
         ...base,
         type: "tts.start",
         voice: "af_heart",
-        mode: "narration",
+        mode: "direct",
         contentLength: 10,
       }),
     );
-    expect(deriveChatPhase(events)).toBe("narrating");
+    expect(deriveChatPhase(events)).toBe("speaking");
 
     events.push(
       createChatEvent({

@@ -5,7 +5,7 @@ import { Loading } from "~/components/index.js";
 import { semantic } from "~/theme/semantic.js";
 import type { ToolCallSummary } from "../events.js";
 
-export type ChatPhase = "idle" | "thinking" | "narrating" | "speaking";
+export type ChatPhase = "idle" | "thinking" | "speaking";
 export type SttPhase = "idle" | "recording" | "transcribing";
 
 export interface ChatStatusProps {
@@ -70,10 +70,6 @@ const CHAT_STATUS_RULES: readonly StatusRule[] = [
     when: (p) =>
       p.isChatPending && p.chatPhase === "thinking" && !p.hasStreamingResponse,
     render: () => <Loading message="Thinking…" />,
-  },
-  {
-    when: (p) => p.isChatPending && p.chatPhase === "narrating",
-    render: () => <Loading message="Narrating…" />,
   },
   {
     when: (p) => p.isChatPending && p.chatPhase === "speaking",
