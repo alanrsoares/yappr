@@ -48,7 +48,6 @@ export const OpenAiCompatibleSpeechEndpointSchema = z.object({
   apiKey: z.string().optional(),
   model: z.string().min(1),
   voice: z.string().min(1),
-  voiceField: z.enum(["voice", "voice_id"]).default("voice"),
   format: AudioFormatSchema.default("wav"),
   speed: z.number().positive().optional(),
 });

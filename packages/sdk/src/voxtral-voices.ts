@@ -100,7 +100,6 @@ export function voxtralSpeechPreset(overrides?: {
     ...(overrides?.apiKey ? { apiKey: overrides.apiKey } : {}),
     model: VOXTRAL_MODEL_ID,
     voice: overrides?.voice ?? VOXTRAL_DEFAULT_VOICE,
-    voiceField: "voice" as const,
     format: VOXTRAL_DEFAULT_RESPONSE_FORMAT,
   };
 }

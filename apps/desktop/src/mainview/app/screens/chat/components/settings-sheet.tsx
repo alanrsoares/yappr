@@ -44,7 +44,6 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
       setServerUrl,
       setSpeechKind,
       setSpeechModel,
-      setSpeechVoiceField,
       setSpeechFormat,
       setVoice,
       setSpeed,
@@ -162,72 +161,36 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
                 />
               </section>
 
-              <section className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="settings-voice-field"
-                    className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+              <section className="space-y-2">
+                <Label
+                  htmlFor="settings-audio-format"
+                  className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+                >
+                  Format
+                </Label>
+                <Select
+                  value={voiceConfig.speech.format}
+                  onValueChange={(v) => setSpeechFormat(v as AudioFormat)}
+                >
+                  <SelectTrigger
+                    id="settings-audio-format"
+                    aria-label="Audio format"
+                    className="font-mono text-sm"
                   >
-                    Voice field
-                  </Label>
-                  <Select
-                    value={voiceConfig.speech.voiceField}
-                    onValueChange={(v) =>
-                      setSpeechVoiceField(v as "voice" | "voice_id")
-                    }
-                  >
-                    <SelectTrigger
-                      id="settings-voice-field"
-                      aria-label="Voice field"
-                      className="font-mono text-sm"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent translate="no">
-                      <SelectItem value="voice" className="font-mono text-sm">
-                        voice
-                      </SelectItem>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent translate="no">
+                    {["wav", "mp3", "pcm", "flac", "opus"].map((format) => (
                       <SelectItem
-                        value="voice_id"
+                        key={format}
+                        value={format}
                         className="font-mono text-sm"
                       >
-                        voice_id
+                        {format}
                       </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="settings-audio-format"
-                    className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
-                  >
-                    Format
-                  </Label>
-                  <Select
-                    value={voiceConfig.speech.format}
-                    onValueChange={(v) => setSpeechFormat(v as AudioFormat)}
-                  >
-                    <SelectTrigger
-                      id="settings-audio-format"
-                      aria-label="Audio format"
-                      className="font-mono text-sm"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent translate="no">
-                      {["wav", "mp3", "pcm", "flac", "opus"].map((format) => (
-                        <SelectItem
-                          key={format}
-                          value={format}
-                          className="font-mono text-sm"
-                        >
-                          {format}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    ))}
+                  </SelectContent>
+                </Select>
               </section>
             </>
           )}

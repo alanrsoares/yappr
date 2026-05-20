@@ -122,7 +122,7 @@ export class OpenAiCompatibleSpeechClient {
           model: this.endpoint.model,
           response_format: this.endpoint.format,
           stream: false,
-          [this.endpoint.voiceField]: voice,
+          voice,
         };
         const speed = options.speed ?? this.endpoint.speed;
         if (speed !== undefined) body.speed = speed;

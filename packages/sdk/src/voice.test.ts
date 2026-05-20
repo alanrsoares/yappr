@@ -56,7 +56,6 @@ describe("createVoiceClient", () => {
         baseUrl: "https://api.mistral.ai/v1",
         model: "voxtral-mini-tts-2603",
         voice: "voice-id",
-        voiceField: "voice_id",
       },
       transcription: {
         kind: "yappr",

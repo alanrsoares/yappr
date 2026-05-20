@@ -59,7 +59,6 @@ type VoiceStoreActions = {
   setServerUrl: (v: string) => void;
   setSpeechKind: (v: VoiceConfig["speech"]["kind"]) => void;
   setSpeechModel: (v: string) => void;
-  setSpeechVoiceField: (v: "voice" | "voice_id") => void;
   setSpeechFormat: (v: AudioFormat) => void;
   setVoice: (v: VoiceId) => void;
   setSpeed: (v: number) => void;
@@ -159,20 +158,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         const nextConfig = VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, model: next },
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setSpeechVoiceFieldPersist = useCallback(
-    (next: "voice" | "voice_id") => {
-      setVoiceConfig((current) => {
-        if (current.speech.kind !== "openai-compatible") return current;
-        const nextConfig = VoiceConfigSchema.parse({
-          ...current,
-          speech: { ...current.speech, voiceField: next },
         });
         persistVoiceConfig(nextConfig);
         return nextConfig;
@@ -434,7 +419,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     setServerUrl: setServerUrlPersist,
     setSpeechKind: setSpeechKindPersist,
     setSpeechModel: setSpeechModelPersist,
-    setSpeechVoiceField: setSpeechVoiceFieldPersist,
     setSpeechFormat: setSpeechFormatPersist,
     setVoice: setVoicePersist,
     setSpeed: setSpeedPersist,
