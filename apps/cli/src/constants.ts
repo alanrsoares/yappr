@@ -25,6 +25,7 @@ export const MENU_ITEMS: Array<{ id: ScreenId; label: string }> = [
   { id: "chat", label: "Chat (interactive + voice mode)" },
   { id: "voices", label: "List voices" },
   { id: "settings", label: "Settings" },
+  { id: "setup", label: "Setup wizard" },
 ];
 
 export { userHomeDir } from "@yappr/sdk/paths";

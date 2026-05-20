@@ -17,6 +17,7 @@ const fields = {
   useNarrationForTTS: z.boolean(),
   narrationModel: z.string(),
   openrouterApiKey: z.string(),
+  firstRunCompleted: z.boolean(),
 } satisfies Record<
   keyof Preferences | "defaultOllamaModel",
   z.ZodType<unknown>

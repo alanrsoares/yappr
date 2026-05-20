@@ -18,6 +18,7 @@ export function Menu({ items, selectedIndex }: MenuProps) {
             {listSelectionPrefix(i === selectedIndex)}
             {item.label}
           </Text>
+          {item.done && <Text color={semantic.success}> ✓</Text>}
         </Box>
       ))}
     </Box>

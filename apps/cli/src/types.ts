@@ -6,7 +6,8 @@ export type ScreenId =
   | "speak"
   | "chat"
   | "voices"
-  | "settings";
+  | "settings"
+  | "setup";
 
 export type ChatProvider = "ollama" | "openrouter";
 
@@ -29,11 +30,15 @@ export interface Preferences {
   narrationModel: string;
   /** OpenRouter API key (required when defaultChatProvider is openrouter). */
   openrouterApiKey: string;
+  /** True once the user has gone through (or skipped) the assisted setup wizard. */
+  firstRunCompleted: boolean;
 }
 
 export interface MenuItem {
   id: string;
   label: string;
+  /** When true, render a trailing green checkmark (used for one-shot tasks like setup). */
+  done?: boolean;
 }
 
 export interface SummaryCounts {

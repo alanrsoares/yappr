@@ -18,6 +18,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   useNarrationForTTS: false,
   narrationModel: "",
   openrouterApiKey: "",
+  firstRunCompleted: false,
 };
 
 /**
