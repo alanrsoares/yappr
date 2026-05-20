@@ -35,10 +35,11 @@ Bun workspaces:
 ### Prerequisites
 
 - **Bun:** `curl -fsSL https://bun.sh/install | bash`
-- **Python 3.11+**
+- **uv:** `curl -LsSf https://astral.sh/uv/install.sh | sh` (Python env manager)
+- **Python 3.11+** (uv can install one for you if missing)
 - **System Dependencies:**
   ```bash
-  brew install sox ffmpeg ollama
+  brew install sox ffmpeg espeak-ng ollama
   ```
 
 ### Installation
@@ -52,9 +53,16 @@ cd yappr
 ./setup.sh
 ```
 
-### Manual Installation (Alternative)
+The setup script installs JS deps with Bun and Python deps with `uv sync` (lockfile-driven, fast).
 
-If you prefer to set up components individually:
+### Manual install
+
+If you'd rather wire it up by hand:
+
+```bash
+bun install
+cd python && uv sync --extra dev
+```
 
 ## 📖 Usage
 
@@ -75,6 +83,8 @@ Start the full interactive terminal interface. From here you can access chat, vo
 ```bash
 bun run tui
 ```
+
+On first launch the TUI runs an **assisted setup wizard** that checks system tooling (`uv`, `ffmpeg`, `espeak-ng`), runs `uv sync --extra dev` if `python/.venv` is missing, verifies the inference server, and lets you pick a default voice and LLM provider. The main menu shows a green ✓ next to **Setup wizard** once it's been completed; you can re-run it any time from there.
 
 ### 3. Quick CLI Commands
 

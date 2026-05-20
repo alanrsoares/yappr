@@ -27,7 +27,7 @@ This repo is **Bun-first**: TypeScript runs on **Bun**, not Node, for installs, 
 - **TUI**: Ink + React (`apps/cli/src/screens/`); screen state often uses `createContainer` from `@yappr/lib/unstated`.
 - **Errors**: `neverthrow` (`Result` / `ResultAsync`) for service boundaries where the codebase already uses it.
 - **Lint / format**: ESLint + Prettier (`bun run lint`, `bun run format`).
-- **Python**: 3.11+, FastAPI, uv/pytest in `python/` (see that package’s README and `pyproject.toml`).
+- **Python**: 3.11+, FastAPI, **uv** for env + deps (`uv sync --extra dev`, `uv run …`) in `python/` — `uv.lock` is committed. See that package's README and `pyproject.toml`.
 
 ## 3. Repository layout
 
@@ -61,7 +61,7 @@ bun run test:py          # pytest in python/
 bun run format           # Prettier
 
 bun run serve            # Python inference server (see python/README.md)
-bun run tui              # Main Ink TUI (forwards to @yappr/cli)
+bun run tui              # Main Ink TUI (forwards to @yappr/cli). First launch runs the assisted setup wizard (`apps/cli/src/screens/setup/`); main menu shows a ✓ once `preferences.firstRunCompleted` is set.
 bun run speak -- "text"  # One-shot TTS
 bun run chat -- "query"  # One-shot chat
 bun run desktop          # Electrobun desktop with HMR (experimental, @yappr/desktop)

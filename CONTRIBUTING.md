@@ -9,8 +9,9 @@ Yappr is a hybrid project (Bun/TypeScript + Python).
 ### Prerequisites
 
 - [Bun](https://bun.sh/)
-- [Python 3.11+](https://www.python.org/)
-- `sox`, `ffmpeg`, `ollama` (available via Homebrew)
+- [uv](https://docs.astral.sh/uv/) (Python env + dependency manager)
+- Python 3.11+ (uv will fetch one if your system lacks it)
+- `sox`, `ffmpeg`, `espeak-ng`, `ollama` (available via Homebrew)
 
 ### 1. TypeScript Setup
 
@@ -22,10 +23,10 @@ bun install
 
 ```bash
 cd python
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -e ".[dev]"
+uv sync --extra dev     # creates .venv, installs from uv.lock
 ```
+
+All Python commands below should be prefixed with `uv run` (e.g. `uv run pytest`) so they target the project's `.venv` without manual activation. See [`python/README.md`](python/README.md) for the full toolchain.
 
 ## 🧪 Running Tests & Quality Checks
 
@@ -43,9 +44,9 @@ bun run deadcode:strict # Same scan, but exits non-zero on findings
 
 ```bash
 cd python
-ruff check .      # Linting
-mypy .            # Type checking
-YAPPR_TEST=1 python -m pytest tests/ -v
+uv run ruff check .                                 # Linting
+uv run mypy server.py core.py result.py             # Type checking
+YAPPR_TEST=1 uv run pytest tests/ -v
 ```
 
 ## 🚀 Workflow
