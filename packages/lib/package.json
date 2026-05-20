@@ -12,5 +12,8 @@
     "./image-path": "./src/image-path.ts",
     "./result": "./src/result.ts",
     "./unstated": "./src/unstated.tsx"
+  },
+  "devDependencies": {
+    "react": "^19.2.6"
   }
 }
