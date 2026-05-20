@@ -37,6 +37,7 @@ server.log
 
 # Python
 python/venv
+python/.venv
 python/python
 __pycache__
 *.pyc

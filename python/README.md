@@ -12,25 +12,26 @@ TTS (**Kokoro** [`hexgrad/Kokoro-82M`](https://huggingface.co/hexgrad/Kokoro-82M
 
 ## Commands
 
+Uses [uv](https://docs.astral.sh/uv/) for env + deps. `uv.lock` is committed for reproducible installs.
+
 ```bash
 # From repo root
 cd python
-python -m venv venv
-source venv/bin/activate   # or: venv\Scripts\activate on Windows
-pip install -e ".[dev]"    # install with dev deps
+uv sync --extra dev          # creates .venv, installs deps from uv.lock
 
-ruff check .
-ruff format .
-mypy server.py core.py result.py
-python -m pytest tests/ -v
+uv run ruff check .
+uv run ruff format .
+uv run mypy server.py core.py result.py
+uv run pytest tests/ -v
 ```
+
+No manual `activate` step — `uv run` resolves the project venv automatically. If you prefer an activated shell: `source .venv/bin/activate`.
 
 ## Run server
 
 ```bash
-pip install -e .
-python server.py
-# loopback only; for LAN: uvicorn server:app --host 0.0.0.0 --port 8000
+uv run python server.py
+# loopback only; for LAN: uv run uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 ## Models and cache
