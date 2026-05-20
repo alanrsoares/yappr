@@ -1,28 +1,17 @@
-import type { ModelMessage, SchemaInput, Tool } from "@tanstack/ai";
 import { toError } from "@yappr/lib/result";
 import { ResultAsync } from "neverthrow";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
 import type { ChatOptions } from "../../../types.js";
-import type {
-  createOpenRouterChat,
-  OpenRouterTextMessage,
-} from "../openrouter.js";
 import { buildChatModelMessages } from "./messages.js";
-import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
+import { defaultChatRuntime } from "./runtime.js";
+import {
+  createChatTransport,
+  type ChatStreamRequest,
+  type ChatTransport,
+} from "./transport.js";
 
-function flattenContentToText(
-  content: ModelMessage["content"] | undefined,
-): string {
-  if (content == null) return "";
-  if (typeof content === "string") return content;
-  return content
-    .map((part) => (part.type === "text" ? part.content : ""))
-    .filter(Boolean)
-    .join("\n");
-}
-
-function throwIfChatAborted(signal: AbortSignal | undefined): void {
+function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
     const err = new Error("Chat was cancelled.");
     err.name = "AbortError";
@@ -30,6 +19,12 @@ function throwIfChatAborted(signal: AbortSignal | undefined): void {
   }
 }
 
+/**
+ * One-shot chat call: load MCP tools, build the prompt history, pick a
+ * provider adapter via {@link createChatTransport}, then drain its event
+ * stream into a single string. Adapter selection is the only place provider
+ * dispatch happens — orchestration here is provider-agnostic.
+ */
 export function chat(
   prompt: string,
   options: ChatOptions = {},
@@ -44,142 +39,68 @@ export function chat(
     onUpdate,
     messages: priorMessages = [],
     images = [],
-    systemPrompts: explicitSystemPrompts,
+    systemPrompts = [],
     abortController,
     onToolCall,
     runtime = defaultChatRuntime,
   } = options;
-  const mcp = runtime.createMcpManager();
 
-  const systemPrompts: string[] = explicitSystemPrompts ?? [];
-  const messages: ModelMessage[] = buildChatModelMessages(
-    prompt,
-    priorMessages,
-    images,
-  );
+  const mcp = runtime.createMcpManager();
+  const messages = buildChatModelMessages(prompt, priorMessages, images);
+  const transport = createChatTransport(runtime, {
+    provider,
+    model,
+    ollamaBaseUrl,
+    openrouterApiKey,
+  });
 
   return mcp
     .loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH)
     .andThen(() => {
-      if (provider === "openrouter") {
-        const textOnly = messages.map(
-          (m): OpenRouterTextMessage => ({
-            role: m.role,
-            content: flattenContentToText(m.content),
-          }),
-        );
-        const openRouterMessages: OpenRouterTextMessage[] =
-          systemPrompts.length > 0
-            ? [
-                { role: "system", content: systemPrompts.join("\n\n") },
-                ...textOnly,
-              ]
-            : textOnly;
-        const openRouterAdapter = runtime.createOpenRouterChat(
-          model,
-          openrouterApiKey ?? "",
-        );
-        return ResultAsync.fromPromise(
-          streamOpenRouterAndCollect(
-            openRouterAdapter,
-            openRouterMessages,
-            abortController,
-            onUpdate,
-            mcp,
-          ),
-          toError,
-        );
-      }
-
-      const tools = useTools ? mcp.getTanStackTools() : [];
-      const ollamaAdapter = runtime.createOllamaChat(model, ollamaBaseUrl);
+      const req: ChatStreamRequest = {
+        messages,
+        systemPrompts,
+        tools: useTools ? mcp.getTanStackTools() : [],
+        ...(abortController && { signal: abortController.signal }),
+      };
       return ResultAsync.fromPromise(
-        streamOllamaAndCollect(
-          runtime,
-          {
-            adapter: ollamaAdapter,
-            messages,
-            systemPrompts,
-            tools,
-            abortController,
-            onUpdate,
-            onToolCall,
-          },
-          mcp,
-        ),
+        drainStream(transport, req, { onUpdate, onToolCall }, mcp),
         toError,
       );
     });
 }
 
-async function streamOpenRouterAndCollect(
-  openRouterAdapter: ReturnType<typeof createOpenRouterChat>,
-  openRouterMessages: OpenRouterTextMessage[],
-  abortController: AbortController | undefined,
-  onUpdate: ChatOptions["onUpdate"],
-  mcp: { close: () => Promise<void> },
-): Promise<string | null> {
-  try {
-    let finalContent = "";
-    for await (const chunk of openRouterAdapter.chatStream({
-      messages: openRouterMessages,
-      request: abortController ? { signal: abortController.signal } : undefined,
-    })) {
-      throwIfChatAborted(abortController?.signal);
-      if (chunk.type === "RUN_ERROR")
-        throw new Error(chunk.error?.message ?? "OpenRouter error");
-      if (chunk.type === "content" && chunk.delta) {
-        finalContent += chunk.delta;
-        onUpdate?.(finalContent);
-      }
-    }
-    throwIfChatAborted(abortController?.signal);
-    return finalContent || null;
-  } finally {
-    await mcp.close();
-  }
+interface ChatCallbacks {
+  onUpdate: ChatOptions["onUpdate"];
+  onToolCall: ChatOptions["onToolCall"];
 }
 
-async function streamOllamaAndCollect(
-  runtime: ChatRuntime,
-  args: {
-    adapter: ReturnType<ChatRuntime["createOllamaChat"]>;
-    messages: ModelMessage[];
-    systemPrompts: string[];
-    tools: Array<Tool<SchemaInput, SchemaInput>>;
-    abortController: AbortController | undefined;
-    onUpdate: ChatOptions["onUpdate"];
-    onToolCall: ChatOptions["onToolCall"];
-  },
+async function drainStream(
+  transport: ChatTransport,
+  req: ChatStreamRequest,
+  callbacks: ChatCallbacks,
   mcp: { close: () => Promise<void> },
 ): Promise<string | null> {
+  let finalContent = "";
   try {
-    const stream = runtime.tanstackChat({
-      adapter: args.adapter,
-      messages: args.messages,
-      ...(args.systemPrompts.length > 0 && {
-        systemPrompts: args.systemPrompts,
-      }),
-      tools: args.tools,
-      ...(args.abortController && { abortController: args.abortController }),
-    });
-
-    let finalContent = "";
-    for await (const chunk of stream) {
-      throwIfChatAborted(args.abortController?.signal);
-      if (chunk.type === "TEXT_MESSAGE_CONTENT") {
-        const delta = chunk.delta ?? "";
-        finalContent += delta;
-        args.onUpdate?.(finalContent);
-      } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
-        args.onToolCall?.(chunk.toolName, "start");
-      } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
-        if (chunk.toolName) args.onToolCall?.(chunk.toolName, "end");
-      } else if (chunk.type === "RUN_ERROR") {
-        throw new Error(chunk.error?.message ?? "Chat stream error");
+    for await (const event of transport.stream(req)) {
+      throwIfAborted(req.signal);
+      switch (event.type) {
+        case "delta": {
+          finalContent += event.text;
+          callbacks.onUpdate?.(finalContent);
+          break;
+        }
+        case "tool": {
+          callbacks.onToolCall?.(event.name, event.phase);
+          break;
+        }
+        case "error": {
+          throw new Error(event.message);
+        }
       }
     }
-    throwIfChatAborted(args.abortController?.signal);
+    throwIfAborted(req.signal);
     return finalContent || null;
   } finally {
     await mcp.close();
