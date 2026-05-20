@@ -1,109 +1,76 @@
-"""TTS smoke tests: fake Kokoro-shaped pipeline, no weights loaded (YAPPR_TEST=1)."""
+"""TTS adapter + route tests.
+
+Adapter-level tests construct ``KokoroEngine`` with a fake pipeline (no
+weights). Route tests use the ``client`` fixture which mounts the fake on
+``app.state.tts`` so HTTP responses exercise the real port → adapter path.
+"""
 
 from __future__ import annotations
 
 import io
-from collections.abc import Generator
-from typing import Any
-from unittest.mock import patch
+from typing import cast
 
-import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 from fastapi.testclient import TestClient
 
-import core
+from adapters.kokoro_engine import KokoroEngine
+from ports import Audio
+from server import app
+from tests.conftest import (
+    EmptyChunkPipeline,
+    FakeKokoroPipeline,
+    RaisingPipeline,
+)
 
 
-def _sine_chunk(
-    sample_rate: int = 24_000, duration_s: float = 0.05, hz: float = 440.0
-) -> np.ndarray:
-    n = max(1, int(sample_rate * duration_s))
-    t = np.arange(n, dtype=np.float32) / float(sample_rate)
-    return (0.05 * np.sin(2.0 * np.pi * hz * t)).astype(np.float32)
-
-
-class FakeKokoroPipeline:
-    """Mimics ``kokoro.KPipeline.__call__``: generator of (graphemes, phonemes, audio_ndarray)."""
-
-    def __call__(
-        self,
-        text: str,
-        voice: str = "af_aoede",
-        speed: float = 1.0,
-    ) -> Generator[tuple[str, str, np.ndarray], None, None]:
-        _ = (text, voice, speed)
-        yield ("x", "y", _sine_chunk())
-        yield ("x", "y", _sine_chunk(hz=880.0))
-
-
-class EmptyChunkPipeline:
-    """Yields no audio chunks (core should return Err for empty concatenation)."""
-
-    def __call__(
-        self,
-        text: str,
-        voice: str = "af_aoede",
-        speed: float = 1.0,
-    ) -> Generator[tuple[str, str, np.ndarray], None, None]:
-        _, _, _ = text, voice, speed
-        yield from ()
-
-
-class RaisingPipeline:
-    def __call__(
-        self,
-        text: str,
-        voice: str = "af_aoede",
-        speed: float = 1.0,
-    ) -> Any:
-        _, _, _ = text, voice, speed
-        raise RuntimeError("boom")
-
-
-def test_synthesize_ok_returns_wav_bytes() -> None:
-    result = core.synthesize(FakeKokoroPipeline(), "hello", voice="af_aoede", speed=1.0)
+def test_engine_synthesize_returns_wav_bytes() -> None:
+    engine = KokoroEngine(FakeKokoroPipeline())
+    result = engine.synthesize("hello", voice="af_aoede", speed=1.0)
     assert result.is_ok()
-    wav = result.value
-    assert isinstance(wav, bytes)
-    assert wav[:4] == b"RIFF"
-    buf = io.BytesIO(wav)
-    audio, sr = sf.read(buf)
+    audio = cast(Audio, result.value)
+    assert isinstance(audio, Audio)
+    assert audio.sample_rate == 24_000
+    assert audio.media_type == "audio/wav"
+    assert audio.data[:4] == b"RIFF"
+    decoded, sr = sf.read(io.BytesIO(audio.data))
     assert sr == 24_000
-    assert audio.shape[0] > 0
+    assert decoded.shape[0] > 0
 
 
-def test_synthesize_empty_chunks_is_err() -> None:
-    result = core.synthesize(EmptyChunkPipeline(), "hello")
+def test_engine_synthesize_empty_chunks_is_err() -> None:
+    engine = KokoroEngine(EmptyChunkPipeline())
+    result = engine.synthesize("hello")
     assert result.is_err()
     assert "No audio generated" in str(result.error)
 
 
-def test_synthesize_pipeline_exception_is_err() -> None:
-    result = core.synthesize(RaisingPipeline(), "hello")
+def test_engine_synthesize_pipeline_exception_is_err() -> None:
+    engine = KokoroEngine(RaisingPipeline())
+    result = engine.synthesize("hello")
     assert result.is_err()
     assert "boom" in str(result.error)
 
 
 def test_post_synthesize_route_smoke(client: TestClient) -> None:
-    """Full HTTP path with patched pipeline; still no Kokoro load."""
-    fake = FakeKokoroPipeline()
-    with patch("server.get_pipeline", return_value=fake):
-        response = client.post(
-            "/synthesize",
-            json={"text": "smoke", "voice": "af_aoede", "speed": 1.0},
-        )
+    """Full HTTP path — fixture mounts a fake KokoroEngine on app.state.tts."""
+    response = client.post(
+        "/synthesize",
+        json={"text": "smoke", "voice": "af_aoede", "speed": 1.0},
+    )
     assert response.status_code == 200
     assert response.headers.get("content-type", "").startswith("audio/wav")
     body = response.content
     assert body[:4] == b"RIFF"
-    audio, sr = sf.read(io.BytesIO(body))
+    decoded, sr = sf.read(io.BytesIO(body))
     assert sr == 24_000
-    assert audio.shape[0] > 0
+    assert decoded.shape[0] > 0
 
 
-def test_post_synthesize_route_503_when_pipeline_unloaded(client: TestClient) -> None:
-    with patch("server.get_pipeline", return_value=None):
-        response = client.post("/synthesize", json={"text": "x"})
+def test_post_synthesize_route_503_when_engine_unloaded(
+    client: TestClient,
+) -> None:
+    app.state.tts = None
+    response = client.post("/synthesize", json={"text": "x"})
     assert response.status_code == 503
 
 
@@ -111,11 +78,11 @@ def test_post_synthesize_route_500_hides_pipeline_exception_message(
     client: TestClient,
 ) -> None:
     """HTTP clients must not see raw exception strings (may contain local paths)."""
-    with patch("server.get_pipeline", return_value=RaisingPipeline()):
-        response = client.post(
-            "/synthesize",
-            json={"text": "x", "voice": "af_aoede", "speed": 1.0},
-        )
+    app.state.tts = KokoroEngine(RaisingPipeline())
+    response = client.post(
+        "/synthesize",
+        json={"text": "x", "voice": "af_aoede", "speed": 1.0},
+    )
     assert response.status_code == 500
     body = response.json()
     assert body["detail"] == "Internal server error"
@@ -123,7 +90,7 @@ def test_post_synthesize_route_500_hides_pipeline_exception_message(
 
 
 def test_post_transcribe_503_when_stt_unavailable(client: TestClient) -> None:
-    """YAPPR_TEST=1 leaves STT unloaded; response must not echo internal error text."""
+    """YAPPR_TEST mode + no fake STT — route must return 503 with safe message."""
     response = client.post(
         "/transcribe",
         files={"file": ("x.wav", b"\x00\x00", "audio/wav")},

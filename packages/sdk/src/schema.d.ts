@@ -13,12 +13,7 @@ export interface paths {
     };
     /**
      * Get Health
-     * @description Report which inference subsystems are ready.
-     *
-     *     Unlike ``GET /voices`` (which is a static list and always succeeds), this
-     *     endpoint reflects the actual load state of the Kokoro pipeline and the
-     *     Whisper model. Use it to differentiate "server not running" from "models
-     *     still loading or failed to load" in first-run UIs.
+     * @description Report which inference subsystems are ready, and which adapters are bound.
      */
     get: operations["get_health_health_get"];
     put?: never;
@@ -38,10 +33,10 @@ export interface paths {
     };
     /**
      * Get Voices
-     * @description List American English Kokoro v1 voice ids.
+     * @description List the voice ids the active TTS engine accepts.
      *
-     *     Returns ``application/json`` with a ``voices`` array of strings (``af_*``, ``am_*``)
-     *     for **hexgrad/Kokoro-82M** when using ``lang_code=a`` in the pipeline.
+     *     Shape: ``{"voices": ["<id>", …]}``. Engine-specific — Kokoro returns
+     *     ``af_*`` / ``am_*`` ids; Dia returns its preset names.
      */
     get: operations["get_voices_voices_get"];
     put?: never;
@@ -63,9 +58,9 @@ export interface paths {
     put?: never;
     /**
      * Synthesize
-     * @description Synthesize speech from text using the loaded Kokoro pipeline.
+     * @description Synthesize speech from text using the active TTS engine.
      *
-     *     **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 if the TTS model failed to load.
+     *     **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.
      */
     post: operations["synthesize_synthesize_post"];
     delete?: never;
@@ -85,9 +80,9 @@ export interface paths {
     put?: never;
     /**
      * Transcribe
-     * @description Transcribe uploaded audio to text (and language metadata).
+     * @description Transcribe uploaded audio to text and language metadata.
      *
-     *     **Response:** JSON with ``text``, ``language``, and ``probability``. Returns 503 if STT is unavailable.
+     *     **Response:** JSON ``{text, language, probability}``. Returns 503 if STT is unavailable.
      */
     post: operations["transcribe_transcribe_post"];
     delete?: never;
@@ -104,8 +99,7 @@ export interface components {
     Body_transcribe_transcribe_post: {
       /**
        * File
-       * Format: binary
-       * @description Audio upload (e.g. WAV). Transcribed with faster-whisper ``base.en`` when the STT model loaded at startup.
+       * @description Audio upload (e.g. WAV). Transcribed with the active STT engine (``faster-whisper small.en`` by default).
        */
       file: string;
     };
@@ -121,20 +115,32 @@ export interface components {
     HealthResponse: {
       /**
        * Tts
-       * @description Kokoro TTS pipeline status: ``ready`` or ``unavailable``.
+       * @description TTS engine status: ``ready`` or ``unavailable``.
        */
       tts: string;
       /**
        * Stt
-       * @description Whisper STT model status: ``ready`` or ``unavailable``.
+       * @description STT engine status: ``ready`` or ``unavailable``.
        */
       stt: string;
+      /**
+       * Tts Backend
+       * @description Name of the loaded TTS adapter (e.g. ``kokoro``, ``dia``); ``null`` when unavailable.
+       */
+      tts_backend?: string | null;
+      /**
+       * Stt Backend
+       * @description Name of the loaded STT adapter (e.g. ``whisper``); ``null`` when unavailable.
+       */
+      stt_backend?: string | null;
     };
     /**
      * SynthesizeRequest
      * @description JSON body for ``POST /synthesize``.
      *
-     *     Produces linear PCM in a WAV container via Kokoro 82M (``hexgrad/Kokoro-82M``, ``lang_code=a``).
+     *     Produces a WAV-encoded audio stream from the configured TTS engine. Voice
+     *     id and sample rate are engine-specific — see ``GET /voices`` for the
+     *     active catalog. Default voice on Kokoro is ``af_aoede``.
      */
     SynthesizeRequest: {
       /**
@@ -144,13 +150,13 @@ export interface components {
       text: string;
       /**
        * Voice
-       * @description Kokoro v1 voice id (American English: ``af_*`` / ``am_*``). See ``GET /voices`` for the supported list.
+       * @description Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia accepts its preset names (``default_voice`` today). See ``GET /voices``.
        * @default af_aoede
        */
       voice: string;
       /**
        * Speed
-       * @description Speaking-rate multiplier (1.0 = model default).
+       * @description Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (e.g. Dia) ignore this field silently.
        * @default 1
        */
       speed: number;
@@ -163,6 +169,10 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
   };
   responses: never;
