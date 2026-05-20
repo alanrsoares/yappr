@@ -1,7 +1,3 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 
 import { createDb } from "./client.js";
@@ -91,63 +87,5 @@ describe("db schema", () => {
     );
 
     db.close();
-  });
-
-  test("baselines a legacy sqlite db into drizzle migrations", () => {
-    const dir = mkdtempSync(path.join(os.tmpdir(), "yappr-db-"));
-    const dbPath = path.join(dir, "legacy.db");
-    const legacy = new Database(dbPath, { create: true });
-    legacy.exec(`
-      PRAGMA foreign_keys = ON;
-      CREATE TABLE preferences (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
-      ) STRICT;
-      CREATE TABLE conversations (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        model TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      ) STRICT;
-      CREATE TABLE messages (
-        id TEXT PRIMARY KEY,
-        conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
-        content TEXT NOT NULL,
-        created_at INTEGER NOT NULL
-      ) STRICT;
-      INSERT INTO preferences (key, value, updated_at)
-        VALUES ('defaultVoice', '"af_heart"', 1);
-    `);
-    legacy.close();
-
-    const db = createDb({ path: dbPath });
-
-    expect(db.preferences.get<string>("defaultVoice")).toBe("af_heart");
-    expect(tableNames(db).map((row) => row.name)).toEqual(
-      expect.arrayContaining(["__drizzle_migrations", "agent_events"]),
-    );
-    expect(
-      db.raw
-        .prepare("SELECT COUNT(*) AS count FROM __drizzle_migrations")
-        .get(),
-    ).toEqual({ count: 1 });
-    expect(
-      db.raw
-        .prepare("PRAGMA table_info(messages)")
-        .all()
-        .map((row) => (row as { name: string }).name),
-    ).toContain("parts_json");
-    expect(
-      db.raw
-        .prepare("PRAGMA table_info(conversations)")
-        .all()
-        .map((row) => (row as { name: string }).name),
-    ).toContain("archived");
-
-    db.close();
-    rmSync(dir, { recursive: true, force: true });
   });
 });

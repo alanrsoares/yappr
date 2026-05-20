@@ -15,6 +15,9 @@ import {
  * Performance + integrity choices (SQLite / libsql best practices):
  *   - `STRICT` tables: SQLite enforces column types instead of treating types
  *     as advisory ("type affinity"). Catches silent coercion bugs early.
+ *     **Note:** drizzle-kit doesn't emit `STRICT` natively. After
+ *     `bun run db:generate`, hand-edit the new migration to append `STRICT`
+ *     before each closing `);`. The strict-tables test guards this.
  *   - `WAL` journal + `synchronous = NORMAL`: safe with WAL, ~2x writes vs
  *     `FULL`. `busy_timeout = 5000` keeps concurrent reads/writes patient.
  *   - `temp_store = MEMORY`, `cache_size = -64000` (~64 MB): cheap, app is
