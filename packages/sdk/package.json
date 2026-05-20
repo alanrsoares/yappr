@@ -14,6 +14,7 @@
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./defaults": "./src/defaults.ts",
+    "./kokoro-voices": "./src/kokoro-voices.ts",
     "./state": "./src/state.ts",
     "./voice": "./src/voice.ts",
     "./mcp": "./src/mcp.ts",

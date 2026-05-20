@@ -24,31 +24,41 @@ def get_stt_model() -> Any:
     return _stt_model
 
 
+"""Kokoro v1 American English voice IDs (lang_code=a, af_* / am_*).
+
+Source of truth lives in ``@yappr/sdk/kokoro-voices`` (``KOKORO_VOICES``).
+Apps prefer the static SDK list at boot to avoid an HTTP round-trip;
+this list is what the running daemon advertises today and must stay in
+sync. The parity test in ``python/tests/test_voices_parity.py`` will
+fail if these two lists drift.
+"""
+KOKORO_VOICES: list[str] = [
+    "af_alloy",
+    "af_aoede",
+    "af_bella",
+    "af_heart",
+    "af_jessica",
+    "af_kore",
+    "af_nicole",
+    "af_nova",
+    "af_river",
+    "af_sarah",
+    "af_sky",
+    "am_adam",
+    "am_echo",
+    "am_eric",
+    "am_fenrir",
+    "am_liam",
+    "am_michael",
+    "am_onyx",
+    "am_puck",
+    "am_santa",
+]
+
+
 def get_voices() -> Result[list[str], Exception]:
-    """Kokoro v1 American English voice IDs (lang_code=a, af_* / am_*)."""
-    voices = [
-        "af_alloy",
-        "af_aoede",
-        "af_bella",
-        "af_heart",
-        "af_jessica",
-        "af_kore",
-        "af_nicole",
-        "af_nova",
-        "af_river",
-        "af_sarah",
-        "af_sky",
-        "am_adam",
-        "am_echo",
-        "am_eric",
-        "am_fenrir",
-        "am_liam",
-        "am_michael",
-        "am_onyx",
-        "am_puck",
-        "am_santa",
-    ]
-    return Ok(voices)
+    """Return the daemon's advertised Kokoro voice IDs."""
+    return Ok(KOKORO_VOICES)
 
 
 def synthesize(

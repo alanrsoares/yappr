@@ -6,4 +6,5 @@ export * from "./mcp";
 export * from "./types";
 export * from "./schemas";
 export * from "./defaults";
+export * from "./kokoro-voices";
 export * from "./state";
