@@ -9,13 +9,12 @@ import {
   type VoiceConfig,
   type VoiceId,
 } from "@yappr/sdk/schemas";
-import { createVoiceClient, localVoiceConfig } from "@yappr/sdk/voice";
+import { createVoiceClient } from "@yappr/sdk/voice";
 
 import {
   buildAudio,
   DEFAULT_SERVER_URL,
   DEFAULT_SPEED,
-  DEFAULT_VOICE,
   disposeAudio,
   pickVoice,
   toHealthFail,
@@ -77,10 +76,10 @@ type VoiceStoreActions = {
 
 type VoiceStoreValue = readonly [VoiceStoreState, VoiceStoreActions];
 
+const speechSpeed = (speech: VoiceConfig["speech"]) =>
+  speech.kind === "yappr" ? speech.speed : (speech.speed ?? DEFAULT_SPEED);
+
 function useVoiceStoreLogic(): VoiceStoreValue {
-  const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
-  const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
-  const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [voiceConfig, setVoiceConfig] =
     useState<VoiceConfig>(DEFAULT_VOICE_CONFIG);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
@@ -89,69 +88,29 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const narrationCacheRef = useRef(new NarrationCache());
   const speakRunRef = useRef(0);
 
-  // Hydrate from persisted preferences once. The DB is shared with the CLI,
-  // so `defaultVoice` round-trips between surfaces. `serverUrl` and `speed`
-  // are desktop-only keys today.
   const { data: prefs } = useQuery(preferencesOptions);
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!prefs || hydratedRef.current) return;
-    const parsedVoice = VoiceConfigSchema.safeParse(prefs.voice);
-    if (parsedVoice.success) {
-      const next = parsedVoice.data;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVoiceConfig(next);
-      setServerUrl(next.speech.baseUrl);
-      setVoice(next.speech.voice as VoiceId);
-      setSpeed(next.speech.speed ?? DEFAULT_SPEED);
-      hydratedRef.current = true;
-      return;
-    }
-    const legacyConfig = localVoiceConfig(
-      typeof prefs.serverUrl === "string" && prefs.serverUrl
-        ? prefs.serverUrl
-        : DEFAULT_SERVER_URL,
-    );
-    const legacyVoice =
-      typeof prefs.defaultVoice === "string" && prefs.defaultVoice
-        ? (prefs.defaultVoice as VoiceId)
-        : DEFAULT_VOICE;
-    const legacySpeed =
-      typeof prefs.defaultSpeed === "number"
-        ? prefs.defaultSpeed
-        : DEFAULT_SPEED;
-    const nextLegacyConfig = VoiceConfigSchema.parse({
-      ...legacyConfig,
-      speech: {
-        ...legacyConfig.speech,
-        voice: legacyVoice,
-        speed: legacySpeed,
-      },
-    });
-    if (typeof prefs.serverUrl === "string" && prefs.serverUrl) {
-      setServerUrl(prefs.serverUrl);
-    }
-    setVoiceConfig(nextLegacyConfig);
-    setVoice(legacyVoice);
-    setSpeed(legacySpeed);
+    const parsed = VoiceConfigSchema.safeParse(prefs.voice);
+    setVoiceConfig(parsed.success ? parsed.data : DEFAULT_VOICE_CONFIG);
     hydratedRef.current = true;
   }, [prefs]);
 
   const persistPrefs = useMutation({
-    mutationFn: (entries: Record<string, unknown>) =>
-      dbRpc.request("preferences:setMany", entries),
+    mutationFn: (voice: VoiceConfig) =>
+      dbRpc.request("preferences:setMany", { voice }),
   });
 
   const persistVoiceConfig = useCallback(
-    (nextConfig: VoiceConfig, extra: Record<string, unknown> = {}) => {
-      persistPrefs.mutate({ ...extra, voice: nextConfig });
+    (nextConfig: VoiceConfig) => {
+      persistPrefs.mutate(nextConfig);
     },
     [persistPrefs],
   );
 
   const setServerUrlPersist = useCallback(
     (next: string) => {
-      setServerUrl(next);
       setVoiceConfig((current) => {
         const nextConfig = VoiceConfigSchema.parse({
           ...current,
@@ -162,7 +121,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
               ? { ...current.transcription, baseUrl: next }
               : current.transcription,
         });
-        persistVoiceConfig(nextConfig, { serverUrl: next });
+        persistVoiceConfig(nextConfig);
         return nextConfig;
       });
     },
@@ -172,6 +131,8 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     (next: VoiceConfig["speech"]["kind"]) => {
       setVoiceConfig((current) => {
         if (current.speech.kind === next) return current;
+        const voice = current.speech.voice as VoiceId;
+        const speed = speechSpeed(current.speech);
         const nextConfig = VoiceConfigSchema.parse({
           ...current,
           speech:
@@ -192,15 +153,11 @@ function useVoiceStoreLogic(): VoiceStoreValue {
                   speed,
                 },
         });
-        setServerUrl(nextConfig.speech.baseUrl);
-        setVoice(nextConfig.speech.voice as VoiceId);
-        persistVoiceConfig(nextConfig, {
-          serverUrl: nextConfig.speech.baseUrl,
-        });
+        persistVoiceConfig(nextConfig);
         return nextConfig;
       });
     },
-    [persistVoiceConfig, speed, voice],
+    [persistVoiceConfig],
   );
   const setSpeechModelPersist = useCallback(
     (next: string) => {
@@ -246,13 +203,12 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   );
   const setVoicePersist = useCallback(
     (next: VoiceId) => {
-      setVoice(next);
       setVoiceConfig((current) => {
         const nextConfig = VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, voice: next },
         });
-        persistVoiceConfig(nextConfig, { defaultVoice: next });
+        persistVoiceConfig(nextConfig);
         return nextConfig;
       });
     },
@@ -260,13 +216,12 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   );
   const setSpeedPersist = useCallback(
     (next: number) => {
-      setSpeed(next);
       setVoiceConfig((current) => {
         const nextConfig = VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, speed: next },
         });
-        persistVoiceConfig(nextConfig, { defaultSpeed: next });
+        persistVoiceConfig(nextConfig);
         return nextConfig;
       });
     },
@@ -274,9 +229,6 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   );
   const client = useMemo(() => createVoiceClient(voiceConfig), [voiceConfig]);
 
-  // Backend connectivity probe + voice list. Auto-fires on mount, polls every
-  // 30s, refetches on focus and on serverUrl change. The query state IS the
-  // health state — no separate manual machine needed.
   const voicesQuery = useQuery(voicesOptions(voiceConfig.speech));
   const voices = useMemo(() => voicesQuery.data ?? [], [voicesQuery.data]);
 
@@ -289,11 +241,18 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     return toHealthOk(voices);
   }, [voicesQuery.isPending, voicesQuery.isError, voicesQuery.error, voices]);
 
-  // When the voice list changes, ensure the selected voice is still valid.
   useEffect(() => {
     if (voices.length === 0) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVoice((prev) => pickVoice(prev)(voices));
+    setVoiceConfig((current) => {
+      const prev = current.speech.voice as VoiceId;
+      const next = pickVoice(prev)(voices);
+      if (next === prev) return current;
+      return VoiceConfigSchema.parse({
+        ...current,
+        speech: { ...current.speech, voice: next },
+      });
+    });
   }, [voices]);
 
   const checkHealth = useCallback(async () => {
@@ -355,6 +314,9 @@ function useVoiceStoreLogic(): VoiceStoreValue {
       if (phrase.length === 0) return;
       stopAudio();
       const runId = speakRunRef.current;
+      const { speech } = voiceConfig;
+      const voice = speech.voice as VoiceId;
+      const speed = speechSpeed(speech);
       setTts({ kind: "speaking" });
       const messageId = options?.messageId ?? null;
       setCaption({
@@ -367,7 +329,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         paused: false,
       });
       const cacheKey = narrationCacheKey({
-        speech: voiceConfig.speech,
+        speech,
         voice,
         speed,
         text: phrase,
@@ -440,7 +402,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         },
       );
     },
-    [client, voiceConfig.speech, voice, speed, stopAudio],
+    [client, voiceConfig, stopAudio],
   );
 
   const transcribe = useCallback(
@@ -463,13 +425,14 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     [],
   );
 
+  const speech = voiceConfig.speech;
   const state = {
-    serverUrl,
+    serverUrl: speech.baseUrl,
     voiceConfig,
     health,
     voices,
-    voice,
-    speed,
+    voice: speech.voice as VoiceId,
+    speed: speechSpeed(speech),
     tts,
     caption,
   };
