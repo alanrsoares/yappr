@@ -1,4 +1,5 @@
 export * from "./tts";
+export * from "./voice";
 export * from "./recorder";
 export * from "./audio-devices";
 export * from "./mcp";

@@ -1,3 +1,4 @@
+import { VoiceConfigSchema } from "@yappr/sdk/schemas";
 import * as z from "zod";
 
 import type { Preferences } from "../types.js";
@@ -17,6 +18,7 @@ const fields = {
   useNarrationForTTS: z.boolean(),
   narrationModel: z.string(),
   openrouterApiKey: z.string(),
+  voice: VoiceConfigSchema,
   firstRunCompleted: z.boolean(),
 } satisfies Record<
   keyof Preferences | "defaultOllamaModel",

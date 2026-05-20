@@ -1,3 +1,5 @@
+import type { VoiceConfig } from "@yappr/sdk/schemas";
+
 import type { ChatRuntime } from "./services/yappr/chat/runtime.js";
 
 export type ScreenId =
@@ -30,6 +32,8 @@ export interface Preferences {
   narrationModel: string;
   /** OpenRouter API key (required when defaultChatProvider is openrouter). */
   openrouterApiKey: string;
+  /** Speech + transcription endpoints. Providers are presets over this shape. */
+  voice: VoiceConfig;
   /** True once the user has gone through (or skipped) the assisted setup wizard. */
   firstRunCompleted: boolean;
 }

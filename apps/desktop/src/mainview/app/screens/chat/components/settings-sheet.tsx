@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { VoiceId } from "@yappr/sdk/schemas";
+import type { AudioFormat, VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 import { match } from "ts-pattern";
 
@@ -38,8 +38,17 @@ const INPUT_DEFAULT_SENTINEL = "__system_default__";
 
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   const [
-    { serverUrl, voice, voices, speed, health },
-    { setServerUrl, setVoice, setSpeed, checkHealth },
+    { serverUrl, voiceConfig, voice, voices, speed, health },
+    {
+      setServerUrl,
+      setSpeechKind,
+      setSpeechModel,
+      setSpeechVoiceField,
+      setSpeechFormat,
+      setVoice,
+      setSpeed,
+      checkHealth,
+    },
   ] = useVoiceStore();
   const [{ inputDeviceId }, { setInputDeviceId }] = useChatStore();
   const inputDevices = useInputDevices();
@@ -56,6 +65,42 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
         </SheetHeader>
 
         <div className="mt-4 space-y-5 px-4">
+          <section className="space-y-2">
+            <Label
+              htmlFor="settings-speech-kind"
+              className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+            >
+              Speech endpoint
+            </Label>
+            <Select
+              value={voiceConfig.speech.kind}
+              onValueChange={(v) =>
+                setSpeechKind(
+                  v as VoiceStoreState["voiceConfig"]["speech"]["kind"],
+                )
+              }
+            >
+              <SelectTrigger
+                id="settings-speech-kind"
+                aria-label="Speech endpoint"
+                className="font-mono text-sm"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent translate="no">
+                <SelectItem value="yappr" className="font-mono text-sm">
+                  Yappr local
+                </SelectItem>
+                <SelectItem
+                  value="openai-compatible"
+                  className="font-mono text-sm"
+                >
+                  OpenAI-compatible
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </section>
+
           <section className="space-y-2">
             <Label
               htmlFor="settings-server-url"
@@ -96,6 +141,96 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
             </p>
           </section>
 
+          {voiceConfig.speech.kind === "openai-compatible" && (
+            <>
+              <section className="space-y-2">
+                <Label
+                  htmlFor="settings-speech-model"
+                  className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+                >
+                  Speech model
+                </Label>
+                <Input
+                  id="settings-speech-model"
+                  name="speech-model"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={voiceConfig.speech.model}
+                  onChange={(e) => setSpeechModel(e.target.value)}
+                  className="font-mono text-sm"
+                />
+              </section>
+
+              <section className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="settings-voice-field"
+                    className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Voice field
+                  </Label>
+                  <Select
+                    value={voiceConfig.speech.voiceField}
+                    onValueChange={(v) =>
+                      setSpeechVoiceField(v as "voice" | "voice_id")
+                    }
+                  >
+                    <SelectTrigger
+                      id="settings-voice-field"
+                      aria-label="Voice field"
+                      className="font-mono text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent translate="no">
+                      <SelectItem value="voice" className="font-mono text-sm">
+                        voice
+                      </SelectItem>
+                      <SelectItem
+                        value="voice_id"
+                        className="font-mono text-sm"
+                      >
+                        voice_id
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="settings-audio-format"
+                    className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Format
+                  </Label>
+                  <Select
+                    value={voiceConfig.speech.format}
+                    onValueChange={(v) => setSpeechFormat(v as AudioFormat)}
+                  >
+                    <SelectTrigger
+                      id="settings-audio-format"
+                      aria-label="Audio format"
+                      className="font-mono text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent translate="no">
+                      {["wav", "mp3", "pcm", "flac", "opus"].map((format) => (
+                        <SelectItem
+                          key={format}
+                          value={format}
+                          className="font-mono text-sm"
+                        >
+                          {format}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </section>
+            </>
+          )}
+
           <section className="space-y-2">
             <Label
               htmlFor="settings-voice"
@@ -103,32 +238,48 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
             >
               Voice
             </Label>
-            <Select
-              value={voice}
-              onValueChange={(v) => setVoice(v as VoiceId)}
-              disabled={voices.length === 0}
-            >
-              <SelectTrigger
+            {voiceConfig.speech.kind === "openai-compatible" ? (
+              <Input
                 id="settings-voice"
-                aria-label="Voice"
+                name="voice"
+                autoComplete="off"
+                spellCheck={false}
+                value={voice}
+                onChange={(e) => setVoice(e.target.value as VoiceId)}
                 className="font-mono text-sm"
+              />
+            ) : (
+              <Select
+                value={voice}
+                onValueChange={(v) => setVoice(v as VoiceId)}
+                disabled={voices.length === 0}
               >
-                <SelectValue placeholder="--- check host first ---" />
-              </SelectTrigger>
-              <SelectContent translate="no" className="max-h-72">
-                {voices.length === 0 ? (
-                  <SelectItem value={voice} disabled>
-                    --- check host first ---
-                  </SelectItem>
-                ) : (
-                  voices.map((v) => (
-                    <SelectItem key={v} value={v} className="font-mono text-sm">
-                      {v}
+                <SelectTrigger
+                  id="settings-voice"
+                  aria-label="Voice"
+                  className="font-mono text-sm"
+                >
+                  <SelectValue placeholder="--- check host first ---" />
+                </SelectTrigger>
+                <SelectContent translate="no" className="max-h-72">
+                  {voices.length === 0 ? (
+                    <SelectItem value={voice} disabled>
+                      --- check host first ---
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ) : (
+                    voices.map((v) => (
+                      <SelectItem
+                        key={v}
+                        value={v}
+                        className="font-mono text-sm"
+                      >
+                        {v}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </section>
 
           <section className="space-y-2">

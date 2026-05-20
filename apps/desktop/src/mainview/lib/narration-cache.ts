@@ -1,4 +1,4 @@
-import type { VoiceId } from "@yappr/sdk/schemas";
+import type { SpeechEndpoint, VoiceId } from "@yappr/sdk/schemas";
 
 import { SizedLruCache } from "./sized-lru-cache";
 
@@ -6,19 +6,19 @@ export const DEFAULT_NARRATION_CACHE_ITEMS = 24;
 export const DEFAULT_NARRATION_CACHE_BYTES = 64 * 1024 * 1024;
 
 export type NarrationCacheKeyInput = {
-  serverUrl: string;
+  speech: SpeechEndpoint;
   voice: VoiceId;
   speed: number;
   text: string;
 };
 
 export const narrationCacheKey = ({
-  serverUrl,
+  speech,
   voice,
   speed,
   text,
 }: NarrationCacheKeyInput): string =>
-  JSON.stringify([serverUrl, voice, speed, text]);
+  JSON.stringify([speech, voice, speed, text]);
 
 export class NarrationCache extends SizedLruCache<ArrayBuffer> {
   constructor({

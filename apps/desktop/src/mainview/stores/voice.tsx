@@ -2,8 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContainer } from "@yappr/lib/unstated";
-import type { VoiceId } from "@yappr/sdk/schemas";
-import { TTSClient } from "@yappr/sdk/tts";
+import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
+import {
+  VoiceConfigSchema,
+  type AudioFormat,
+  type VoiceConfig,
+  type VoiceId,
+} from "@yappr/sdk/schemas";
+import { createVoiceClient, localVoiceConfig } from "@yappr/sdk/voice";
 
 import {
   buildAudio,
@@ -36,6 +42,7 @@ export type VoiceCaptionState =
 
 export type VoiceStoreState = {
   serverUrl: string;
+  voiceConfig: VoiceConfig;
   health: HealthState;
   voices: VoiceId[];
   voice: VoiceId;
@@ -50,6 +57,10 @@ type SpeakOptions = {
 
 type VoiceStoreActions = {
   setServerUrl: (v: string) => void;
+  setSpeechKind: (v: VoiceConfig["speech"]["kind"]) => void;
+  setSpeechModel: (v: string) => void;
+  setSpeechVoiceField: (v: "voice" | "voice_id") => void;
+  setSpeechFormat: (v: AudioFormat) => void;
   setVoice: (v: VoiceId) => void;
   setSpeed: (v: number) => void;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
@@ -70,6 +81,8 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
   const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
+  const [voiceConfig, setVoiceConfig] =
+    useState<VoiceConfig>(DEFAULT_VOICE_CONFIG);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const [caption, setCaption] = useState<VoiceCaptionState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
@@ -83,16 +96,44 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!prefs || hydratedRef.current) return;
-    if (typeof prefs.serverUrl === "string" && prefs.serverUrl) {
+    const parsedVoice = VoiceConfigSchema.safeParse(prefs.voice);
+    if (parsedVoice.success) {
+      const next = parsedVoice.data;
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setVoiceConfig(next);
+      setServerUrl(next.speech.baseUrl);
+      setVoice(next.speech.voice as VoiceId);
+      setSpeed(next.speech.speed ?? DEFAULT_SPEED);
+      hydratedRef.current = true;
+      return;
+    }
+    const legacyConfig = localVoiceConfig(
+      typeof prefs.serverUrl === "string" && prefs.serverUrl
+        ? prefs.serverUrl
+        : DEFAULT_SERVER_URL,
+    );
+    const legacyVoice =
+      typeof prefs.defaultVoice === "string" && prefs.defaultVoice
+        ? (prefs.defaultVoice as VoiceId)
+        : DEFAULT_VOICE;
+    const legacySpeed =
+      typeof prefs.defaultSpeed === "number"
+        ? prefs.defaultSpeed
+        : DEFAULT_SPEED;
+    const nextLegacyConfig = VoiceConfigSchema.parse({
+      ...legacyConfig,
+      speech: {
+        ...legacyConfig.speech,
+        voice: legacyVoice,
+        speed: legacySpeed,
+      },
+    });
+    if (typeof prefs.serverUrl === "string" && prefs.serverUrl) {
       setServerUrl(prefs.serverUrl);
     }
-    if (typeof prefs.defaultVoice === "string" && prefs.defaultVoice) {
-      setVoice(prefs.defaultVoice as VoiceId);
-    }
-    if (typeof prefs.defaultSpeed === "number") {
-      setSpeed(prefs.defaultSpeed);
-    }
+    setVoiceConfig(nextLegacyConfig);
+    setVoice(legacyVoice);
+    setSpeed(legacySpeed);
     hydratedRef.current = true;
   }, [prefs]);
 
@@ -101,33 +142,142 @@ function useVoiceStoreLogic(): VoiceStoreValue {
       dbRpc.request("preferences:setMany", entries),
   });
 
+  const persistVoiceConfig = useCallback(
+    (nextConfig: VoiceConfig, extra: Record<string, unknown> = {}) => {
+      persistPrefs.mutate({ ...extra, voice: nextConfig });
+    },
+    [persistPrefs],
+  );
+
   const setServerUrlPersist = useCallback(
     (next: string) => {
       setServerUrl(next);
-      persistPrefs.mutate({ serverUrl: next });
+      setVoiceConfig((current) => {
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, baseUrl: next },
+          transcription:
+            current.speech.kind === "yappr" &&
+            current.transcription.kind === "yappr"
+              ? { ...current.transcription, baseUrl: next }
+              : current.transcription,
+        });
+        persistVoiceConfig(nextConfig, { serverUrl: next });
+        return nextConfig;
+      });
     },
-    [persistPrefs],
+    [persistVoiceConfig],
+  );
+  const setSpeechKindPersist = useCallback(
+    (next: VoiceConfig["speech"]["kind"]) => {
+      setVoiceConfig((current) => {
+        if (current.speech.kind === next) return current;
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech:
+            next === "yappr"
+              ? {
+                  kind: "yappr",
+                  baseUrl: DEFAULT_SERVER_URL,
+                  voice,
+                  speed,
+                }
+              : {
+                  kind: "openai-compatible",
+                  baseUrl: "http://localhost:8000/v1",
+                  model: "mistralai/Voxtral-4B-TTS-2603",
+                  voice: "casual_male",
+                  voiceField: "voice",
+                  format: "wav",
+                  speed,
+                },
+        });
+        setServerUrl(nextConfig.speech.baseUrl);
+        setVoice(nextConfig.speech.voice as VoiceId);
+        persistVoiceConfig(nextConfig, {
+          serverUrl: nextConfig.speech.baseUrl,
+        });
+        return nextConfig;
+      });
+    },
+    [persistVoiceConfig, speed, voice],
+  );
+  const setSpeechModelPersist = useCallback(
+    (next: string) => {
+      setVoiceConfig((current) => {
+        if (current.speech.kind !== "openai-compatible") return current;
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, model: next },
+        });
+        persistVoiceConfig(nextConfig);
+        return nextConfig;
+      });
+    },
+    [persistVoiceConfig],
+  );
+  const setSpeechVoiceFieldPersist = useCallback(
+    (next: "voice" | "voice_id") => {
+      setVoiceConfig((current) => {
+        if (current.speech.kind !== "openai-compatible") return current;
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, voiceField: next },
+        });
+        persistVoiceConfig(nextConfig);
+        return nextConfig;
+      });
+    },
+    [persistVoiceConfig],
+  );
+  const setSpeechFormatPersist = useCallback(
+    (next: AudioFormat) => {
+      setVoiceConfig((current) => {
+        if (current.speech.kind !== "openai-compatible") return current;
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, format: next },
+        });
+        persistVoiceConfig(nextConfig);
+        return nextConfig;
+      });
+    },
+    [persistVoiceConfig],
   );
   const setVoicePersist = useCallback(
     (next: VoiceId) => {
       setVoice(next);
-      persistPrefs.mutate({ defaultVoice: next });
+      setVoiceConfig((current) => {
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, voice: next },
+        });
+        persistVoiceConfig(nextConfig, { defaultVoice: next });
+        return nextConfig;
+      });
     },
-    [persistPrefs],
+    [persistVoiceConfig],
   );
   const setSpeedPersist = useCallback(
     (next: number) => {
       setSpeed(next);
-      persistPrefs.mutate({ defaultSpeed: next });
+      setVoiceConfig((current) => {
+        const nextConfig = VoiceConfigSchema.parse({
+          ...current,
+          speech: { ...current.speech, speed: next },
+        });
+        persistVoiceConfig(nextConfig, { defaultSpeed: next });
+        return nextConfig;
+      });
     },
-    [persistPrefs],
+    [persistVoiceConfig],
   );
-  const client = useMemo(() => new TTSClient(serverUrl), [serverUrl]);
+  const client = useMemo(() => createVoiceClient(voiceConfig), [voiceConfig]);
 
   // Backend connectivity probe + voice list. Auto-fires on mount, polls every
   // 30s, refetches on focus and on serverUrl change. The query state IS the
   // health state — no separate manual machine needed.
-  const voicesQuery = useQuery(voicesOptions(serverUrl));
+  const voicesQuery = useQuery(voicesOptions(voiceConfig.speech));
   const voices = useMemo(() => voicesQuery.data ?? [], [voicesQuery.data]);
 
   const health = useMemo<HealthState>(() => {
@@ -217,7 +367,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         paused: false,
       });
       const cacheKey = narrationCacheKey({
-        serverUrl,
+        speech: voiceConfig.speech,
         voice,
         speed,
         text: phrase,
@@ -290,7 +440,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         },
       );
     },
-    [client, serverUrl, voice, speed, stopAudio],
+    [client, voiceConfig.speech, voice, speed, stopAudio],
   );
 
   const transcribe = useCallback(
@@ -315,6 +465,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
 
   const state = {
     serverUrl,
+    voiceConfig,
     health,
     voices,
     voice,
@@ -325,6 +476,10 @@ function useVoiceStoreLogic(): VoiceStoreValue {
 
   const actions = {
     setServerUrl: setServerUrlPersist,
+    setSpeechKind: setSpeechKindPersist,
+    setSpeechModel: setSpeechModelPersist,
+    setSpeechVoiceField: setSpeechVoiceFieldPersist,
+    setSpeechFormat: setSpeechFormatPersist,
     setVoice: setVoicePersist,
     setSpeed: setSpeedPersist,
     checkHealth,

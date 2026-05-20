@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { VoiceId } from "@yappr/sdk/schemas";
-import { TTSClient } from "@yappr/sdk/tts";
+import type { SpeechEndpointInput, VoiceId } from "@yappr/sdk/schemas";
+import { createSpeechClient } from "@yappr/sdk/voice";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { listOllamaModels } from "~/services/ollama";
@@ -21,20 +21,20 @@ export const ollamaModelsOptions = queryOptions({
 });
 
 /**
- * Yappr inference server voice list (`GET /voices`). Doubles as the backend
+ * Speech endpoint voice list. Doubles as the backend
  * connectivity probe — the query state IS the health signal:
  *   - `isPending` (no data yet) → checking
  *   - `isError` → fail
  *   - `data` defined → ok
  *
  * Refetches automatically on mount, on window focus, every 30s while idle,
- * and whenever `serverUrl` changes (different cache key).
+ * and whenever the endpoint changes (different cache key).
  */
-export const voicesOptions = (serverUrl: string) =>
+export const voicesOptions = (speech: SpeechEndpointInput) =>
   queryOptions({
-    queryKey: ["yappr", "voices", serverUrl] as const,
+    queryKey: ["voice", "speech", speech] as const,
     queryFn: async ({ signal }): Promise<VoiceId[]> => {
-      const client = new TTSClient(serverUrl);
+      const client = createSpeechClient(speech);
       const result = await client.listVoices();
       if (signal?.aborted) throw new DOMException("aborted", "AbortError");
       return result.match(

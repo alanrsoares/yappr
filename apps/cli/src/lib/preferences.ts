@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { DEFAULT_VOICE } from "@yappr/sdk/defaults";
+import { DEFAULT_VOICE, DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
 import { MCP_CONFIG_PATH } from "../constants.js";
@@ -18,6 +18,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   useNarrationForTTS: false,
   narrationModel: "",
   openrouterApiKey: "",
+  voice: DEFAULT_VOICE_CONFIG,
   firstRunCompleted: false,
 };
 

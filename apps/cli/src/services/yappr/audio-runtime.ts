@@ -1,8 +1,9 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { AudioRecorder } from "@yappr/sdk/recorder";
-import { TTSClient, type TTSOptions } from "@yappr/sdk/tts";
+import type { TTSOptions } from "@yappr/sdk/tts";
 import type { RecordOptions } from "@yappr/sdk/types";
+import { createVoiceClient, type VoiceClient } from "@yappr/sdk/voice";
 import { spawn } from "bun";
 import type { ResultAsync } from "neverthrow";
 
@@ -21,7 +22,7 @@ export function resolveAudioPaths(projectRoot: string): AudioPaths {
   };
 }
 
-export interface TtsPort {
+export interface TtsPort extends VoiceClient {
   listVoices(): ResultAsync<string[], Error>;
   synthesize(
     text: string,
@@ -103,7 +104,7 @@ export function createAudioRuntime(
   const playback = options.playback ?? createPlaybackPort();
 
   return {
-    tts: options.tts ?? new TTSClient(),
+    tts: options.tts ?? createVoiceClient(),
     recorder: options.recorder ?? new AudioRecorder(),
     paths,
     ensureTmp: () => {

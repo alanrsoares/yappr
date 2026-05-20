@@ -3,15 +3,22 @@ import { describe, expect, test } from "bun:test";
 import { NarrationCache, narrationCacheKey } from "./narration-cache";
 
 describe("narrationCacheKey", () => {
-  test("includes server, voice, speed, and text", () => {
+  test("includes speech endpoint, voice, speed, and text", () => {
     expect(
       narrationCacheKey({
-        serverUrl: "http://localhost:8000",
+        speech: {
+          kind: "yappr",
+          baseUrl: "http://localhost:8000",
+          voice: "af_aoede",
+          speed: 1,
+        },
         voice: "af_aoede",
         speed: 1.25,
         text: "Hello",
       }),
-    ).toBe('["http://localhost:8000","af_aoede",1.25,"Hello"]');
+    ).toBe(
+      '[{"kind":"yappr","baseUrl":"http://localhost:8000","voice":"af_aoede","speed":1},"af_aoede",1.25,"Hello"]',
+    );
   });
 });
 
