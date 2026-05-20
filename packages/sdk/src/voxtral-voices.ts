@@ -77,3 +77,30 @@ export const VOXTRAL_MODEL_ID = "mistralai/Voxtral-4B-TTS-2603";
  * native 24 kHz sample rate.
  */
 export const VOXTRAL_DEFAULT_RESPONSE_FORMAT = "wav" as const;
+
+/** Default vllm-omni endpoint a fresh `vllm serve … --omni` listens on. */
+export const VOXTRAL_DEFAULT_BASE_URL = "http://localhost:8000/v1";
+
+/** Default voice picked when the user hasn't selected one yet. */
+export const VOXTRAL_DEFAULT_VOICE: VoxtralVoiceId = "casual_male";
+
+/**
+ * Pre-filled OpenAI-compatible speech endpoint config for a remote vllm-omni
+ * instance serving Voxtral. Apps use this as a one-click "Voxtral preset" so
+ * users don't have to type the model id / voice field / format by hand.
+ */
+export function voxtralSpeechPreset(overrides?: {
+  baseUrl?: string;
+  apiKey?: string;
+  voice?: VoxtralVoiceId;
+}) {
+  return {
+    kind: "openai-compatible" as const,
+    baseUrl: overrides?.baseUrl ?? VOXTRAL_DEFAULT_BASE_URL,
+    ...(overrides?.apiKey ? { apiKey: overrides.apiKey } : {}),
+    model: VOXTRAL_MODEL_ID,
+    voice: overrides?.voice ?? VOXTRAL_DEFAULT_VOICE,
+    voiceField: "voice" as const,
+    format: VOXTRAL_DEFAULT_RESPONSE_FORMAT,
+  };
+}

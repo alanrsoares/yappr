@@ -10,6 +10,7 @@ import {
   type VoiceId,
 } from "@yappr/sdk/schemas";
 import { createVoiceClient } from "@yappr/sdk/voice";
+import { voxtralSpeechPreset } from "@yappr/sdk/voxtral-voices";
 
 import {
   buildAudio,
@@ -143,15 +144,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
                   voice,
                   speed,
                 }
-              : {
-                  kind: "openai-compatible",
-                  baseUrl: "http://localhost:8000/v1",
-                  model: "mistralai/Voxtral-4B-TTS-2603",
-                  voice: "casual_male",
-                  voiceField: "voice",
-                  format: "wav",
-                  speed,
-                },
+              : { ...voxtralSpeechPreset(), speed },
         });
         persistVoiceConfig(nextConfig);
         return nextConfig;

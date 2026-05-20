@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { AudioFormat, VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
+import { VOXTRAL_MODEL_ID, VOXTRAL_VOICES } from "@yappr/sdk/voxtral-voices";
 import { match } from "ts-pattern";
 
 import { useInputDevices } from "~/hooks";
@@ -239,15 +240,41 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
               Voice
             </Label>
             {voiceConfig.speech.kind === "openai-compatible" ? (
-              <Input
-                id="settings-voice"
-                name="voice"
-                autoComplete="off"
-                spellCheck={false}
-                value={voice}
-                onChange={(e) => setVoice(e.target.value as VoiceId)}
-                className="font-mono text-sm"
-              />
+              voiceConfig.speech.model === VOXTRAL_MODEL_ID ? (
+                <Select
+                  value={voice}
+                  onValueChange={(v) => setVoice(v as VoiceId)}
+                >
+                  <SelectTrigger
+                    id="settings-voice"
+                    aria-label="Voice"
+                    className="font-mono text-sm"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent translate="no" className="max-h-72">
+                    {VOXTRAL_VOICES.map((v) => (
+                      <SelectItem
+                        key={v}
+                        value={v}
+                        className="font-mono text-sm"
+                      >
+                        {v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="settings-voice"
+                  name="voice"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={voice}
+                  onChange={(e) => setVoice(e.target.value as VoiceId)}
+                  className="font-mono text-sm"
+                />
+              )
             ) : (
               <Select
                 value={voice}
