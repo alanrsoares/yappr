@@ -1,18 +1,20 @@
 import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
 
+import { CursorTextInput } from "~/components/cursor-text-input.js";
 import { semantic } from "~/theme/semantic.js";
 import { SlashCommandInput } from "./slash-command-input.js";
 
 export interface ChatInputProps {
   value: string;
-  onChange: (value: string) => void;
+  cursor: number;
+  onChange: (value: string, cursor: number) => void;
   onComposerSubmit: (raw: string, slashPick?: string) => void;
   placeholder: string;
 }
 
 export function ChatInput({
   value,
+  cursor,
   onChange,
   onComposerSubmit,
   placeholder,
@@ -37,12 +39,13 @@ export function ChatInput({
         {isSlash ? (
           <SlashCommandInput
             value={value}
-            onChange={onChange}
+            onChange={(v) => onChange(v, v.length)}
             onSubmitLine={(line, explicit) => onComposerSubmit(line, explicit)}
           />
         ) : (
-          <TextInput
+          <CursorTextInput
             value={value}
+            cursor={cursor}
             onChange={onChange}
             onSubmit={(v) => onComposerSubmit(v)}
             placeholder={placeholder}

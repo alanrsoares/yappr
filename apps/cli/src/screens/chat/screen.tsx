@@ -108,6 +108,7 @@ function ChatScreenContent() {
       {!state.isEventStreamOpen && (
         <ChatInput
           value={state.value}
+          cursor={state.cursor}
           onChange={actions.handleInputChange}
           onComposerSubmit={actions.handleComposerSubmit}
           placeholder={`Message ${state.model}… (type / for commands)`}

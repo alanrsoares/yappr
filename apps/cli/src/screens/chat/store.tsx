@@ -63,7 +63,19 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   const onBack = initialState?.onBack ?? noop;
   const onNavigate = initialState?.onNavigate;
 
-  const [value, setValue] = useState("");
+  const [value, setValueState] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const setValue = useCallback((next: string | ((v: string) => string)) => {
+    setValueState((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      setCursor(resolved.length);
+      return resolved;
+    });
+  }, []);
+  const setComposer = useCallback((nextValue: string, nextCursor: number) => {
+    setValueState(nextValue);
+    setCursor(Math.min(Math.max(nextCursor, 0), nextValue.length));
+  }, []);
   const [slashNotice, setSlashNotice] = useState<string | null>(null);
   const [events, setEvents] = useState<ChatEvent[]>([]);
   const [isEventStreamOpen, setIsEventStreamOpen] = useState(false);
@@ -511,19 +523,20 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           setSlashNotice("No image on clipboard.");
           return;
         }
-        setPendingAttachments((prev) => {
-          const next = [...prev, path];
-          const token = formatImageToken(next.length);
-          setValue((v) => {
-            const sep = v.length > 0 && !v.endsWith(" ") ? " " : "";
-            return `${v}${sep}${token}`;
-          });
-          return next;
-        });
+        const tokenN = pendingAttachments.length + 1;
+        const token = formatImageToken(tokenN);
+        const c = Math.min(Math.max(cursor, 0), value.length);
+        const before = value.slice(0, c);
+        const after = value.slice(c);
+        const leftSep = before.length > 0 && !before.endsWith(" ") ? " " : "";
+        const rightSep = after.length > 0 && !after.startsWith(" ") ? " " : "";
+        const inserted = `${leftSep}${token}${rightSep}`;
+        setPendingAttachments((prev) => [...prev, path]);
+        setComposer(`${before}${inserted}${after}`, c + inserted.length);
       },
       (err) => setSlashNotice(`Clipboard read failed: ${err.message}`),
     );
-  }, []);
+  }, [cursor, value, pendingAttachments.length, setComposer]);
 
   const removeAttachment = useCallback((idx: number) => {
     setPendingAttachments((p) => p.filter((_, i) => i !== idx));
@@ -541,35 +554,33 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
   });
 
   const handleInputChange = useCallback(
-    (val: string) => {
+    (val: string, nextCursor: number) => {
       setSlashNotice(null);
       if (isLeakage(val, value)) return;
       const inserted = findInsertedImagePath(value, val);
       if (inserted) {
+        const tokenN = pendingAttachments.length + 1;
         void imagePathExists(inserted.path).match(
           (exists) => {
             if (!exists) {
-              setValue(val);
+              setComposer(val, nextCursor);
               return;
             }
-            setPendingAttachments((prev) => {
-              const next = [...prev, inserted.path];
-              const token = formatImageToken(next.length);
-              setValue(
-                val.slice(0, inserted.startIdx) +
-                  token +
-                  val.slice(inserted.endIdx),
-              );
-              return next;
-            });
+            const token = formatImageToken(tokenN);
+            const merged =
+              val.slice(0, inserted.startIdx) +
+              token +
+              val.slice(inserted.endIdx);
+            setPendingAttachments((prev) => [...prev, inserted.path]);
+            setComposer(merged, inserted.startIdx + token.length);
           },
-          () => setValue(val),
+          () => setComposer(val, nextCursor),
         );
         return;
       }
-      setValue(val);
+      setComposer(val, nextCursor);
     },
-    [isLeakage, value],
+    [isLeakage, value, setComposer, pendingAttachments.length],
   );
 
   const quitApp = useCallback(() => {
@@ -713,6 +724,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     voice,
     useNarrationForTTS,
     value,
+    cursor,
     messages,
     streamingResponse,
     events,
