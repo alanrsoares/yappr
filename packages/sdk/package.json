@@ -15,6 +15,7 @@
     "./schemas": "./src/schemas.ts",
     "./defaults": "./src/defaults.ts",
     "./kokoro-voices": "./src/kokoro-voices.ts",
+    "./voxtral-voices": "./src/voxtral-voices.ts",
     "./state": "./src/state.ts",
     "./voice": "./src/voice.ts",
     "./mcp": "./src/mcp.ts",

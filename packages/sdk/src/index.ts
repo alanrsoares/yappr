@@ -7,4 +7,5 @@ export * from "./types";
 export * from "./schemas";
 export * from "./defaults";
 export * from "./kokoro-voices";
+export * from "./voxtral-voices";
 export * from "./state";
