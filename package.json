@@ -22,7 +22,6 @@
   "scripts": {
     "start:py": "uv --project python run python python/server.py",
     "openapi:export": "PYTHONPATH=python uv --project python run python python/export_openapi.py && bunx openapi-typescript openapi.json -o packages/sdk/src/schema.d.ts",
-    "assess:kokoro-voices": "PYTHONPATH=python uv --project python run python python/scripts/assess_kokoro_voices.py",
     "test:py": "cd python && uv run pytest tests/ -v",
     "lint": "bun run --filter='./**' lint",
     "typecheck": "bun run --filter='./**' typecheck",

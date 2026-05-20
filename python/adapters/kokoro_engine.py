@@ -1,9 +1,9 @@
 """Kokoro 82M TTS adapter.
 
-Wraps :mod:`kokoro.KPipeline` behind :class:`ports.TtsEngine`. Voice catalog
-mirrors the SDK constant ``KOKORO_VOICES`` (see
-``packages/sdk/src/kokoro-voices.ts``) and is asserted in
-``tests/test_voices_parity.py``.
+Wraps :mod:`kokoro.KPipeline` behind :class:`ports.TtsEngine`. The
+:data:`KOKORO_VOICES` catalog is the runtime authority for which voice ids
+the daemon advertises via ``GET /voices``; apps query the daemon at boot
+instead of duplicating the list client-side.
 """
 
 from __future__ import annotations
