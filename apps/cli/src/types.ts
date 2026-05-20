@@ -21,8 +21,6 @@ export interface Preferences {
   defaultChatProvider: ChatProvider;
   /** Model name for the selected provider (e.g. qwen2.5:14b for Ollama, openai/gpt-4o for OpenRouter). */
   defaultChatModel: string;
-  /** @deprecated Use defaultChatProvider + defaultChatModel. Kept for migration. */
-  defaultOllamaModel?: string;
   defaultVoice: string;
   defaultInputDeviceIndex: number;
   defaultOutputDeviceIndex: number;

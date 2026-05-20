@@ -23,10 +23,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 /**
- * Read all preferences from the DB, merge with defaults, and apply the legacy
- * `defaultOllamaModel` migration. Same `Preferences` contract as the previous
- * JSON-file implementation — `mergeStoredPreferences` does the validation +
- * legacy handling unchanged.
+ * Read all preferences from the DB and merge with defaults. Validation is
+ * per-field — invalid values fall back to defaults silently.
  */
 export function loadPreferences(): ResultAsync<Preferences, Error> {
   return ResultAsync.fromPromise(

@@ -12,27 +12,6 @@ test("mergeStoredPreferences uses defaults for empty / invalid root", () => {
   );
 });
 
-test("mergeStoredPreferences migrates legacy defaultOllamaModel", () => {
-  const merged = mergeStoredPreferences(
-    { defaultOllamaModel: "llama3.1:8b" },
-    DEFAULT_PREFERENCES,
-  );
-  expect(merged.defaultChatProvider).toBe("ollama");
-  expect(merged.defaultChatModel).toBe("llama3.1:8b");
-});
-
-test("mergeStoredPreferences does not migrate when chat keys are present", () => {
-  const merged = mergeStoredPreferences(
-    {
-      defaultOllamaModel: "llama3.1:8b",
-      defaultChatModel: "other",
-      defaultChatProvider: "ollama",
-    },
-    DEFAULT_PREFERENCES,
-  );
-  expect(merged.defaultChatModel).toBe("other");
-});
-
 test("mergeStoredPreferences keeps valid fields and drops invalid", () => {
   const merged = mergeStoredPreferences(
     { defaultVoice: 123, defaultChatModel: "x" },

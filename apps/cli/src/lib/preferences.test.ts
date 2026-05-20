@@ -69,36 +69,6 @@ test("savePreferences merges with defaults and persists", async () => {
   });
 });
 
-test("loadPreferences migrates legacy defaultOllamaModel into chat defaults", async () => {
-  await withTempHome(async (homeDir) => {
-    const settingsDir = path.join(homeDir, ".yappr");
-    const settingsPath = path.join(settingsDir, "settings.json");
-
-    mkdirSync(settingsDir, { recursive: true });
-    writeFileSync(
-      settingsPath,
-      JSON.stringify(
-        {
-          defaultOllamaModel: "llama3.1:8b",
-        },
-        null,
-        2,
-      ),
-      "utf8",
-    );
-
-    const prefs = await loadPreferences().match(
-      (value) => value,
-      (err) => {
-        throw err;
-      },
-    );
-
-    expect(prefs.defaultChatProvider).toBe("ollama");
-    expect(prefs.defaultChatModel).toBe("llama3.1:8b");
-  });
-});
-
 test("loadPreferences skips invalid fields and keeps valid ones", async () => {
   await withTempHome(async (homeDir) => {
     const settingsDir = path.join(homeDir, ".yappr");

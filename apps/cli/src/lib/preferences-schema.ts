@@ -11,7 +11,6 @@ const fields = {
   mcpConfigPath: z.string(),
   defaultChatProvider: chatProviderSchema,
   defaultChatModel: z.string(),
-  defaultOllamaModel: z.string(),
   defaultVoice: z.string(),
   defaultInputDeviceIndex: z.number().int().nonnegative(),
   defaultOutputDeviceIndex: z.number().int().nonnegative(),
@@ -20,14 +19,9 @@ const fields = {
   openrouterApiKey: z.string(),
   voice: VoiceConfigSchema,
   firstRunCompleted: z.boolean(),
-} satisfies Record<
-  keyof Preferences | "defaultOllamaModel",
-  z.ZodType<unknown>
->;
+} satisfies Record<keyof Preferences, z.ZodType<unknown>>;
 
-export type PreferencesJsonPartial = Partial<Preferences> & {
-  defaultOllamaModel?: string;
-};
+export type PreferencesJsonPartial = Partial<Preferences>;
 
 /**
  * Parse persisted JSON into a partial preferences object; unknown keys dropped,
