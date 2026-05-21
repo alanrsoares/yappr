@@ -1,13 +1,16 @@
 """Dia 1.6B TTS adapter via :mod:`mlx_audio`.
 
 Apple Silicon native (MLX). Dia is dialogue-tuned; for single-narrator output
-it still works but the speaker-tag UX (``[S1] ... [S2] ...``) is what shines
-in :mod:`briefing-podcast`-style flows. License: Apache 2.0 (clean for any use).
+we auto-prefix `[S1] ` so Dia reads the supplied text instead of freelancing
+dialogue. The speaker-tag UX (``[S1] ... [S2] ...``) is what shines in
+:mod:`briefing-podcast`-style flows. License: Apache 2.0.
 
-Voice catalog is intentionally minimal — Dia conditions on text and a small
-preset set rather than the 20+ Kokoro voice ids. ``synthesize(voice=…)``
-forwards to mlx-audio verbatim; unknown ids fall back to the default voice.
-``speed`` is accepted for port parity but Dia ignores it today.
+Voice conditioning in mlx-audio Dia is via **reference audio**, not a voice
+id — the ``voice`` parameter on ``model.generate`` is declared but unused
+upstream. We ignore the port's ``voice`` arg for now; future work is to
+expose a ``ref_audio`` path so callers can clone a specific speaker.
+
+``speed`` is accepted for port parity but Dia has no speed control.
 """
 
 from __future__ import annotations
@@ -24,8 +27,21 @@ from result import Err, Ok, Result
 # mlx-audio repo. fp16 fits Apple Silicon comfortably (~3.2 GB RAM during inference).
 DIA_MODEL_ID = "mlx-community/Dia-1.6B-fp16"
 
-_SAMPLE_RATE = 44_100
-_DEFAULT_VOICE = "default_voice"
+# Fallback when the model's GenerationResult doesn't carry an explicit
+# sample_rate; Dia's DAC codec ships at 44.1 kHz today.
+_FALLBACK_SAMPLE_RATE = 44_100
+
+# Lower than mlx-audio's 1.3 default — calmer output, less random drift on
+# short single-narrator inputs (chat replies, the Speak view).
+_TEMPERATURE = 0.8
+_TOP_P = 0.9
+
+# Dia has no named voice catalog. mlx-audio's `generate(voice=…)` arg is a
+# no-op; voice control is per-call reference audio (`ref_audio` + `ref_text`).
+# We expose a single "auto" sentinel so the apps' voice picker isn't empty
+# when Dia is the active backend; the actual sampled voice varies per call
+# until reference-audio conditioning is wired through the port.
+_DEFAULT_VOICE = "auto"
 
 DIA_VOICES: list[str] = [_DEFAULT_VOICE]
 
@@ -64,7 +80,7 @@ class DiaEngine(TtsEngine):
         self,
         text: str,
         *,
-        voice: str | None = None,
+        voice: str | None = None,  # noqa: ARG002 — mlx-audio Dia ignores it
         speed: float = 1.0,  # noqa: ARG002 — Dia has no speed knob today
     ) -> Result[Audio, Exception]:
         try:
@@ -73,7 +89,8 @@ class DiaEngine(TtsEngine):
             results = list(
                 self._model.generate(
                     text=_ensure_speaker_tag(text),
-                    voice=voice or _DEFAULT_VOICE,
+                    temperature=_TEMPERATURE,
+                    top_p=_TOP_P,
                 )
             )
             if not results:
@@ -91,15 +108,18 @@ class DiaEngine(TtsEngine):
                 chunks.append(arr.astype(np.float32, copy=False))
 
             audio_np = chunks[0] if len(chunks) == 1 else np.concatenate(chunks)
+            sample_rate = (
+                getattr(results[0], "sample_rate", None) or _FALLBACK_SAMPLE_RATE
+            )
             buffer = io.BytesIO()
             sf.write(
                 buffer,
                 audio_np,
-                _SAMPLE_RATE,
+                sample_rate,
                 format="WAV",
                 subtype="PCM_16",
             )
             buffer.seek(0)
-            return Ok(Audio(data=buffer.read(), sample_rate=_SAMPLE_RATE))
+            return Ok(Audio(data=buffer.read(), sample_rate=sample_rate))
         except Exception as exc:  # noqa: BLE001 — boundary
             return Err(exc)
