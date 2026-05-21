@@ -16,6 +16,7 @@ expose a ``ref_audio`` path so callers can clone a specific speaker.
 from __future__ import annotations
 
 import io
+import os
 from typing import Any
 
 import numpy as np
@@ -26,6 +27,13 @@ from result import Err, Ok, Result
 
 # mlx-audio repo. fp16 fits Apple Silicon comfortably (~3.2 GB RAM during inference).
 DIA_MODEL_ID = "mlx-community/Dia-1.6B-fp16"
+
+# Cap Dia's generation tokens to bound worst-case wall time + protect the
+# daemon from runaway generations on pathological inputs. The model itself
+# emits ~86 audio-tokens per second of speech, so 3072 tokens ≈ 35s audio —
+# more than long enough for typical chat replies. Tunable via env override.
+_DEFAULT_MAX_TOKENS = 3072
+_MAX_TOKENS = int(os.environ.get("YAPPR_DIA_MAX_TOKENS", str(_DEFAULT_MAX_TOKENS)))
 
 # Fallback when the model's GenerationResult doesn't carry an explicit
 # sample_rate; Dia's DAC codec ships at 44.1 kHz today.
@@ -120,6 +128,7 @@ class DiaEngine(TtsEngine):
                 "text": _ensure_speaker_tag(text),
                 "temperature": _TEMPERATURE,
                 "top_p": _TOP_P,
+                "max_tokens": _MAX_TOKENS,
             }
             if reference is not None:
                 generate_kwargs["ref_audio"] = reference.audio_path

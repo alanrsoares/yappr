@@ -114,6 +114,23 @@
           }
         }
       }
+    },
+    "/shutdown": {
+      "post": {
+        "summary": "Shutdown",
+        "description": "Hard-kill the sidecar from another shell when SIGINT is wedged.\n\nMLX/Metal compute can block the Python interpreter for the whole duration\nof a Dia generation, so SIGINT queues until the gen finishes \u2014 and on\npathological inputs that's never. Hitting this route schedules\n``os._exit(0)`` on a short delay so the HTTP response can flush first,\nthen bypasses the interpreter shutdown machinery entirely.\n\nTrigger it with::\n\n    curl -XPOST http://127.0.0.1:8000/shutdown",
+        "operationId": "shutdown_shutdown_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

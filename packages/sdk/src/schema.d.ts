@@ -98,6 +98,36 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/shutdown": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Shutdown
+     * @description Hard-kill the sidecar from another shell when SIGINT is wedged.
+     *
+     *     MLX/Metal compute can block the Python interpreter for the whole duration
+     *     of a Dia generation, so SIGINT queues until the gen finishes — and on
+     *     pathological inputs that's never. Hitting this route schedules
+     *     ``os._exit(0)`` on a short delay so the HTTP response can flush first,
+     *     then bypasses the interpreter shutdown machinery entirely.
+     *
+     *     Trigger it with::
+     *
+     *         curl -XPOST http://127.0.0.1:8000/shutdown
+     */
+    post: operations["shutdown_shutdown_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -311,6 +341,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  shutdown_shutdown_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };

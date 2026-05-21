@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import warnings
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -234,6 +235,25 @@ async def transcribe(
         ),
         err=_raise_transcribe_error,
     )
+
+
+@app.post("/shutdown")
+def shutdown() -> JSONResponse:
+    """Hard-kill the sidecar from another shell when SIGINT is wedged.
+
+    MLX/Metal compute can block the Python interpreter for the whole duration
+    of a Dia generation, so SIGINT queues until the gen finishes — and on
+    pathological inputs that's never. Hitting this route schedules
+    ``os._exit(0)`` on a short delay so the HTTP response can flush first,
+    then bypasses the interpreter shutdown machinery entirely.
+
+    Trigger it with::
+
+        curl -XPOST http://127.0.0.1:8000/shutdown
+    """
+    _log.info("Shutdown requested via /shutdown")
+    threading.Timer(0.1, lambda: os._exit(0)).start()
+    return JSONResponse(content={"status": "shutting down"}, status_code=202)
 
 
 def _raise_internal_server_error(exc: Exception) -> NoReturn:
