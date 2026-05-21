@@ -23,6 +23,8 @@
     "start:py": "uv --project python run python python/server.py",
     "start:py:kokoro": "YAPPR_TTS_BACKEND=kokoro uv --project python run python python/server.py",
     "start:py:dia": "YAPPR_TTS_BACKEND=dia uv --project python run python python/server.py",
+    "smoke:tts-stt": "bun run scripts/smoke-tts-stt.ts",
+    "smoke:tts-stt:dia": "bun run scripts/smoke-tts-stt.ts --backend dia --threshold 0.4 --voice auto",
     "openapi:export": "PYTHONPATH=python uv --project python run python python/export_openapi.py && bunx openapi-typescript openapi.json -o packages/sdk/src/schema.d.ts",
     "test:py": "cd python && uv run pytest tests/ -v",
     "lint": "bun run --filter='./**' lint",
