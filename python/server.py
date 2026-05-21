@@ -146,10 +146,17 @@ def get_voices(request: Request) -> Response:
 
 
 @app.post("/synthesize")
-def synthesize(request: Request, body: SynthesizeRequest) -> Response:
+async def synthesize(request: Request, body: SynthesizeRequest) -> Response:
     """Synthesize speech from text using the active TTS engine.
 
     **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.
+
+    Declared ``async`` even though :meth:`TtsEngine.synthesize` is sync: MLX
+    backends (Dia via mlx-audio) register their GPU stream on the thread that
+    loaded the weights — the asyncio loop thread, since lifespan ran there.
+    Sync FastAPI routes would dispatch this to a worker thread instead and
+    blow up with ``RuntimeError: There is no Stream(gpu, 0) in current
+    thread``. CPU backends (Kokoro) don't care either way.
     """
     engine = _tts(request)
     result = engine.synthesize(body.text, voice=body.voice, speed=body.speed)
