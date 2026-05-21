@@ -6,6 +6,7 @@ import { createContainer } from "@yappr/lib/unstated";
 import { wantsBackKey } from "~/constants.js";
 import {
   getEffectiveKey,
+  usePreferences,
   useQuery,
   type ExtendedKey,
   type InkKeyWithAlt,
@@ -28,6 +29,7 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => {});
 
   const { data: voices = [], error, isLoading } = useQuery(listVoices);
+  const { preferences } = usePreferences();
   const [filterText, setFilterText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [phraseCustom, setPhraseCustom] = useState(false);
@@ -62,7 +64,12 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
       }
       setPreviewStatus("loading");
       setPreviewError(null);
-      void speak(t, { voice: selectedVoice }).match(
+      void speak(t, {
+        voice: selectedVoice,
+        ...(preferences.voiceReference
+          ? { reference: preferences.voiceReference }
+          : {}),
+      }).match(
         () => {
           setPreviewStatus("ok");
           setPreviewError(null);
@@ -73,7 +80,7 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
         },
       );
     },
-    [selectedVoice],
+    [selectedVoice, preferences.voiceReference],
   );
 
   useInput((input, key) => {

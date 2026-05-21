@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 
+import { loadPreferences } from "./lib/preferences.js";
 import { chat, listVoices, speak } from "./services/yappr";
 
 const { values, positionals } = parseArgs({
@@ -43,9 +44,14 @@ async function run() {
           );
           return;
         }
+        const prefs = await loadPreferences().match(
+          (p) => p,
+          () => null,
+        );
         const speakRes = await speak(text, {
           voice: values.voice,
           speed: values.speed ? Number.parseFloat(values.speed) : 1,
+          ...(prefs?.voiceReference ? { reference: prefs.voiceReference } : {}),
         });
         speakRes.match(
           () => {},
