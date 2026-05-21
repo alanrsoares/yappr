@@ -9,10 +9,14 @@ import {
   type VoiceConfigInput,
 } from "@yappr/sdk/schemas";
 import {
+  buildSpeechPreset,
+  customOpenAiSpeechPreset,
+  yapprSpeechPreset,
+} from "@yappr/sdk/speech-presets";
+import {
   VOXTRAL_DEFAULT_BASE_URL,
   VOXTRAL_DEFAULT_VOICE,
   VOXTRAL_VOICES,
-  voxtralSpeechPreset,
 } from "@yappr/sdk/voxtral-voices";
 
 import { useKeyboard } from "~/hooks";
@@ -76,10 +80,7 @@ export function SpeechStep({ onPick, onSkip }: SpeechStepProps) {
           onPick({
             kind: "yappr",
             voiceConfig: parseVoiceConfig({
-              speech: {
-                kind: "yappr",
-                baseUrl: DEFAULT_SERVER_URL,
-              },
+              speech: yapprSpeechPreset(),
               transcription: TRANSCRIPTION_YAPPR,
             }),
           })
@@ -178,7 +179,7 @@ function VoxtralForm({ onDone, onCancel }: VoxtralFormProps) {
 
   const submit = () => {
     const chosenVoice = VOXTRAL_VOICES[voiceIndex] ?? VOXTRAL_DEFAULT_VOICE;
-    const preset = voxtralSpeechPreset({
+    const preset = buildSpeechPreset("voxtral", {
       baseUrl: baseUrl.trim() || VOXTRAL_DEFAULT_BASE_URL,
       ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       voice: chosenVoice,
@@ -279,14 +280,12 @@ function CustomForm({ onDone, onCancel }: CustomFormProps) {
     onDone({
       kind: "custom",
       voiceConfig: parseVoiceConfig({
-        speech: {
-          kind: "openai-compatible",
+        speech: customOpenAiSpeechPreset({
           baseUrl: baseUrl.trim(),
           ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
           model: model.trim(),
           voice: voice.trim(),
-          format: "wav",
-        },
+        }),
         transcription: TRANSCRIPTION_YAPPR,
       }),
     });

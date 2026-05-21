@@ -11,8 +11,8 @@ import {
   type VoiceId,
   type VoiceReference,
 } from "@yappr/sdk/schemas";
+import { buildSpeechPreset } from "@yappr/sdk/speech-presets";
 import { createVoiceClient } from "@yappr/sdk/voice";
-import { voxtralSpeechPreset } from "@yappr/sdk/voxtral-voices";
 
 import {
   buildAudio,
@@ -164,7 +164,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
                   voice,
                   speed,
                 }
-              : { ...voxtralSpeechPreset(), speed },
+              : { ...buildSpeechPreset("voxtral"), speed },
         });
         persistVoiceConfig(nextConfig);
         return nextConfig;

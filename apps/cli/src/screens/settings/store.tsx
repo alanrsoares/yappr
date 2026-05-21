@@ -5,9 +5,10 @@ import { createContainer } from "@yappr/lib/unstated";
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
 import { VoiceConfigSchema, type VoiceConfig } from "@yappr/sdk/schemas";
 import {
-  VOXTRAL_DEFAULT_VOICE,
-  voxtralSpeechPreset,
-} from "@yappr/sdk/voxtral-voices";
+  buildSpeechPreset,
+  type SpeechPresetKind,
+} from "@yappr/sdk/speech-presets";
+import { VOXTRAL_DEFAULT_VOICE } from "@yappr/sdk/voxtral-voices";
 
 import { wantsBackKey } from "~/constants.js";
 import {
@@ -50,46 +51,24 @@ const SPEECH_ENDPOINT_LABELS = [
   "OpenAI-compatible (manual edit required)",
 ] as const;
 
-type SpeechEndpointPreset = "yappr" | "voxtral" | "custom";
-const SPEECH_ENDPOINT_VALUES: readonly SpeechEndpointPreset[] = [
+const SPEECH_ENDPOINT_VALUES: readonly SpeechPresetKind[] = [
   "yappr",
   "voxtral",
   "custom",
 ] as const;
 
-function buildSpeechPreset(kind: SpeechEndpointPreset): {
+type SpeechEndpointPreset = SpeechPresetKind;
+
+function applySpeechPreset(kind: SpeechPresetKind): {
   voice: VoiceConfig;
   defaultVoice?: string;
 } {
-  if (kind === "yappr") {
-    return {
-      voice: VoiceConfigSchema.parse({
-        speech: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
-        transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
-      }),
-    };
-  }
-  if (kind === "voxtral") {
-    return {
-      voice: VoiceConfigSchema.parse({
-        speech: voxtralSpeechPreset(),
-        transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
-      }),
-      defaultVoice: VOXTRAL_DEFAULT_VOICE,
-    };
-  }
-  // custom: blank openai-compat shell; user fills baseUrl/model/voice next.
   return {
     voice: VoiceConfigSchema.parse({
-      speech: {
-        kind: "openai-compatible",
-        baseUrl: "https://api.example.com/v1",
-        model: "tts-1",
-        voice: "alloy",
-        format: "wav",
-      },
+      speech: buildSpeechPreset(kind),
       transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
     }),
+    ...(kind === "voxtral" ? { defaultVoice: VOXTRAL_DEFAULT_VOICE } : {}),
   };
 }
 
@@ -276,7 +255,7 @@ function commitPickerChoice(
     speechEndpoint: () => {
       const preset = SPEECH_ENDPOINT_VALUES[effectivePickerIndex];
       if (!preset) return;
-      const next = buildSpeechPreset(preset);
+      const next = applySpeechPreset(preset);
       savePreferences({
         voice: next.voice,
         ...(next.defaultVoice ? { defaultVoice: next.defaultVoice } : {}),

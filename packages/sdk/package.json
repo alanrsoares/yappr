@@ -15,6 +15,7 @@
     "./schemas": "./src/schemas.ts",
     "./defaults": "./src/defaults.ts",
     "./voxtral-voices": "./src/voxtral-voices.ts",
+    "./speech-presets": "./src/speech-presets.ts",
     "./state": "./src/state.ts",
     "./voice": "./src/voice.ts",
     "./mcp": "./src/mcp.ts",

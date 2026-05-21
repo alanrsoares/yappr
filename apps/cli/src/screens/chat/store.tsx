@@ -5,6 +5,7 @@ import {
   formatImageToken,
   parseImageTokens,
 } from "@yappr/lib/image-path";
+import { markdownToNarrationText } from "@yappr/lib/narration-text";
 import { createContainer } from "@yappr/lib/unstated";
 import { okAsync } from "neverthrow";
 
@@ -266,7 +267,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           mode: "direct",
           contentLength: text.length,
         });
-        return speak(text, {
+        return speak(markdownToNarrationText(text), {
           voice,
           ...(voiceReference ? { reference: voiceReference } : {}),
         }).map(() => {

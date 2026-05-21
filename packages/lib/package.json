@@ -1,7 +1,7 @@
 {
   "name": "@yappr/lib",
   "version": "0.0.1",
-  "description": "Shared utilities for Yappr (Result helpers, unstated container).",
+  "description": "Shared utilities for Yappr (Result helpers, unstated container, narration normaliser).",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,8 +10,12 @@
   },
   "exports": {
     "./image-path": "./src/image-path.ts",
+    "./narration-text": "./src/narration-text.ts",
     "./result": "./src/result.ts",
     "./unstated": "./src/unstated.tsx"
+  },
+  "dependencies": {
+    "marked": "^18.0.3"
   },
   "devDependencies": {
     "react": "^19.2.6"
