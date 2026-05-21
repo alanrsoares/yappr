@@ -21,6 +21,8 @@
   },
   "scripts": {
     "start:py": "uv --project python run python python/server.py",
+    "start:py:kokoro": "YAPPR_TTS_BACKEND=kokoro uv --project python run python python/server.py",
+    "start:py:dia": "YAPPR_TTS_BACKEND=dia uv --project python run python python/server.py",
     "openapi:export": "PYTHONPATH=python uv --project python run python python/export_openapi.py && bunx openapi-typescript openapi.json -o packages/sdk/src/schema.d.ts",
     "test:py": "cd python && uv run pytest tests/ -v",
     "lint": "bun run --filter='./**' lint",
@@ -34,6 +36,8 @@
     "format": "prettier --write .",
     "prepare": "husky",
     "serve": "bun run start:py",
+    "serve:kokoro": "bun run start:py:kokoro",
+    "serve:dia": "bun run start:py:dia",
     "tui": "cd apps/cli && bun run tui",
     "speak": "cd apps/cli && bun run speak",
     "chat": "cd apps/cli && bun run chat",
