@@ -41,6 +41,7 @@ class DiaEngine(TtsEngine):
     @classmethod
     def load(cls, model_id: str = DIA_MODEL_ID) -> DiaEngine:
         from mlx_audio.tts.utils import load_model
+
         return cls(load_model(model_id))
 
     def voices(self) -> Result[list[Voice], Exception]:
@@ -55,12 +56,33 @@ class DiaEngine(TtsEngine):
     ) -> Result[Audio, Exception]:
         try:
             import mlx.core as mx
-            results = list(self._model.generate(text=text, voice=voice or _DEFAULT_VOICE))
+
+            results = list(
+                self._model.generate(text=text, voice=voice or _DEFAULT_VOICE)
+            )
             if not results:
                 return Err(ValueError("Dia produced no audio (empty text?)"))
-            audio_np = np.asarray(mx.array(results[0].audio))
+
+            # mlx is lazy — force evaluation before we read into numpy, otherwise
+            # the buffer view may hold uninitialized memory (= hellish noise).
+            chunks: list[np.ndarray] = []
+            for result in results:
+                audio_mx = result.audio
+                mx.eval(audio_mx)
+                arr = np.array(audio_mx, copy=False)
+                if arr.ndim > 1:
+                    arr = arr.squeeze()
+                chunks.append(arr.astype(np.float32, copy=False))
+
+            audio_np = chunks[0] if len(chunks) == 1 else np.concatenate(chunks)
             buffer = io.BytesIO()
-            sf.write(buffer, audio_np, _SAMPLE_RATE, format="WAV")
+            sf.write(
+                buffer,
+                audio_np,
+                _SAMPLE_RATE,
+                format="WAV",
+                subtype="PCM_16",
+            )
             buffer.seek(0)
             return Ok(Audio(data=buffer.read(), sample_rate=_SAMPLE_RATE))
         except Exception as exc:  # noqa: BLE001 — boundary
