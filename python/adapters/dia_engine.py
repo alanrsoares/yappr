@@ -30,6 +30,19 @@ _DEFAULT_VOICE = "default_voice"
 DIA_VOICES: list[str] = [_DEFAULT_VOICE]
 
 
+def _ensure_speaker_tag(text: str) -> str:
+    """Dia is a dialogue model and freelances when no speaker tag is present.
+
+    For single-narrator inputs (everything outside `/monday-briefing`-style
+    multi-host flows), force `[S1] ` so Dia treats the text as one speaker's
+    monologue. Inputs that already carry `[S1]` / `[S2]` pass through.
+    """
+    stripped = text.lstrip()
+    if stripped.startswith("[S1]") or stripped.startswith("[S2]"):
+        return text
+    return f"[S1] {text}"
+
+
 class DiaEngine(TtsEngine):
     """Adapter for ``mlx-community/Dia-1.6B-fp16`` via :mod:`mlx_audio.tts`."""
 
@@ -58,7 +71,10 @@ class DiaEngine(TtsEngine):
             import mlx.core as mx
 
             results = list(
-                self._model.generate(text=text, voice=voice or _DEFAULT_VOICE)
+                self._model.generate(
+                    text=_ensure_speaker_tag(text),
+                    voice=voice or _DEFAULT_VOICE,
+                )
             )
             if not results:
                 return Err(ValueError("Dia produced no audio (empty text?)"))
