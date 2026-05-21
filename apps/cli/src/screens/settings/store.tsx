@@ -2,6 +2,12 @@ import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
 import { createContainer } from "@yappr/lib/unstated";
+import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
+import { VoiceConfigSchema, type VoiceConfig } from "@yappr/sdk/schemas";
+import {
+  VOXTRAL_DEFAULT_VOICE,
+  voxtralSpeechPreset,
+} from "@yappr/sdk/voxtral-voices";
 
 import { wantsBackKey } from "~/constants.js";
 import {
@@ -30,11 +36,62 @@ export type PickerKind =
   | "voice"
   | "input"
   | "output"
+  | "speechEndpoint"
   | null;
 
 const PROVIDER_LABELS = ["Ollama", "OpenRouter"] as const;
 const PROVIDER_VALUES = ["ollama", "openrouter"] as const;
 type ProviderValue = (typeof PROVIDER_VALUES)[number];
+
+/** Speech endpoint preset rows surfaced in the settings picker. */
+const SPEECH_ENDPOINT_LABELS = [
+  "Yappr local (Kokoro / Dia / Whisper via Python sidecar)",
+  "Voxtral remote (vllm-omni at localhost:8000/v1)",
+  "OpenAI-compatible (manual edit required)",
+] as const;
+
+type SpeechEndpointPreset = "yappr" | "voxtral" | "custom";
+const SPEECH_ENDPOINT_VALUES: readonly SpeechEndpointPreset[] = [
+  "yappr",
+  "voxtral",
+  "custom",
+] as const;
+
+function buildSpeechPreset(kind: SpeechEndpointPreset): {
+  voice: VoiceConfig;
+  defaultVoice?: string;
+} {
+  if (kind === "yappr") {
+    return {
+      voice: VoiceConfigSchema.parse({
+        speech: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
+        transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
+      }),
+    };
+  }
+  if (kind === "voxtral") {
+    return {
+      voice: VoiceConfigSchema.parse({
+        speech: voxtralSpeechPreset(),
+        transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
+      }),
+      defaultVoice: VOXTRAL_DEFAULT_VOICE,
+    };
+  }
+  // custom: blank openai-compat shell; user fills baseUrl/model/voice next.
+  return {
+    voice: VoiceConfigSchema.parse({
+      speech: {
+        kind: "openai-compatible",
+        baseUrl: "https://api.example.com/v1",
+        model: "tts-1",
+        voice: "alloy",
+        format: "wav",
+      },
+      transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
+    }),
+  };
+}
 
 type PickerKindNonNull = Exclude<PickerKind, null>;
 
@@ -53,12 +110,13 @@ export interface SettingsTextEditorSession {
 export const SETTINGS_LIST_ROW = {
   chatProvider: 0,
   chatModel: 1,
-  defaultVoice: 2,
-  inputDevice: 3,
-  outputDevice: 4,
-  ollamaUrl: 5,
-  openrouterApiKey: 6,
-  mcpConfigPath: 7,
+  speechEndpoint: 2,
+  defaultVoice: 3,
+  inputDevice: 4,
+  outputDevice: 5,
+  ollamaUrl: 6,
+  openrouterApiKey: 7,
+  mcpConfigPath: 8,
 } as const;
 
 export const SETTINGS_MAIN_LIST_ROW_COUNT =
@@ -185,6 +243,15 @@ function commitPickerChoice(
       savePreferences({
         defaultOutputDeviceIndex: (selected as PickerDeviceRow).index,
       }),
+    speechEndpoint: () => {
+      const preset = SPEECH_ENDPOINT_VALUES[effectivePickerIndex];
+      if (!preset) return;
+      const next = buildSpeechPreset(preset);
+      savePreferences({
+        voice: next.voice,
+        ...(next.defaultVoice ? { defaultVoice: next.defaultVoice } : {}),
+      });
+    },
   };
   handlers[kind]();
 }
@@ -233,6 +300,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       voice: voices,
       input: inputDevices,
       output: outputDevices,
+      speechEndpoint: [...SPEECH_ENDPOINT_LABELS],
     };
     return lists[picker];
   }, [
@@ -331,6 +399,19 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           );
           beginList("model", i, ollamaModels.length);
         }
+        break;
+      }
+      case R.speechEndpoint: {
+        const currentKind: SpeechEndpointPreset =
+          preferences.voice.speech.kind === "yappr"
+            ? "yappr"
+            : preferences.voice.speech.kind === "openai-compatible" &&
+                preferences.voice.speech.model ===
+                  "mistralai/Voxtral-4B-TTS-2603"
+              ? "voxtral"
+              : "custom";
+        const idx = Math.max(0, SPEECH_ENDPOINT_VALUES.indexOf(currentKind));
+        beginList("speechEndpoint", idx, SPEECH_ENDPOINT_VALUES.length);
         break;
       }
       case R.defaultVoice: {

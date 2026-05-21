@@ -9,4 +9,5 @@ export const PICKER_TITLES: Record<Exclude<PickerKind, null>, string> = {
   voice: "Choose voice",
   input: "Choose input device",
   output: "Choose output device",
+  speechEndpoint: "Choose speech endpoint",
 };

@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 
+import type { Preferences } from "~/types.js";
 import { chatModelRowText } from "../chat-model-row.js";
 import {
   CHAT_PROVIDER_LABEL,
@@ -7,6 +8,15 @@ import {
   useSettingsStore,
 } from "../store.js";
 import { SettingsListRow } from "./settings-list-row.js";
+
+function speechEndpointLabel(prefs: Preferences): string {
+  const speech = prefs.voice.speech;
+  if (speech.kind === "yappr") return "Yappr local";
+  if (speech.model === "mistralai/Voxtral-4B-TTS-2603") {
+    return `Voxtral · ${speech.baseUrl}`;
+  }
+  return `OpenAI-compatible · ${speech.baseUrl}`;
+}
 
 /** Main settings rows when no picker is open. */
 export function SettingsMainList() {
@@ -43,6 +53,12 @@ export function SettingsMainList() {
           modelsLoading,
           defaultChatModel: preferences.defaultChatModel,
         })}
+      />
+      <SettingsListRow
+        index={R.speechEndpoint}
+        selectedRow={selectedRow}
+        label="Speech endpoint: "
+        value={speechEndpointLabel(preferences)}
       />
       <SettingsListRow
         index={R.defaultVoice}

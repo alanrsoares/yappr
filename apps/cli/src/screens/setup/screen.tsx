@@ -19,19 +19,29 @@ import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { quit } from "~/quit.js";
 import { listVoices } from "~/services/yappr";
 import { semantic } from "~/theme/semantic.js";
-import type { ChatProvider } from "~/types.js";
+import type { ChatProvider, Preferences } from "~/types.js";
+import { SpeechStep } from "./speech-step.js";
 
 export interface SetupScreenProps {
   onDone: () => void;
 }
 
-type Step = "welcome" | "deps" | "python" | "server" | "voice" | "llm" | "done";
+type Step =
+  | "welcome"
+  | "deps"
+  | "python"
+  | "server"
+  | "speech"
+  | "voice"
+  | "llm"
+  | "done";
 
 const STEP_ORDER: readonly Step[] = [
   "welcome",
   "deps",
   "python",
   "server",
+  "speech",
   "voice",
   "llm",
   "done",
@@ -42,6 +52,7 @@ const STEP_TITLES: Record<Step, string> = {
   deps: "System dependencies",
   python: "Python inference server",
   server: "Server reachability",
+  speech: "Speech provider",
   voice: "Default voice",
   llm: "LLM provider",
   done: "All set",
@@ -86,8 +97,24 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
         <ServerStep
           onNext={(fetched) => {
             setVoices(fetched);
-            advance("voice");
+            advance("speech");
           }}
+        />
+      )}
+      {step === "speech" && (
+        <SpeechStep
+          onPick={(choice) => {
+            const updates: Partial<Preferences> = {
+              voice: choice.voiceConfig,
+            };
+            if (choice.kind === "voxtral") {
+              updates.defaultVoice = choice.defaultVoice;
+            }
+            savePreferences(updates);
+            if (choice.kind === "yappr") advance("voice");
+            else advance("llm");
+          }}
+          onSkip={() => advance("voice")}
         />
       )}
       {step === "voice" && (

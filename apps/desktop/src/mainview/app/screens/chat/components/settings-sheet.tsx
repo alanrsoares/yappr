@@ -99,6 +99,13 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
                 </SelectItem>
               </SelectContent>
             </Select>
+            {voiceConfig.speech.kind === "openai-compatible" && (
+              <p className="font-mono text-[0.65rem] text-muted-foreground">
+                {voiceConfig.speech.model === VOXTRAL_MODEL_ID
+                  ? "Preset: Voxtral 4B (vllm-omni). Edit model below to use a different OpenAI-compatible TTS."
+                  : "Custom OpenAI-compatible endpoint. Set baseUrl + model + voice below."}
+              </p>
+            )}
           </section>
 
           <section className="space-y-2">
