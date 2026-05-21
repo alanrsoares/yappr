@@ -59,6 +59,35 @@ def _ensure_speaker_tag(text: str) -> str:
     return f"[S1] {text}"
 
 
+# Dia frequently emits a low-energy "intro breath" / hum before the first
+# phoneme. We trim it via a simple amplitude-threshold sweep: drop everything
+# before the first sample whose absolute value crosses
+# `_TRIM_THRESHOLD_RATIO * peak`, then back off `_TRIM_BACKOFF_MS` so the
+# attack of the first phoneme isn't clipped.
+_TRIM_THRESHOLD_RATIO = 0.10
+_TRIM_BACKOFF_MS = 50
+
+
+def _trim_leading_quiet(
+    audio: np.ndarray,
+    sample_rate: int,
+    threshold_ratio: float = _TRIM_THRESHOLD_RATIO,
+    backoff_ms: int = _TRIM_BACKOFF_MS,
+) -> np.ndarray:
+    if audio.size == 0:
+        return audio
+    abs_audio = np.abs(audio)
+    peak = float(abs_audio.max())
+    if peak <= 0:
+        return audio
+    nonsilent = np.where(abs_audio > peak * threshold_ratio)[0]
+    if nonsilent.size == 0:
+        return audio
+    backoff = max(1, int(sample_rate * backoff_ms / 1000))
+    start = max(0, int(nonsilent[0]) - backoff)
+    return audio[start:]
+
+
 class DiaEngine(TtsEngine):
     """Adapter for ``mlx-community/Dia-1.6B-fp16`` via :mod:`mlx_audio.tts`."""
 
@@ -115,6 +144,7 @@ class DiaEngine(TtsEngine):
             sample_rate = (
                 getattr(results[0], "sample_rate", None) or _FALLBACK_SAMPLE_RATE
             )
+            audio_np = _trim_leading_quiet(audio_np, sample_rate)
             buffer = io.BytesIO()
             sf.write(
                 buffer,
