@@ -39,7 +39,16 @@ const INPUT_DEFAULT_SENTINEL = "__system_default__";
 
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   const [
-    { serverUrl, voiceConfig, voice, voices, speed, health, voiceReference },
+    {
+      serverUrl,
+      voiceConfig,
+      voice,
+      voices,
+      speed,
+      health,
+      engineHealth,
+      voiceReference,
+    },
     {
       setServerUrl,
       setSpeechKind,
@@ -147,6 +156,12 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
             <p className="font-mono text-[0.65rem] text-muted-foreground">
               {healthLine(health)}
             </p>
+            {engineHealth ? (
+              <p className="font-mono text-[0.65rem] text-muted-foreground">
+                Backends: tts={engineHealth.ttsBackend ?? "—"} · stt=
+                {engineHealth.sttBackend ?? "—"}
+              </p>
+            ) : null}
           </section>
 
           {voiceConfig.speech.kind === "openai-compatible" && (

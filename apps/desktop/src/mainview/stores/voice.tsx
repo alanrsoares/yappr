@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContainer } from "@yappr/lib/unstated";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
+import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
 import {
   VoiceConfigSchema,
   VoiceReferenceSchema,
@@ -47,6 +48,8 @@ export type VoiceStoreState = {
   voiceConfig: VoiceConfig;
   voiceReference: VoiceReference | null;
   health: HealthState;
+  /** Daemon engine snapshot from `GET /health` (which TTS/STT backend is loaded). */
+  engineHealth: HealthSnapshot | null;
   voices: VoiceId[];
   voice: VoiceId;
   speed: number;
@@ -89,6 +92,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     useState<VoiceConfig>(DEFAULT_VOICE_CONFIG);
   const [voiceReference, setVoiceReferenceState] =
     useState<VoiceReference | null>(null);
+  const [engineHealth, setEngineHealth] = useState<HealthSnapshot | null>(null);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const [caption, setCaption] = useState<VoiceCaptionState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
@@ -256,7 +260,19 @@ function useVoiceStoreLogic(): VoiceStoreValue {
 
   const checkHealth = useCallback(async () => {
     await voicesQuery.refetch();
-  }, [voicesQuery]);
+    const speech = voiceConfig.speech;
+    if (speech.kind !== "yappr") {
+      setEngineHealth(null);
+      return;
+    }
+    const snapshot = await probeHealth(speech.baseUrl);
+    setEngineHealth(
+      snapshot.match(
+        (s) => s,
+        () => null,
+      ),
+    );
+  }, [voicesQuery, voiceConfig.speech]);
 
   const stopAudio = useCallback(() => {
     speakRunRef.current += 1;
@@ -434,6 +450,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     voiceConfig,
     voiceReference,
     health,
+    engineHealth,
     voices,
     voice: speech.voice as VoiceId,
     speed: speechSpeed(speech),

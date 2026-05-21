@@ -3,6 +3,7 @@ import { useInput } from "ink";
 
 import { createContainer } from "@yappr/lib/unstated";
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
+import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
 import { VoiceConfigSchema, type VoiceConfig } from "@yappr/sdk/schemas";
 import {
   buildSpeechPreset,
@@ -287,6 +288,15 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
       Boolean(preferences.openrouterApiKey?.trim()),
   });
   const { data: voices = [] } = useQuery(listVoices);
+  const { data: engineHealth } = useQuery<HealthSnapshot, Error>(
+    () =>
+      probeHealth(
+        preferences.voice.speech.kind === "yappr"
+          ? preferences.voice.speech.baseUrl
+          : DEFAULT_SERVER_URL,
+      ),
+    { deps: [preferences.voice.speech] },
+  );
   const { data: inputDevices = [], isLoading: inputDevicesLoading } =
     useQuery(listInputDevices);
   const { data: outputDevices = [], isLoading: outputDevicesLoading } =
@@ -637,6 +647,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
 
   const state = {
     preferences,
+    engineHealth,
     modelsLoading,
     ollamaModelsError,
     openRouterModelsLoading,

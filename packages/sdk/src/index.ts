@@ -6,6 +6,7 @@ export * from "./mcp";
 export * from "./types";
 export * from "./schemas";
 export * from "./defaults";
+export * from "./health";
 export * from "./voxtral-voices";
 export * from "./speech-presets";
 export * from "./state";

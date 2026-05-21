@@ -14,6 +14,7 @@
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./defaults": "./src/defaults.ts",
+    "./health": "./src/health.ts",
     "./voxtral-voices": "./src/voxtral-voices.ts",
     "./speech-presets": "./src/speech-presets.ts",
     "./state": "./src/state.ts",
@@ -29,6 +30,7 @@
     "@yappr/lib": "workspace:*",
     "neverthrow": "^8.2.0",
     "ollama": "^0.6.3",
+    "ts-pattern": "^5.9.0",
     "zod": "^4.4.3"
   }
 }

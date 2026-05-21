@@ -13,6 +13,8 @@
  *   - Desktop voice store (`setSpeechKindPersist`)
  */
 
+import { match } from "ts-pattern";
+
 import {
   DEFAULT_SERVER_URL,
   DEFAULT_SPEED,
@@ -90,23 +92,19 @@ export function buildSpeechPreset(
   kind: SpeechPresetKind,
   overrides: SpeechPresetOverrides = {},
 ): YapprSpeechEndpointInput | OpenAiCompatibleSpeechEndpointInput {
-  switch (kind) {
-    case "yappr": {
-      return yapprSpeechPreset(overrides);
-    }
-    case "voxtral": {
-      return voxtralSpeechPreset({
+  return match(kind)
+    .with("yappr", () => yapprSpeechPreset(overrides))
+    .with("voxtral", () =>
+      voxtralSpeechPreset({
         ...(overrides.baseUrl ? { baseUrl: overrides.baseUrl } : {}),
         ...(overrides.apiKey ? { apiKey: overrides.apiKey } : {}),
         ...(overrides.voice
           ? { voice: overrides.voice as VoxtralVoiceId }
           : {}),
-      });
-    }
-    case "custom": {
-      return customOpenAiSpeechPreset(overrides);
-    }
-  }
+      }),
+    )
+    .with("custom", () => customOpenAiSpeechPreset(overrides))
+    .exhaustive();
 }
 
 /**
@@ -117,7 +115,11 @@ export function buildSpeechPreset(
 export function detectSpeechPreset(
   speech: YapprSpeechEndpointInput | OpenAiCompatibleSpeechEndpointInput,
 ): SpeechPresetKind {
-  if (speech.kind === "yappr") return "yappr";
-  if (speech.model === VOXTRAL_MODEL_ID) return "voxtral";
-  return "custom";
+  return match(speech)
+    .with({ kind: "yappr" }, () => "yappr" as const)
+    .with(
+      { kind: "openai-compatible", model: VOXTRAL_MODEL_ID },
+      () => "voxtral" as const,
+    )
+    .otherwise(() => "custom" as const);
 }

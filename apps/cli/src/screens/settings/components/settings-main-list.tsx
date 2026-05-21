@@ -1,5 +1,9 @@
 import { Box, Text } from "ink";
 
+import type { HealthSnapshot } from "@yappr/sdk/health";
+import { detectSpeechPreset } from "@yappr/sdk/speech-presets";
+import { match } from "ts-pattern";
+
 import type { Preferences } from "~/types.js";
 import { chatModelRowText } from "../chat-model-row.js";
 import {
@@ -9,13 +13,25 @@ import {
 } from "../store.js";
 import { SettingsListRow } from "./settings-list-row.js";
 
-function speechEndpointLabel(prefs: Preferences): string {
-  const speech = prefs.voice.speech;
-  if (speech.kind === "yappr") return "Yappr local";
-  if (speech.model === "mistralai/Voxtral-4B-TTS-2603") {
-    return `Voxtral · ${speech.baseUrl}`;
-  }
-  return `OpenAI-compatible · ${speech.baseUrl}`;
+function speechEndpointLabel(
+  prefs: Preferences,
+  health: HealthSnapshot | undefined,
+): string {
+  const baseLabel = match(detectSpeechPreset(prefs.voice.speech))
+    .with("yappr", () => "Yappr local")
+    .with(
+      "voxtral",
+      () =>
+        `Voxtral · ${prefs.voice.speech.kind === "openai-compatible" ? prefs.voice.speech.baseUrl : ""}`,
+    )
+    .with(
+      "custom",
+      () =>
+        `OpenAI-compatible · ${prefs.voice.speech.kind === "openai-compatible" ? prefs.voice.speech.baseUrl : ""}`,
+    )
+    .exhaustive();
+  if (!health || prefs.voice.speech.kind !== "yappr") return baseLabel;
+  return `${baseLabel} (tts=${health.ttsBackend ?? "—"} · stt=${health.sttBackend ?? "—"})`;
 }
 
 /** Main settings rows when no picker is open. */
@@ -23,6 +39,7 @@ export function SettingsMainList() {
   const [
     {
       preferences,
+      engineHealth,
       modelsLoading,
       openRouterModelsLoading,
       inputDevicesLoading,
@@ -58,7 +75,7 @@ export function SettingsMainList() {
         index={R.speechEndpoint}
         selectedRow={selectedRow}
         label="Speech endpoint: "
-        value={speechEndpointLabel(preferences)}
+        value={speechEndpointLabel(preferences, engineHealth)}
       />
       <SettingsListRow
         index={R.defaultVoice}

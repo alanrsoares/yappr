@@ -144,6 +144,7 @@
         "@yappr/lib": "workspace:*",
         "neverthrow": "^8.2.0",
         "ollama": "^0.6.3",
+        "ts-pattern": "^5.9.0",
         "zod": "^4.4.3",
       },
     },
