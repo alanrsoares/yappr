@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 
-from ports import Audio, TtsEngine, Voice
+from ports import Audio, TtsEngine, Voice, VoiceReference
 from result import Err, Ok, Result
 
 KOKORO_VOICES: list[str] = [
@@ -68,6 +68,7 @@ class KokoroEngine(TtsEngine):
         *,
         voice: str | None = None,
         speed: float = 1.0,
+        reference: VoiceReference | None = None,  # noqa: ARG002 — Kokoro has real voice ids
     ) -> Result[Audio, Exception]:
         try:
             generator = self._pipeline(text, voice=voice or _DEFAULT_VOICE, speed=speed)

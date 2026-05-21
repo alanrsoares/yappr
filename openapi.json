@@ -44,7 +44,7 @@
     "/synthesize": {
       "post": {
         "summary": "Synthesize",
-        "description": "Synthesize speech from text using the active TTS engine.\n\n**Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.",
+        "description": "Synthesize speech from text using the active TTS engine.\n\n**Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.\n\nDeclared ``async`` even though :meth:`TtsEngine.synthesize` is sync: MLX\nbackends (Dia via mlx-audio) register their GPU stream on the thread that\nloaded the weights \u2014 the asyncio loop thread, since lifespan ran there.\nSync FastAPI routes would dispatch this to a worker thread instead and\nblow up with ``RuntimeError: There is no Stream(gpu, 0) in current\nthread``. CPU backends (Kokoro) don't care either way.",
         "operationId": "synthesize_synthesize_post",
         "requestBody": {
           "content": {
@@ -196,7 +196,7 @@
           "voice": {
             "type": "string",
             "title": "Voice",
-            "description": "Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia accepts its preset names (``default_voice`` today). See ``GET /voices``.",
+            "description": "Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia has no named voices today (see ``reference`` for cloning). See ``GET /voices``.",
             "default": "af_aoede"
           },
           "speed": {
@@ -204,6 +204,17 @@
             "title": "Speed",
             "description": "Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (e.g. Dia) ignore this field silently.",
             "default": 1.0
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoiceReferenceBody"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional reference-audio voice clone. Dia uses this to imitate the speaker in the supplied WAV. Other engines ignore it."
           }
         },
         "type": "object",
@@ -246,6 +257,24 @@
         "type": "object",
         "required": ["loc", "msg", "type"],
         "title": "ValidationError"
+      },
+      "VoiceReferenceBody": {
+        "properties": {
+          "audio_path": {
+            "type": "string",
+            "title": "Audio Path",
+            "description": "Absolute filesystem path to a short reference WAV (5-10s typical). The server must have read access; the daemon and the client need to live on the same machine for this path to resolve."
+          },
+          "transcript": {
+            "type": "string",
+            "title": "Transcript",
+            "description": "Exact transcript of the reference audio. Helps the model disentangle voice characteristics from textual content."
+          }
+        },
+        "type": "object",
+        "required": ["audio_path", "transcript"],
+        "title": "VoiceReferenceBody",
+        "description": "Reference-audio voice conditioning. Only engines that support voice\ncloning (Dia today) consume this; others ignore it silently."
       }
     }
   }

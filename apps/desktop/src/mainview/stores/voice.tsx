@@ -5,9 +5,11 @@ import { createContainer } from "@yappr/lib/unstated";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
 import {
   VoiceConfigSchema,
+  VoiceReferenceSchema,
   type AudioFormat,
   type VoiceConfig,
   type VoiceId,
+  type VoiceReference,
 } from "@yappr/sdk/schemas";
 import { createVoiceClient } from "@yappr/sdk/voice";
 import { voxtralSpeechPreset } from "@yappr/sdk/voxtral-voices";
@@ -43,6 +45,7 @@ export type VoiceCaptionState =
 export type VoiceStoreState = {
   serverUrl: string;
   voiceConfig: VoiceConfig;
+  voiceReference: VoiceReference | null;
   health: HealthState;
   voices: VoiceId[];
   voice: VoiceId;
@@ -62,6 +65,8 @@ type VoiceStoreActions = {
   setSpeechFormat: (v: AudioFormat) => void;
   setVoice: (v: VoiceId) => void;
   setSpeed: (v: number) => void;
+  /** Dia voice-clone reference. Pass `null` to disable cloning. */
+  setVoiceReference: (next: VoiceReference | null) => void;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;
   pauseAudio: () => void;
@@ -82,6 +87,8 @@ const speechSpeed = (speech: VoiceConfig["speech"]) =>
 function useVoiceStoreLogic(): VoiceStoreValue {
   const [voiceConfig, setVoiceConfig] =
     useState<VoiceConfig>(DEFAULT_VOICE_CONFIG);
+  const [voiceReference, setVoiceReferenceState] =
+    useState<VoiceReference | null>(null);
   const [tts, setTts] = useState<TtsState>({ kind: "idle" });
   const [caption, setCaption] = useState<VoiceCaptionState>({ kind: "idle" });
   const audioHandleRef = useRef<AudioHandle | null>(null);
@@ -94,6 +101,8 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     if (!prefs || hydratedRef.current) return;
     const parsed = VoiceConfigSchema.safeParse(prefs.voice);
     setVoiceConfig(parsed.success ? parsed.data : DEFAULT_VOICE_CONFIG);
+    const ref = VoiceReferenceSchema.safeParse(prefs.voiceReference);
+    setVoiceReferenceState(ref.success ? ref.data : null);
     hydratedRef.current = true;
   }, [prefs]);
 
@@ -107,6 +116,18 @@ function useVoiceStoreLogic(): VoiceStoreValue {
       persistPrefs.mutate(nextConfig);
     },
     [persistPrefs],
+  );
+
+  const persistReferencePrefs = useMutation({
+    mutationFn: (ref: VoiceReference | null) =>
+      dbRpc.request("preferences:setMany", { voiceReference: ref }),
+  });
+  const setVoiceReference = useCallback(
+    (next: VoiceReference | null) => {
+      setVoiceReferenceState(next);
+      persistReferencePrefs.mutate(next);
+    },
+    [persistReferencePrefs],
   );
 
   const setServerUrlPersist = useCallback(
@@ -367,7 +388,11 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         playBuffer(cached.value);
         return;
       }
-      const result = await client.synthesize(phrase, { voice, speed });
+      const result = await client.synthesize(phrase, {
+        voice,
+        speed,
+        ...(voiceReference ? { reference: voiceReference } : {}),
+      });
       if (speakRunRef.current !== runId) return;
       result.match(
         (buffer) => {
@@ -380,7 +405,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         },
       );
     },
-    [client, voiceConfig, stopAudio],
+    [client, voiceConfig, voiceReference, stopAudio],
   );
 
   const transcribe = useCallback(
@@ -407,6 +432,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
   const state = {
     serverUrl: speech.baseUrl,
     voiceConfig,
+    voiceReference,
     health,
     voices,
     voice: speech.voice as VoiceId,
@@ -422,6 +448,7 @@ function useVoiceStoreLogic(): VoiceStoreValue {
     setSpeechFormat: setSpeechFormatPersist,
     setVoice: setVoicePersist,
     setSpeed: setSpeedPersist,
+    setVoiceReference,
     checkHealth,
     pauseAudio,
     resumeAudio,

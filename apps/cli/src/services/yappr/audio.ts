@@ -44,10 +44,19 @@ export function speakWithRuntime(
   options: SpeakOptions,
   runtime: AudioRuntime,
 ): ResultAsync<void, Error> {
-  const { voice = DEFAULT_VOICE, speed = DEFAULT_SPEED, play = true } = options;
+  const {
+    voice = DEFAULT_VOICE,
+    speed = DEFAULT_SPEED,
+    play = true,
+    reference,
+  } = options;
   const { outputWav } = runtime.paths;
   return runtime.tts
-    .synthesize(text, { voice, speed })
+    .synthesize(text, {
+      voice,
+      speed,
+      ...(reference ? { reference } : {}),
+    })
     .andThen((audioData) =>
       ResultAsync.fromPromise(
         runtime.writeArrayBuffer(outputWav, audioData),

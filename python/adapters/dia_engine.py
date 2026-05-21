@@ -21,7 +21,7 @@ from typing import Any
 import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 
-from ports import Audio, TtsEngine, Voice
+from ports import Audio, TtsEngine, Voice, VoiceReference
 from result import Err, Ok, Result
 
 # mlx-audio repo. fp16 fits Apple Silicon comfortably (~3.2 GB RAM during inference).
@@ -82,17 +82,21 @@ class DiaEngine(TtsEngine):
         *,
         voice: str | None = None,  # noqa: ARG002 — mlx-audio Dia ignores it
         speed: float = 1.0,  # noqa: ARG002 — Dia has no speed knob today
+        reference: VoiceReference | None = None,
     ) -> Result[Audio, Exception]:
         try:
             import mlx.core as mx
 
-            results = list(
-                self._model.generate(
-                    text=_ensure_speaker_tag(text),
-                    temperature=_TEMPERATURE,
-                    top_p=_TOP_P,
-                )
-            )
+            generate_kwargs: dict[str, object] = {
+                "text": _ensure_speaker_tag(text),
+                "temperature": _TEMPERATURE,
+                "top_p": _TOP_P,
+            }
+            if reference is not None:
+                generate_kwargs["ref_audio"] = reference.audio_path
+                generate_kwargs["ref_text"] = reference.transcript
+
+            results = list(self._model.generate(**generate_kwargs))
             if not results:
                 return Err(ValueError("Dia produced no audio (empty text?)"))
 

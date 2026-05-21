@@ -51,6 +51,16 @@ class Voice:
     tags: tuple[str, ...] = field(default_factory=tuple)
 
 
+@dataclass(frozen=True, slots=True)
+class VoiceReference:
+    """Reference-audio voice conditioning for engines that support cloning
+    (Dia today; F5/Sesame in the future). The transcript pairs the audio
+    with its content so the model can disentangle voice from text."""
+
+    audio_path: str
+    transcript: str
+
+
 @runtime_checkable
 class TtsEngine(Protocol):
     """Synchronous text-to-speech engine.
@@ -71,8 +81,13 @@ class TtsEngine(Protocol):
         *,
         voice: str | None = None,
         speed: float = 1.0,
+        reference: VoiceReference | None = None,
     ) -> Result[Audio, Exception]:
-        """Render ``text`` as :class:`Audio`. ``voice=None`` → adapter default."""
+        """Render ``text`` as :class:`Audio`.
+
+        ``voice=None`` → adapter default. ``reference`` is honoured by engines
+        that support voice cloning (Dia); other engines ignore it silently.
+        """
 
 
 @runtime_checkable

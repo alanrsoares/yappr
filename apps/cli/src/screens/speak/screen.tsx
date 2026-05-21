@@ -18,7 +18,12 @@ export function SpeakScreen({ onBack }: SpeakScreenProps) {
   const [value, setValue] = useState("");
   const { preferences } = usePreferences();
   const speakMutation = useMutation<void, Error, string>((text) =>
-    speak(text, { voice: preferences.defaultVoice }),
+    speak(text, {
+      voice: preferences.defaultVoice,
+      ...(preferences.voiceReference
+        ? { reference: preferences.voiceReference }
+        : {}),
+    }),
   );
 
   const handleSubmit = useCallback(

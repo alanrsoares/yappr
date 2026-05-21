@@ -28,6 +28,14 @@ const TEXT_EDITOR_FIELD_UI: Record<SettingsTextEditor, TextEditorFieldUi> = {
     label: "OpenRouter API key: ",
     placeholder: "sk-or-...",
   },
+  voiceReferenceAudio: {
+    label: "Voice reference · audio path (Dia): ",
+    placeholder: "/absolute/path/to/reference.wav (leave blank to disable)",
+  },
+  voiceReferenceTranscript: {
+    label: "Voice reference · transcript (Dia): ",
+    placeholder: "Exact transcript of the reference audio",
+  },
 };
 
 function EditFieldShell(props: {

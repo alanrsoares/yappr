@@ -78,6 +78,7 @@ export class YapprSpeechClient {
     return this.client.synthesize(text, {
       voice: options.voice ?? this.endpoint.voice,
       speed: options.speed ?? this.endpoint.speed,
+      ...(options.reference ? { reference: options.reference } : {}),
     });
   }
 }

@@ -17,6 +17,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultOutputDeviceIndex: 0,
   openrouterApiKey: "",
   voice: DEFAULT_VOICE_CONFIG,
+  voiceReference: null,
   firstRunCompleted: false,
 };
 

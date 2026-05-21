@@ -1,4 +1,4 @@
-import { VoiceConfigSchema } from "@yappr/sdk/schemas";
+import { VoiceConfigSchema, VoiceReferenceSchema } from "@yappr/sdk/schemas";
 import * as z from "zod";
 
 import type { Preferences } from "../types.js";
@@ -16,6 +16,7 @@ const fields = {
   defaultOutputDeviceIndex: z.number().int().nonnegative(),
   openrouterApiKey: z.string(),
   voice: VoiceConfigSchema,
+  voiceReference: VoiceReferenceSchema.nullable(),
   firstRunCompleted: z.boolean(),
 } satisfies Record<keyof Preferences, z.ZodType<unknown>>;
 

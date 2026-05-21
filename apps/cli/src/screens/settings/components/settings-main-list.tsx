@@ -79,6 +79,24 @@ export function SettingsMainList() {
         value={outputDevicesLoading ? "…" : outputDeviceLabel}
       />
       <SettingsListRow
+        index={R.voiceReferenceAudio}
+        selectedRow={selectedRow}
+        label="Voice ref · audio path: "
+        value={preferences.voiceReference?.audio_path || "(none — Dia only)"}
+      />
+      <SettingsListRow
+        index={R.voiceReferenceTranscript}
+        selectedRow={selectedRow}
+        label="Voice ref · transcript: "
+        value={
+          preferences.voiceReference?.transcript
+            ? preferences.voiceReference.transcript.length > 40
+              ? `${preferences.voiceReference.transcript.slice(0, 40)}…`
+              : preferences.voiceReference.transcript
+            : "(none)"
+        }
+      />
+      <SettingsListRow
         index={R.ollamaUrl}
         selectedRow={selectedRow}
         label="Ollama URL: "

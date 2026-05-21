@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 import composition
-from ports import SttEngine, TtsEngine
+from ports import SttEngine, TtsEngine, VoiceReference
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -72,6 +72,27 @@ def _stt(request: Request) -> SttEngine:
     return engine
 
 
+class VoiceReferenceBody(BaseModel):
+    """Reference-audio voice conditioning. Only engines that support voice
+    cloning (Dia today) consume this; others ignore it silently."""
+
+    audio_path: str = Field(
+        ...,
+        description=(
+            "Absolute filesystem path to a short reference WAV (5-10s typical). "
+            "The server must have read access; the daemon and the client need "
+            "to live on the same machine for this path to resolve."
+        ),
+    )
+    transcript: str = Field(
+        ...,
+        description=(
+            "Exact transcript of the reference audio. Helps the model "
+            "disentangle voice characteristics from textual content."
+        ),
+    )
+
+
 class SynthesizeRequest(BaseModel):
     """JSON body for ``POST /synthesize``.
 
@@ -85,7 +106,8 @@ class SynthesizeRequest(BaseModel):
         default="af_aoede",
         description=(
             "Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; "
-            "Dia accepts its preset names (``default_voice`` today). See ``GET /voices``."
+            "Dia has no named voices today (see ``reference`` for cloning). "
+            "See ``GET /voices``."
         ),
     )
     speed: float = Field(
@@ -93,6 +115,13 @@ class SynthesizeRequest(BaseModel):
         description=(
             "Speaking-rate multiplier (1.0 = engine default). Engines without a "
             "speed knob (e.g. Dia) ignore this field silently."
+        ),
+    )
+    reference: VoiceReferenceBody | None = Field(
+        default=None,
+        description=(
+            "Optional reference-audio voice clone. Dia uses this to imitate "
+            "the speaker in the supplied WAV. Other engines ignore it."
         ),
     )
 
@@ -159,7 +188,20 @@ async def synthesize(request: Request, body: SynthesizeRequest) -> Response:
     thread``. CPU backends (Kokoro) don't care either way.
     """
     engine = _tts(request)
-    result = engine.synthesize(body.text, voice=body.voice, speed=body.speed)
+    reference = (
+        VoiceReference(
+            audio_path=body.reference.audio_path,
+            transcript=body.reference.transcript,
+        )
+        if body.reference is not None
+        else None
+    )
+    result = engine.synthesize(
+        body.text,
+        voice=body.voice,
+        speed=body.speed,
+        reference=reference,
+    )
     return result.match(
         ok=lambda audio: Response(content=audio.data, media_type=audio.media_type),
         err=_raise_internal_server_error,

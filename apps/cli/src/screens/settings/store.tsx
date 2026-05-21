@@ -99,7 +99,9 @@ export type SettingsTextEditor =
   | "ollamaUrl"
   | "mcpPath"
   | "chatModel"
-  | "openrouterKey";
+  | "openrouterKey"
+  | "voiceReferenceAudio"
+  | "voiceReferenceTranscript";
 
 export interface SettingsTextEditorSession {
   field: SettingsTextEditor;
@@ -114,9 +116,11 @@ export const SETTINGS_LIST_ROW = {
   defaultVoice: 3,
   inputDevice: 4,
   outputDevice: 5,
-  ollamaUrl: 6,
-  openrouterApiKey: 7,
-  mcpConfigPath: 8,
+  voiceReferenceAudio: 6,
+  voiceReferenceTranscript: 7,
+  ollamaUrl: 8,
+  openrouterApiKey: 9,
+  mcpConfigPath: 10,
 } as const;
 
 export const SETTINGS_MAIN_LIST_ROW_COUNT =
@@ -158,6 +162,7 @@ export interface PickerDeviceRow {
 
 function commitTextEditorSession(
   session: SettingsTextEditorSession,
+  prefs: Preferences,
   savePreferences: (next: Partial<Preferences>) => void,
 ) {
   const v = session.value.trim();
@@ -178,7 +183,32 @@ function commitTextEditorSession(
       savePreferences({ openrouterApiKey: v });
       break;
     }
+    case "voiceReferenceAudio": {
+      savePreferences({
+        voiceReference: nextVoiceReference(prefs, { audio_path: v }),
+      });
+      break;
+    }
+    case "voiceReferenceTranscript": {
+      savePreferences({
+        voiceReference: nextVoiceReference(prefs, { transcript: v }),
+      });
+      break;
+    }
   }
+}
+
+/** Update one half of the voice reference, dropping it entirely when both
+ *  sides become empty. Dia ignores a reference with a blank path/transcript,
+ *  so persisting a half-filled record helps no one. */
+function nextVoiceReference(
+  prefs: Preferences,
+  patch: Partial<{ audio_path: string; transcript: string }>,
+): Preferences["voiceReference"] {
+  const audio_path = patch.audio_path ?? prefs.voiceReference?.audio_path ?? "";
+  const transcript = patch.transcript ?? prefs.voiceReference?.transcript ?? "";
+  if (!audio_path && !transcript) return null;
+  return { audio_path, transcript };
 }
 
 export interface SettingsStoreInitialState {
@@ -439,6 +469,20 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
         beginList("output", outputIdx, outputDevices.length);
         break;
       }
+      case R.voiceReferenceAudio: {
+        setTextEditorSession({
+          field: "voiceReferenceAudio",
+          value: preferences.voiceReference?.audio_path ?? "",
+        });
+        break;
+      }
+      case R.voiceReferenceTranscript: {
+        setTextEditorSession({
+          field: "voiceReferenceTranscript",
+          value: preferences.voiceReference?.transcript ?? "",
+        });
+        break;
+      }
       case R.ollamaUrl: {
         setTextEditorSession({
           field: "ollamaUrl",
@@ -484,10 +528,10 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
 
   const confirmTextEditor = useCallback(() => {
     setTextEditorSession((s) => {
-      if (s) commitTextEditorSession(s, savePreferences);
+      if (s) commitTextEditorSession(s, preferences, savePreferences);
       return null;
     });
-  }, [savePreferences]);
+  }, [preferences, savePreferences]);
 
   const cancelTextEditor = useCallback(() => {
     setTextEditorSession(null);

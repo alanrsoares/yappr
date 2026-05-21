@@ -61,6 +61,13 @@ export interface paths {
      * @description Synthesize speech from text using the active TTS engine.
      *
      *     **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.
+     *
+     *     Declared ``async`` even though :meth:`TtsEngine.synthesize` is sync: MLX
+     *     backends (Dia via mlx-audio) register their GPU stream on the thread that
+     *     loaded the weights — the asyncio loop thread, since lifespan ran there.
+     *     Sync FastAPI routes would dispatch this to a worker thread instead and
+     *     blow up with ``RuntimeError: There is no Stream(gpu, 0) in current
+     *     thread``. CPU backends (Kokoro) don't care either way.
      */
     post: operations["synthesize_synthesize_post"];
     delete?: never;
@@ -150,7 +157,7 @@ export interface components {
       text: string;
       /**
        * Voice
-       * @description Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia accepts its preset names (``default_voice`` today). See ``GET /voices``.
+       * @description Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia has no named voices today (see ``reference`` for cloning). See ``GET /voices``.
        * @default af_aoede
        */
       voice: string;
@@ -160,6 +167,8 @@ export interface components {
        * @default 1
        */
       speed: number;
+      /** @description Optional reference-audio voice clone. Dia uses this to imitate the speaker in the supplied WAV. Other engines ignore it. */
+      reference?: components["schemas"]["VoiceReferenceBody"] | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -173,6 +182,23 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /**
+     * VoiceReferenceBody
+     * @description Reference-audio voice conditioning. Only engines that support voice
+     *     cloning (Dia today) consume this; others ignore it silently.
+     */
+    VoiceReferenceBody: {
+      /**
+       * Audio Path
+       * @description Absolute filesystem path to a short reference WAV (5-10s typical). The server must have read access; the daemon and the client need to live on the same machine for this path to resolve.
+       */
+      audio_path: string;
+      /**
+       * Transcript
+       * @description Exact transcript of the reference audio. Helps the model disentangle voice characteristics from textual content.
+       */
+      transcript: string;
     };
   };
   responses: never;

@@ -102,6 +102,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
     defaultChatModel: model,
     openrouterApiKey,
     defaultVoice: voice,
+    voiceReference,
   } = preferences;
 
   const emit = useCallback((event: ChatEventInput) => {
@@ -265,7 +266,10 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           mode: "direct",
           contentLength: text.length,
         });
-        return speak(text, { voice }).map(() => {
+        return speak(text, {
+          voice,
+          ...(voiceReference ? { reference: voiceReference } : {}),
+        }).map(() => {
           ttsStartedAtRef.current = null;
           ttsModeRef.current = null;
           emit({

@@ -7,6 +7,7 @@ import {
   VoicesResponseSchema,
   type SynthesizeRequestInput,
   type VoiceId,
+  type VoiceReferenceInput,
 } from "./schemas.js";
 
 const filenameFor = (blob: Blob): string => {
@@ -22,6 +23,8 @@ const filenameFor = (blob: Blob): string => {
 export interface TTSOptions {
   voice?: VoiceId;
   speed?: number;
+  /** Reference-audio voice clone (used by Dia; ignored by Kokoro). */
+  reference?: VoiceReferenceInput;
 }
 
 export class TTSClient {
@@ -83,6 +86,7 @@ export class TTSClient {
           text,
           voice: options.voice,
           speed: options.speed,
+          ...(options.reference ? { reference: options.reference } : {}),
         };
         const body = SynthesizeRequestSchema.parse(input);
 

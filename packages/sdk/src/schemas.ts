@@ -6,6 +6,18 @@ export const VoiceIdSchema = z
   .describe("Kokoro v1 voice id (e.g. af_aoede, am_adam).");
 export type VoiceId = z.infer<typeof VoiceIdSchema>;
 
+export const VoiceReferenceSchema = z.object({
+  audio_path: z
+    .string()
+    .min(1)
+    .describe(
+      "Absolute path to a reference WAV (5-10s typical) on the daemon's machine.",
+    ),
+  transcript: z.string().min(1).describe("Exact transcript of the reference."),
+});
+export type VoiceReference = z.infer<typeof VoiceReferenceSchema>;
+export type VoiceReferenceInput = z.input<typeof VoiceReferenceSchema>;
+
 export const SynthesizeRequestSchema = z.object({
   text: z.string().min(1).describe("Plain text to speak."),
   voice: VoiceIdSchema.default("af_aoede"),
@@ -14,6 +26,9 @@ export const SynthesizeRequestSchema = z.object({
     .positive()
     .default(1)
     .describe("Speaking-rate multiplier (1.0 = model default)."),
+  reference: VoiceReferenceSchema.optional().describe(
+    "Optional reference-audio voice clone. Honoured by engines that support cloning (Dia).",
+  ),
 });
 export type SynthesizeRequest = z.infer<typeof SynthesizeRequestSchema>;
 export type SynthesizeRequestInput = z.input<typeof SynthesizeRequestSchema>;
