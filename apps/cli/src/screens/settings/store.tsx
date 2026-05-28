@@ -366,6 +366,11 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     return outputDevices.find((d) => d.index === idx)?.name ?? `Device ${idx}`;
   }, [outputDevices, preferences.defaultOutputDeviceIndex]);
 
+  const speechModel =
+    preferences.voice.speech.kind === "openai-compatible"
+      ? preferences.voice.speech.model
+      : undefined;
+
   const openPicker = useCallback(() => {
     const R = SETTINGS_LIST_ROW;
     const beginList = (
@@ -425,8 +430,7 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
           preferences.voice.speech.kind === "yappr"
             ? "yappr"
             : preferences.voice.speech.kind === "openai-compatible" &&
-                preferences.voice.speech.model ===
-                  "mistralai/Voxtral-4B-TTS-2603"
+                speechModel === "mistralai/Voxtral-4B-TTS-2603"
               ? "voxtral"
               : "custom";
         const idx = Math.max(0, SPEECH_ENDPOINT_VALUES.indexOf(currentKind));
@@ -498,14 +502,18 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
     selectedRow,
     preferences.defaultChatProvider,
     preferences.defaultChatModel,
+    preferences.voice.speech.kind,
+    speechModel,
     preferences.defaultVoice,
     preferences.defaultInputDeviceIndex,
     preferences.defaultOutputDeviceIndex,
+    preferences.voiceReference?.audio_path,
+    preferences.voiceReference?.transcript,
     preferences.ollamaBaseUrl,
-    preferences.mcpConfigPath,
     preferences.openrouterApiKey,
-    ollamaModels,
+    preferences.mcpConfigPath,
     openRouterModels,
+    ollamaModels,
     voices,
     inputDevices,
     outputDevices,

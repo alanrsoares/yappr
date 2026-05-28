@@ -641,7 +641,13 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
           : tokenStrippedPrompt;
       submit(finalPrompt, images);
     },
-    [buildSlashContext, chatMutation, sttMutation, pendingAttachments],
+    [
+      buildSlashContext,
+      chatMutation,
+      sttMutation,
+      pendingAttachments,
+      setValue,
+    ],
   );
 
   const dismissSlashOrBack = useCallback(() => {
@@ -655,7 +661,7 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
       return;
     }
     onBack();
-  }, [isEventStreamOpen, value, onBack]);
+  }, [isEventStreamOpen, value, onBack, setValue]);
 
   const statusContent = (
     <ChatStatus
