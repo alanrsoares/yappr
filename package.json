@@ -26,6 +26,7 @@
     "stop:py": "curl -fsS -XPOST http://127.0.0.1:8000/shutdown || lsof -ti :8000 | xargs -r kill -9",
     "openapi:export": "PYTHONPATH=python uv --project python run python python/export_openapi.py && bunx openapi-typescript openapi.json -o packages/sdk/src/schema.d.ts",
     "test:py": "cd python && uv run pytest tests/ -v",
+    "check:py": "cd python && uv run check",
     "lint": "bun run --filter='./**' lint",
     "typecheck": "bun run --filter='./**' typecheck",
     "test": "bun test",
