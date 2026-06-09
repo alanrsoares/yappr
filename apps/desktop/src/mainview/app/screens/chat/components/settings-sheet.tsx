@@ -295,47 +295,54 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
             )}
           </section>
 
-          <section className="space-y-2">
-            <Label
-              htmlFor="settings-voice-ref-audio"
-              className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
-            >
-              Voice reference (Dia only)
-            </Label>
-            <Input
-              id="settings-voice-ref-audio"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="/absolute/path/to/reference.wav"
-              value={voiceReference?.audio_path ?? ""}
-              onChange={(e) => {
-                const audio_path = e.target.value.trim();
-                const transcript = voiceReference?.transcript ?? "";
-                setVoiceReference(
-                  audio_path || transcript ? { audio_path, transcript } : null,
-                );
-              }}
-              className="font-mono text-sm"
-            />
-            <Input
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="Exact transcript of the reference audio"
-              value={voiceReference?.transcript ?? ""}
-              onChange={(e) => {
-                const transcript = e.target.value;
-                const audio_path = voiceReference?.audio_path ?? "";
-                setVoiceReference(
-                  audio_path || transcript ? { audio_path, transcript } : null,
-                );
-              }}
-              className="font-mono text-sm"
-            />
-            <p className="font-mono text-[0.65rem] text-muted-foreground">
-              Clones the speaker in the reference WAV. Used by Dia; ignored by
-              Kokoro / OpenAI-compatible.
-            </p>
-          </section>
+          {engineHealth?.ttsFeatures?.cloning ? (
+            <section className="space-y-2">
+              <Label
+                htmlFor="settings-voice-ref-audio"
+                className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+              >
+                Voice reference
+              </Label>
+              <Input
+                id="settings-voice-ref-audio"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="/absolute/path/to/reference.wav"
+                value={voiceReference?.audio_path ?? ""}
+                onChange={(e) => {
+                  const audio_path = e.target.value.trim();
+                  const transcript = voiceReference?.transcript ?? "";
+                  setVoiceReference(
+                    audio_path || transcript
+                      ? { audio_path, transcript }
+                      : null,
+                  );
+                }}
+                className="font-mono text-sm"
+              />
+              <Input
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Exact transcript of the reference audio"
+                value={voiceReference?.transcript ?? ""}
+                onChange={(e) => {
+                  const transcript = e.target.value;
+                  const audio_path = voiceReference?.audio_path ?? "";
+                  setVoiceReference(
+                    audio_path || transcript
+                      ? { audio_path, transcript }
+                      : null,
+                  );
+                }}
+                className="font-mono text-sm"
+              />
+              <p className="font-mono text-[0.65rem] text-muted-foreground">
+                Clones the speaker in the reference WAV. Shown because the
+                active backend ({engineHealth.ttsBackend ?? "—"}) supports voice
+                cloning.
+              </p>
+            </section>
+          ) : null}
 
           <section className="space-y-2">
             <Label

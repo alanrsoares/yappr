@@ -28,11 +28,6 @@ dev = [
   "ruff>=0.15.0",
   "mypy>=1.15.0,<2",
 ]
-# Apple Silicon TTS via mlx-audio (Dia, MLX-Kokoro, etc.).
-# Install with: uv pip install -e ".[mlx]"
-mlx = [
-  "mlx-audio>=0.2.0",
-]
 
 [tool.setuptools]
 # Only ship these modules; exclude scripts (check_*, inspect_*, export_*, etc.)
@@ -73,7 +68,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
-module = ["kokoro.*", "faster_whisper.*", "mlx_audio.*", "mlx.*"]
+module = ["kokoro.*", "faster_whisper.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

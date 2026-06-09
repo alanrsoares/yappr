@@ -66,6 +66,28 @@ def test_post_synthesize_route_smoke(client: TestClient) -> None:
     assert decoded.shape[0] > 0
 
 
+def test_health_surfaces_backend_and_features(client: TestClient) -> None:
+    """/health reports the bound adapter + its capability metaconfig."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tts"] == "ready"
+    assert body["tts_backend"] == "kokoro"
+    assert body["tts_features"] == {
+        "cloning": False,
+        "speed": True,
+        "named_voices": True,
+    }
+
+
+def test_health_features_null_when_tts_unloaded(client: TestClient) -> None:
+    app.state.tts = None
+    body = client.get("/health").json()
+    assert body["tts"] == "unavailable"
+    assert body["tts_backend"] is None
+    assert body["tts_features"] is None
+
+
 def test_post_synthesize_route_503_when_engine_unloaded(
     client: TestClient,
 ) -> None:

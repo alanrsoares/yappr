@@ -13,7 +13,8 @@ export interface paths {
     };
     /**
      * Get Health
-     * @description Report which inference subsystems are ready, and which adapters are bound.
+     * @description Report which inference subsystems are ready, which adapters are bound,
+     *     and the active TTS adapter's capability metaconfig.
      */
     get: operations["get_health_health_get"];
     put?: never;
@@ -36,7 +37,8 @@ export interface paths {
      * @description List the voice ids the active TTS engine accepts.
      *
      *     Shape: ``{"voices": ["<id>", …]}``. Engine-specific — Kokoro returns
-     *     ``af_*`` / ``am_*`` ids; Dia returns its preset names.
+     *     ``af_*`` / ``am_*`` ids. Engines without a named catalog
+     *     (``tts_features.named_voices`` false) may return a single sentinel id.
      */
     get: operations["get_voices_voices_get"];
     put?: never;
@@ -62,12 +64,11 @@ export interface paths {
      *
      *     **Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.
      *
-     *     Declared ``async`` even though :meth:`TtsEngine.synthesize` is sync: MLX
-     *     backends (Dia via mlx-audio) register their GPU stream on the thread that
-     *     loaded the weights — the asyncio loop thread, since lifespan ran there.
-     *     Sync FastAPI routes would dispatch this to a worker thread instead and
-     *     blow up with ``RuntimeError: There is no Stream(gpu, 0) in current
-     *     thread``. CPU backends (Kokoro) don't care either way.
+     *     Declared ``async`` even though :meth:`TtsEngine.synthesize` is sync so the
+     *     call runs on the asyncio loop thread (where lifespan loaded the weights)
+     *     rather than a worker thread. CPU backends (Kokoro) don't care, but
+     *     GPU/accelerator backends that pin their compute stream to the loading
+     *     thread would otherwise fault — keeping this ``async`` is the safe default.
      */
     post: operations["synthesize_synthesize_post"];
     delete?: never;
@@ -111,8 +112,8 @@ export interface paths {
      * Shutdown
      * @description Hard-kill the sidecar from another shell when SIGINT is wedged.
      *
-     *     MLX/Metal compute can block the Python interpreter for the whole duration
-     *     of a Dia generation, so SIGINT queues until the gen finishes — and on
+     *     A long-running native generation can block the Python interpreter for its
+     *     whole duration, so SIGINT queues until the gen finishes — and on
      *     pathological inputs that's never. Hitting this route schedules
      *     ``os._exit(0)`` on a short delay so the HTTP response can flush first,
      *     then bypasses the interpreter shutdown machinery entirely.
@@ -162,7 +163,7 @@ export interface components {
       stt: string;
       /**
        * Tts Backend
-       * @description Name of the loaded TTS adapter (e.g. ``kokoro``, ``dia``); ``null`` when unavailable.
+       * @description Name of the loaded TTS adapter (e.g. ``kokoro``); ``null`` when unavailable.
        */
       tts_backend?: string | null;
       /**
@@ -170,6 +171,8 @@ export interface components {
        * @description Name of the loaded STT adapter (e.g. ``whisper``); ``null`` when unavailable.
        */
       stt_backend?: string | null;
+      /** @description Capability metaconfig of the active TTS adapter; ``null`` when TTS is unavailable. Apps render controls conditionally off these. */
+      tts_features?: components["schemas"]["TtsFeaturesResponse"] | null;
     };
     /**
      * SynthesizeRequest
@@ -187,18 +190,42 @@ export interface components {
       text: string;
       /**
        * Voice
-       * @description Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia has no named voices today (see ``reference`` for cloning). See ``GET /voices``.
+       * @description Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids. Engines without a named catalog (``tts_features.named_voices`` false) ignore this. See ``GET /voices``.
        * @default af_aoede
        */
       voice: string;
       /**
        * Speed
-       * @description Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (e.g. Dia) ignore this field silently.
+       * @description Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (``tts_features.speed`` false) ignore this field silently.
        * @default 1
        */
       speed: number;
-      /** @description Optional reference-audio voice clone. Dia uses this to imitate the speaker in the supplied WAV. Other engines ignore it. */
+      /** @description Optional reference-audio voice clone. Consumed only by engines whose ``tts_features.cloning`` is true; other engines ignore it. */
       reference?: components["schemas"]["VoiceReferenceBody"] | null;
+    };
+    /**
+     * TtsFeaturesResponse
+     * @description Capability flags the active TTS adapter advertises (see
+     *     :class:`ports.TtsFeatures`). Apps read these to render only the controls a
+     *     backend honours — the voice-reference panel keys off ``cloning``, the speed
+     *     slider off ``speed``, the voice picker off ``named_voices``.
+     */
+    TtsFeaturesResponse: {
+      /**
+       * Cloning
+       * @description Engine honours the ``reference`` field for voice cloning.
+       */
+      cloning: boolean;
+      /**
+       * Speed
+       * @description Engine honours the ``speed`` multiplier.
+       */
+      speed: boolean;
+      /**
+       * Named Voices
+       * @description Engine exposes a catalog of named voice ids via ``GET /voices``.
+       */
+      named_voices: boolean;
     };
     /** ValidationError */
     ValidationError: {
@@ -215,8 +242,8 @@ export interface components {
     };
     /**
      * VoiceReferenceBody
-     * @description Reference-audio voice conditioning. Only engines that support voice
-     *     cloning (Dia today) consume this; others ignore it silently.
+     * @description Reference-audio voice conditioning. Only engines whose
+     *     ``tts_features.cloning`` is true consume this; others ignore it silently.
      */
     VoiceReferenceBody: {
       /**

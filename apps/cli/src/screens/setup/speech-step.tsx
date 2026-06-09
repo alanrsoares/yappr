@@ -45,7 +45,7 @@ const OPTIONS: ReadonlyArray<{
   {
     kind: "yappr",
     label: "Yappr local",
-    description: "TTS + STT via the Python sidecar (Kokoro / Dia / Whisper).",
+    description: "TTS + STT via the Python sidecar (Kokoro / Whisper).",
   },
   {
     kind: "voxtral",

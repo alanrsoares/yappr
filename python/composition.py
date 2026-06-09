@@ -1,6 +1,6 @@
 """Composition root: env-driven adapter wiring.
 
-Reads ``YAPPR_TTS_BACKEND`` (``kokoro`` | ``dia``, default ``kokoro``) and
+Reads ``YAPPR_TTS_BACKEND`` (``kokoro``, default and currently only option) and
 ``YAPPR_STT_BACKEND`` (``whisper``, default and currently only option) and
 returns concrete adapters that satisfy the ports in :mod:`ports`. The server
 keeps the returned values on ``app.state`` and routes call port methods only.
@@ -42,16 +42,9 @@ def _load_kokoro() -> TtsEngine:
     return KokoroEngine.load()
 
 
-def _load_dia() -> TtsEngine:
-    from adapters.dia_engine import DiaEngine
-
-    return DiaEngine.load()
-
-
 # Backend id → factory. Adding a new TTS engine = one line here + one adapter file.
 _TTS_LOADERS: dict[str, Callable[[], TtsEngine]] = {
     "kokoro": _load_kokoro,
-    "dia": _load_dia,
 }
 
 

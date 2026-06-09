@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 
-from ports import Audio, TtsEngine, Voice, VoiceReference
+from ports import Audio, TtsEngine, TtsFeatures, Voice, VoiceReference
 from result import Err, Ok, Result
 
 KOKORO_VOICES: list[str] = [
@@ -48,6 +48,8 @@ class KokoroEngine(TtsEngine):
     """Adapter for the ``hexgrad/Kokoro-82M`` v1.0 release (``lang_code=a``)."""
 
     name = "kokoro"
+    # 20 named af_*/am_* voices, real speed control, no reference-audio cloning.
+    features = TtsFeatures(cloning=False, speed=True, named_voices=True)
 
     def __init__(self, pipeline: Any) -> None:
         self._pipeline = pipeline

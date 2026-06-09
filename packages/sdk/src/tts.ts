@@ -23,7 +23,7 @@ const filenameFor = (blob: Blob): string => {
 export interface TTSOptions {
   voice?: VoiceId;
   speed?: number;
-  /** Reference-audio voice clone (used by Dia; ignored by Kokoro). */
+  /** Reference-audio voice clone. Honoured only by engines whose `ttsFeatures.cloning` is true (Kokoro ignores it). */
   reference?: VoiceReferenceInput;
 }
 

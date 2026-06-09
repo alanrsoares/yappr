@@ -8,7 +8,7 @@
     "/health": {
       "get": {
         "summary": "Get Health",
-        "description": "Report which inference subsystems are ready, and which adapters are bound.",
+        "description": "Report which inference subsystems are ready, which adapters are bound,\nand the active TTS adapter's capability metaconfig.",
         "operationId": "get_health_health_get",
         "responses": {
           "200": {
@@ -27,7 +27,7 @@
     "/voices": {
       "get": {
         "summary": "Get Voices",
-        "description": "List the voice ids the active TTS engine accepts.\n\nShape: ``{\"voices\": [\"<id>\", \u2026]}``. Engine-specific \u2014 Kokoro returns\n``af_*`` / ``am_*`` ids; Dia returns its preset names.",
+        "description": "List the voice ids the active TTS engine accepts.\n\nShape: ``{\"voices\": [\"<id>\", \u2026]}``. Engine-specific \u2014 Kokoro returns\n``af_*`` / ``am_*`` ids. Engines without a named catalog\n(``tts_features.named_voices`` false) may return a single sentinel id.",
         "operationId": "get_voices_voices_get",
         "responses": {
           "200": {
@@ -44,7 +44,7 @@
     "/synthesize": {
       "post": {
         "summary": "Synthesize",
-        "description": "Synthesize speech from text using the active TTS engine.\n\n**Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.\n\nDeclared ``async`` even though :meth:`TtsEngine.synthesize` is sync: MLX\nbackends (Dia via mlx-audio) register their GPU stream on the thread that\nloaded the weights \u2014 the asyncio loop thread, since lifespan ran there.\nSync FastAPI routes would dispatch this to a worker thread instead and\nblow up with ``RuntimeError: There is no Stream(gpu, 0) in current\nthread``. CPU backends (Kokoro) don't care either way.",
+        "description": "Synthesize speech from text using the active TTS engine.\n\n**Response:** ``audio/wav`` bytes (HTTP 200). Returns 503 when TTS isn't loaded.\n\nDeclared ``async`` even though :meth:`TtsEngine.synthesize` is sync so the\ncall runs on the asyncio loop thread (where lifespan loaded the weights)\nrather than a worker thread. CPU backends (Kokoro) don't care, but\nGPU/accelerator backends that pin their compute stream to the loading\nthread would otherwise fault \u2014 keeping this ``async`` is the safe default.",
         "operationId": "synthesize_synthesize_post",
         "requestBody": {
           "content": {
@@ -118,7 +118,7 @@
     "/shutdown": {
       "post": {
         "summary": "Shutdown",
-        "description": "Hard-kill the sidecar from another shell when SIGINT is wedged.\n\nMLX/Metal compute can block the Python interpreter for the whole duration\nof a Dia generation, so SIGINT queues until the gen finishes \u2014 and on\npathological inputs that's never. Hitting this route schedules\n``os._exit(0)`` on a short delay so the HTTP response can flush first,\nthen bypasses the interpreter shutdown machinery entirely.\n\nTrigger it with::\n\n    curl -XPOST http://127.0.0.1:8000/shutdown",
+        "description": "Hard-kill the sidecar from another shell when SIGINT is wedged.\n\nA long-running native generation can block the Python interpreter for its\nwhole duration, so SIGINT queues until the gen finishes \u2014 and on\npathological inputs that's never. Hitting this route schedules\n``os._exit(0)`` on a short delay so the HTTP response can flush first,\nthen bypasses the interpreter shutdown machinery entirely.\n\nTrigger it with::\n\n    curl -XPOST http://127.0.0.1:8000/shutdown",
         "operationId": "shutdown_shutdown_post",
         "responses": {
           "200": {
@@ -183,7 +183,7 @@
               }
             ],
             "title": "Tts Backend",
-            "description": "Name of the loaded TTS adapter (e.g. ``kokoro``, ``dia``); ``null`` when unavailable."
+            "description": "Name of the loaded TTS adapter (e.g. ``kokoro``); ``null`` when unavailable."
           },
           "stt_backend": {
             "anyOf": [
@@ -196,6 +196,17 @@
             ],
             "title": "Stt Backend",
             "description": "Name of the loaded STT adapter (e.g. ``whisper``); ``null`` when unavailable."
+          },
+          "tts_features": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TtsFeaturesResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Capability metaconfig of the active TTS adapter; ``null`` when TTS is unavailable. Apps render controls conditionally off these."
           }
         },
         "type": "object",
@@ -213,13 +224,13 @@
           "voice": {
             "type": "string",
             "title": "Voice",
-            "description": "Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids; Dia has no named voices today (see ``reference`` for cloning). See ``GET /voices``.",
+            "description": "Engine-specific voice id. Kokoro accepts ``af_*`` / ``am_*`` ids. Engines without a named catalog (``tts_features.named_voices`` false) ignore this. See ``GET /voices``.",
             "default": "af_aoede"
           },
           "speed": {
             "type": "number",
             "title": "Speed",
-            "description": "Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (e.g. Dia) ignore this field silently.",
+            "description": "Speaking-rate multiplier (1.0 = engine default). Engines without a speed knob (``tts_features.speed`` false) ignore this field silently.",
             "default": 1.0
           },
           "reference": {
@@ -231,13 +242,36 @@
                 "type": "null"
               }
             ],
-            "description": "Optional reference-audio voice clone. Dia uses this to imitate the speaker in the supplied WAV. Other engines ignore it."
+            "description": "Optional reference-audio voice clone. Consumed only by engines whose ``tts_features.cloning`` is true; other engines ignore it."
           }
         },
         "type": "object",
         "required": ["text"],
         "title": "SynthesizeRequest",
         "description": "JSON body for ``POST /synthesize``.\n\nProduces a WAV-encoded audio stream from the configured TTS engine. Voice\nid and sample rate are engine-specific \u2014 see ``GET /voices`` for the\nactive catalog. Default voice on Kokoro is ``af_aoede``."
+      },
+      "TtsFeaturesResponse": {
+        "properties": {
+          "cloning": {
+            "type": "boolean",
+            "title": "Cloning",
+            "description": "Engine honours the ``reference`` field for voice cloning."
+          },
+          "speed": {
+            "type": "boolean",
+            "title": "Speed",
+            "description": "Engine honours the ``speed`` multiplier."
+          },
+          "named_voices": {
+            "type": "boolean",
+            "title": "Named Voices",
+            "description": "Engine exposes a catalog of named voice ids via ``GET /voices``."
+          }
+        },
+        "type": "object",
+        "required": ["cloning", "speed", "named_voices"],
+        "title": "TtsFeaturesResponse",
+        "description": "Capability flags the active TTS adapter advertises (see\n:class:`ports.TtsFeatures`). Apps read these to render only the controls a\nbackend honours \u2014 the voice-reference panel keys off ``cloning``, the speed\nslider off ``speed``, the voice picker off ``named_voices``."
       },
       "ValidationError": {
         "properties": {
@@ -291,7 +325,7 @@
         "type": "object",
         "required": ["audio_path", "transcript"],
         "title": "VoiceReferenceBody",
-        "description": "Reference-audio voice conditioning. Only engines that support voice\ncloning (Dia today) consume this; others ignore it silently."
+        "description": "Reference-audio voice conditioning. Only engines whose\n``tts_features.cloning`` is true consume this; others ignore it silently."
       }
     }
   }
