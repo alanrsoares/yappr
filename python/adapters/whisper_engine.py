@@ -9,28 +9,33 @@ from __future__ import annotations
 
 import os
 import tempfile
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from config import load_settings
 from ports import SttEngine, Transcription
 from result import Err, Ok, Result
 
-# beam_size=1 is ~2x faster than the historical 5 with negligible quality loss.
-_BEAM_SIZE = int(os.environ.get("YAPPR_STT_BEAM_SIZE", "1"))
-
-# VAD filter clips silence — kills most of Whisper's "You" hallucinations.
-_VAD_FILTER = os.environ.get("YAPPR_STT_VAD", "1") not in ("0", "false", "no", "off")
+if TYPE_CHECKING:
+    from config import Settings
 
 
 class WhisperEngine(SttEngine):
-    """Adapter for :mod:`faster_whisper`. CPU ``int8`` by default."""
+    """Adapter for :mod:`faster_whisper`. CPU ``int8`` by default.
+
+    ``beam_size=1`` is ~2x faster than the historical 5 with negligible quality
+    loss; the VAD filter clips silence, killing most of Whisper's "You"
+    hallucinations. Both are tunable via ``YAPPR_STT_*`` (see :class:`config.Settings`).
+    """
 
     name = "whisper"
 
-    def __init__(self, model: Any) -> None:
+    def __init__(self, model: Any, *, beam_size: int = 1, vad_filter: bool = True) -> None:
         self._model = model
+        self._beam_size = beam_size
+        self._vad_filter = vad_filter
 
     @classmethod
-    def load(cls, model_size: str | None = None) -> WhisperEngine | None:
+    def load(cls, settings: Settings | None = None) -> WhisperEngine | None:
         """Load the configured Whisper model or return ``None`` on failure.
 
         Returning ``None`` is intentional — the server keeps serving TTS even
@@ -38,11 +43,12 @@ class WhisperEngine(SttEngine):
         """
         from faster_whisper import WhisperModel
 
-        size = model_size or os.environ.get("YAPPR_WHISPER_MODEL", "small.en")
+        cfg = settings or load_settings()
         try:
-            return cls(WhisperModel(size, device="cpu", compute_type="int8"))
+            model = WhisperModel(cfg.whisper_model, device="cpu", compute_type="int8")
         except Exception:  # noqa: BLE001 — load failure → STT disabled
             return None
+        return cls(model, beam_size=cfg.stt_beam_size, vad_filter=cfg.stt_vad)
 
     async def transcribe(
         self,
@@ -58,8 +64,8 @@ class WhisperEngine(SttEngine):
             try:
                 segments, info = self._model.transcribe(
                     tmp_path,
-                    beam_size=_BEAM_SIZE,
-                    vad_filter=_VAD_FILTER,
+                    beam_size=self._beam_size,
+                    vad_filter=self._vad_filter,
                 )
                 text = " ".join(segment.text for segment in segments).strip()
                 return Ok(

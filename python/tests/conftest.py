@@ -9,22 +9,26 @@ full ports → adapter → response path without weights on disk.
 from __future__ import annotations
 
 import os
-from collections.abc import Generator, Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterator
+
+FloatArray = np.ndarray[Any, np.dtype[np.float32]]
 
 os.environ["YAPPR_TEST"] = "1"
 
 
 def _sine_chunk(
     sample_rate: int = 24_000, duration_s: float = 0.05, hz: float = 440.0
-) -> np.ndarray:
+) -> FloatArray:
     n = max(1, int(sample_rate * duration_s))
     t = np.arange(n, dtype=np.float32) / float(sample_rate)
-    return (0.05 * np.sin(2.0 * np.pi * hz * t)).astype(np.float32)
+    return cast("FloatArray", (0.05 * np.sin(2.0 * np.pi * hz * t)).astype(np.float32))
 
 
 class FakeKokoroPipeline:
@@ -36,7 +40,7 @@ class FakeKokoroPipeline:
         text: str,
         voice: str = "af_aoede",
         speed: float = 1.0,
-    ) -> Generator[tuple[str, str, np.ndarray], None, None]:
+    ) -> Generator[tuple[str, str, FloatArray], None, None]:
         _ = (text, voice, speed)
         yield ("x", "y", _sine_chunk())
         yield ("x", "y", _sine_chunk(hz=880.0))
@@ -50,7 +54,7 @@ class EmptyChunkPipeline:
         text: str,
         voice: str = "af_aoede",
         speed: float = 1.0,
-    ) -> Generator[tuple[str, str, np.ndarray], None, None]:
+    ) -> Generator[tuple[str, str, FloatArray], None, None]:
         _ = (text, voice, speed)
         yield from ()
 

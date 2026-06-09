@@ -14,9 +14,8 @@ import logging
 import os
 import threading
 import warnings
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, NoReturn
+from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
@@ -25,7 +24,11 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 import composition
+from config import load_settings
 from ports import SttEngine, TtsEngine, VoiceReference
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -35,13 +38,14 @@ _log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    if os.environ.get("YAPPR_TEST"):
+    settings = load_settings()
+    if settings.test:
         app.state.tts = None
         app.state.stt = None
         yield
         return
-    app.state.tts = composition.build_tts()
-    app.state.stt = composition.build_stt()
+    app.state.tts = composition.build_tts(settings)
+    app.state.stt = composition.build_stt(settings)
     yield
 
 
@@ -152,8 +156,7 @@ class HealthResponse(BaseModel):
     tts_backend: str | None = Field(
         default=None,
         description=(
-            "Name of the loaded TTS adapter (e.g. ``kokoro``); "
-            "``null`` when unavailable."
+            "Name of the loaded TTS adapter (e.g. ``kokoro``); ``null`` when unavailable."
         ),
     )
     stt_backend: str | None = Field(

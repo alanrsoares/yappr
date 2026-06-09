@@ -8,13 +8,13 @@ weights). Route tests use the ``client`` fixture which mounts the fake on
 from __future__ import annotations
 
 import io
-from typing import cast
+from typing import TYPE_CHECKING
 
 import soundfile as sf  # type: ignore[import-untyped]
-from fastapi.testclient import TestClient
 
 from adapters.kokoro_engine import KokoroEngine
 from ports import Audio
+from result import Err, Ok
 from server import app
 from tests.conftest import (
     EmptyChunkPipeline,
@@ -22,12 +22,15 @@ from tests.conftest import (
     RaisingPipeline,
 )
 
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
+
 
 def test_engine_synthesize_returns_wav_bytes() -> None:
     engine = KokoroEngine(FakeKokoroPipeline())
     result = engine.synthesize("hello", voice="af_aoede", speed=1.0)
-    assert result.is_ok()
-    audio = cast(Audio, result.value)
+    assert isinstance(result, Ok)
+    audio = result.value
     assert isinstance(audio, Audio)
     assert audio.sample_rate == 24_000
     assert audio.media_type == "audio/wav"
@@ -40,14 +43,14 @@ def test_engine_synthesize_returns_wav_bytes() -> None:
 def test_engine_synthesize_empty_chunks_is_err() -> None:
     engine = KokoroEngine(EmptyChunkPipeline())
     result = engine.synthesize("hello")
-    assert result.is_err()
+    assert isinstance(result, Err)
     assert "No audio generated" in str(result.error)
 
 
 def test_engine_synthesize_pipeline_exception_is_err() -> None:
     engine = KokoroEngine(RaisingPipeline())
     result = engine.synthesize("hello")
-    assert result.is_err()
+    assert isinstance(result, Err)
     assert "boom" in str(result.error)
 
 

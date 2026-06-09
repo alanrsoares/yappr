@@ -19,9 +19,10 @@ Adding a new engine = new adapter file + branch in composition. No route change.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from result import Result
+if TYPE_CHECKING:
+    from result import Result
 
 
 @dataclass(frozen=True, slots=True)
