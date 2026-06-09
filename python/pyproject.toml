@@ -21,6 +21,10 @@ dependencies = [
   "pydantic-settings>=2.6.0",
 ]
 
+[project.scripts]
+# `uv run check` → ruff + format + mypy + pytest (see checks.py).
+check = "checks:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=9.0.0",
@@ -31,8 +35,9 @@ dev = [
 ]
 
 [tool.setuptools]
-# Only ship these modules; exclude scripts (check_*, inspect_*, export_*, etc.)
-py-modules = ["server", "ports", "composition", "result", "config"]
+# Only ship these modules; exclude one-off scripts (inspect_*, export_*, etc.).
+# `checks` is included so the `check` console-script entry point resolves.
+py-modules = ["server", "ports", "composition", "result", "config", "checks"]
 packages = ["adapters"]
 
 [tool.ruff]
