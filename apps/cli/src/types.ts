@@ -29,9 +29,9 @@ export interface Preferences {
   /** Speech + transcription endpoints. Providers are presets over this shape. */
   voice: VoiceConfig;
   /**
-   * Reference-audio voice clone for Dia. Forwarded to /synthesize on every
-   * TTS call when set. Other backends (Kokoro / OpenAI-compat) ignore it.
-   * `null` means no cloning — Dia samples a random voice per call.
+   * Reference-audio voice clone. Forwarded to /synthesize on every TTS call
+   * when set; consumed only by backends whose `ttsFeatures.cloning` is true
+   * (Kokoro / OpenAI-compat ignore it). `null` means no cloning.
    */
   voiceReference: VoiceReference | null;
   /** True once the user has gone through (or skipped) the assisted setup wizard. */
@@ -63,7 +63,7 @@ export interface SpeakOptions {
   voice?: string;
   speed?: number;
   play?: boolean;
-  /** Voice-clone reference (Dia). Ignored by other backends. */
+  /** Voice-clone reference. Honoured only by cloning-capable backends. */
   reference?: VoiceReference;
 }
 

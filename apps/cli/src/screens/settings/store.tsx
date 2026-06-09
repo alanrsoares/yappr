@@ -47,7 +47,7 @@ type ProviderValue = (typeof PROVIDER_VALUES)[number];
 
 /** Speech endpoint preset rows surfaced in the settings picker. */
 const SPEECH_ENDPOINT_LABELS = [
-  "Yappr local (Kokoro / Dia / Whisper via Python sidecar)",
+  "Yappr local (Kokoro / Whisper via Python sidecar)",
   "Voxtral remote (vllm-omni at localhost:8000/v1)",
   "OpenAI-compatible (manual edit required)",
 ] as const;
@@ -179,8 +179,8 @@ function commitTextEditorSession(
 }
 
 /** Update one half of the voice reference, dropping it entirely when both
- *  sides become empty. Dia ignores a reference with a blank path/transcript,
- *  so persisting a half-filled record helps no one. */
+ *  sides become empty. A reference with a blank path/transcript is useless to
+ *  any cloning backend, so persisting a half-filled record helps no one. */
 function nextVoiceReference(
   prefs: Preferences,
   patch: Partial<{ audio_path: string; transcript: string }>,

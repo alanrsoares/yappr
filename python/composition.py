@@ -1,6 +1,6 @@
 """Composition root: env-driven adapter wiring.
 
-Reads ``YAPPR_TTS_BACKEND`` (``kokoro`` | ``dia``, default ``kokoro``) and
+Reads ``YAPPR_TTS_BACKEND`` (``kokoro``, default and currently only option) and
 ``YAPPR_STT_BACKEND`` (``whisper``, default and currently only option) and
 returns concrete adapters that satisfy the ports in :mod:`ports`. The server
 keeps the returned values on ``app.state`` and routes call port methods only.
@@ -12,16 +12,19 @@ Kokoro failure doesn't kill STT (or vice versa) on shared instances.
 from __future__ import annotations
 
 import logging
-import os
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from ports import SttEngine, TtsEngine
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from config import Settings
+    from ports import SttEngine, TtsEngine
 
 _log = logging.getLogger(__name__)
 
 
-def build_tts() -> TtsEngine | None:
-    backend = os.environ.get("YAPPR_TTS_BACKEND", "kokoro").strip().lower()
+def build_tts(settings: Settings) -> TtsEngine | None:
+    backend = settings.tts_backend.strip().lower()
     loader = _TTS_LOADERS.get(backend)
     if loader is None:
         _log.error("Unknown YAPPR_TTS_BACKEND=%r; expected %s", backend, "|".join(_TTS_LOADERS))
@@ -30,10 +33,10 @@ def build_tts() -> TtsEngine | None:
         _log.info("Loading TTS backend %r…", backend)
         engine = loader()
         _log.info("TTS backend %r ready.", backend)
-        return engine
-    except Exception:
+    except Exception:  # noqa: BLE001 — boundary: any load failure degrades to 503
         _log.exception("Failed to load TTS backend %r", backend)
         return None
+    return engine
 
 
 def _load_kokoro() -> TtsEngine:
@@ -42,21 +45,14 @@ def _load_kokoro() -> TtsEngine:
     return KokoroEngine.load()
 
 
-def _load_dia() -> TtsEngine:
-    from adapters.dia_engine import DiaEngine
-
-    return DiaEngine.load()
-
-
 # Backend id → factory. Adding a new TTS engine = one line here + one adapter file.
 _TTS_LOADERS: dict[str, Callable[[], TtsEngine]] = {
     "kokoro": _load_kokoro,
-    "dia": _load_dia,
 }
 
 
-def build_stt() -> SttEngine | None:
-    backend = os.environ.get("YAPPR_STT_BACKEND", "whisper").strip().lower()
+def build_stt(settings: Settings) -> SttEngine | None:
+    backend = settings.stt_backend.strip().lower()
     if backend != "whisper":
         _log.error("Unknown YAPPR_STT_BACKEND=%r; expected whisper", backend)
         return None
@@ -64,7 +60,7 @@ def build_stt() -> SttEngine | None:
     from adapters.whisper_engine import WhisperEngine
 
     _log.info("Loading Whisper STT (faster-whisper)…")
-    engine = WhisperEngine.load()
+    engine = WhisperEngine.load(settings)
     if engine is None:
         _log.warning("Whisper failed to load; STT disabled.")
     else:

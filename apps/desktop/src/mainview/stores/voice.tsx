@@ -68,7 +68,7 @@ type VoiceStoreActions = {
   setSpeechFormat: (v: AudioFormat) => void;
   setVoice: (v: VoiceId) => void;
   setSpeed: (v: number) => void;
-  /** Dia voice-clone reference. Pass `null` to disable cloning. */
+  /** Voice-clone reference for cloning-capable backends. Pass `null` to disable. */
   setVoiceReference: (next: VoiceReference | null) => void;
   /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;

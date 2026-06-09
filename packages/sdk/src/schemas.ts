@@ -27,7 +27,7 @@ export const SynthesizeRequestSchema = z.object({
     .default(1)
     .describe("Speaking-rate multiplier (1.0 = model default)."),
   reference: VoiceReferenceSchema.optional().describe(
-    "Optional reference-audio voice clone. Honoured by engines that support cloning (Dia).",
+    "Optional reference-audio voice clone. Honoured only by engines whose tts_features.cloning is true; others ignore it.",
   ),
 });
 export type SynthesizeRequest = z.infer<typeof SynthesizeRequestSchema>;

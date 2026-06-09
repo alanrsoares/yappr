@@ -1,9 +1,9 @@
 """Hexagonal ports for inference engines.
 
 Routes in :mod:`server` depend on these :class:`Protocol` types only — never on
-a specific Kokoro/Whisper/Dia import. Concrete adapters in :mod:`adapters` plug
+a specific Kokoro/Whisper import. Concrete adapters in :mod:`adapters` plug
 in via the composition root (:mod:`composition`), keeping engine-specific
-imports (CUDA, MLX, kokoro, faster_whisper) out of the request path.
+imports (kokoro, faster_whisper, …) out of the request path.
 
 Design choices for ergonomics:
 
@@ -19,9 +19,10 @@ Adding a new engine = new adapter file + branch in composition. No route change.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from result import Result
+if TYPE_CHECKING:
+    from result import Result
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,12 +54,35 @@ class Voice:
 
 @dataclass(frozen=True, slots=True)
 class VoiceReference:
-    """Reference-audio voice conditioning for engines that support cloning
-    (Dia today; F5/Sesame in the future). The transcript pairs the audio
-    with its content so the model can disentangle voice from text."""
+    """Reference-audio voice conditioning for engines whose
+    :attr:`TtsFeatures.cloning` is true. The transcript pairs the audio with
+    its content so the model can disentangle voice from text. Engines that
+    don't advertise ``cloning`` ignore it silently."""
 
     audio_path: str
     transcript: str
+
+
+@dataclass(frozen=True, slots=True)
+class TtsFeatures:
+    """Capability metaconfig an adapter advertises about itself.
+
+    Surfaced verbatim in the ``/health`` payload so apps render only the
+    controls a backend actually honours — e.g. the voice-reference panel shows
+    only when :attr:`cloning` is true, and the speed slider only when
+    :attr:`speed` is true. This keeps engine specifics out of the UI: adding a
+    cloning-capable engine lights up the panel with no client change.
+    """
+
+    cloning: bool = False
+    """Honours :class:`VoiceReference` to clone the speaker in a reference WAV."""
+
+    speed: bool = False
+    """Honours the ``speed`` multiplier in :meth:`TtsEngine.synthesize`."""
+
+    named_voices: bool = False
+    """Exposes a catalog of named voice ids via :meth:`TtsEngine.voices`
+    (vs. a single sentinel / reference-only voicing)."""
 
 
 @runtime_checkable
@@ -67,10 +91,12 @@ class TtsEngine(Protocol):
 
     Implementations load heavy weights once at construction time and reuse for
     every :meth:`synthesize` call. :attr:`name` is the stable backend id used
-    in logs and the ``/health`` payload.
+    in logs and the ``/health`` payload; :attr:`features` is the capability
+    metaconfig apps read to drive their UI.
     """
 
     name: str
+    features: TtsFeatures
 
     def voices(self) -> Result[list[Voice], Exception]:
         """Voice descriptors this engine accepts in :meth:`synthesize`."""
@@ -85,8 +111,8 @@ class TtsEngine(Protocol):
     ) -> Result[Audio, Exception]:
         """Render ``text`` as :class:`Audio`.
 
-        ``voice=None`` → adapter default. ``reference`` is honoured by engines
-        that support voice cloning (Dia); other engines ignore it silently.
+        ``voice=None`` → adapter default. ``reference`` is honoured only by
+        engines whose :attr:`features.cloning` is true; others ignore it.
         """
 
 

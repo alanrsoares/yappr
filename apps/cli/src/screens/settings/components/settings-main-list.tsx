@@ -52,6 +52,12 @@ export function SettingsMainList() {
 
   const R = SETTINGS_LIST_ROW;
 
+  // Voice cloning is a per-adapter capability advertised in /health. When the
+  // active backend doesn't support it, the reference rows still render (the
+  // menu nav is fixed-index) but say so instead of inviting unused input.
+  const cloningSupported = engineHealth?.ttsFeatures?.cloning ?? false;
+  const cloningUnsupportedHint = `(unsupported by ${engineHealth?.ttsBackend ?? "active backend"})`;
+
   return (
     <Box flexDirection="column" marginTop={1}>
       <SettingsListRow
@@ -99,7 +105,10 @@ export function SettingsMainList() {
         index={R.voiceReferenceAudio}
         selectedRow={selectedRow}
         label="Voice ref · audio path: "
-        value={preferences.voiceReference?.audio_path || "(none — Dia only)"}
+        value={
+          preferences.voiceReference?.audio_path ||
+          (cloningSupported ? "(none)" : cloningUnsupportedHint)
+        }
       />
       <SettingsListRow
         index={R.voiceReferenceTranscript}
@@ -110,7 +119,9 @@ export function SettingsMainList() {
             ? preferences.voiceReference.transcript.length > 40
               ? `${preferences.voiceReference.transcript.slice(0, 40)}…`
               : preferences.voiceReference.transcript
-            : "(none)"
+            : cloningSupported
+              ? "(none)"
+              : cloningUnsupportedHint
         }
       />
       <SettingsListRow

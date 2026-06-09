@@ -1,29 +1,27 @@
-"""
-Result type for explicit error handling (neverthrow-style).
-Use Ok(value) / Err(error) and .map(), .and_then(), .match() for fluent, type-safe flows.
+"""A minimal Rust-style ``Result`` for railway-style error handling at boundaries.
+
+Deliberately hand-rolled rather than depending on ``returns`` or rustedpy: this is a
+small, typed surface (``map``/``and_then``/``map_err``/``match``/``unwrap_or``) and a
+library would only earn its keep with do-notation / ``IO`` / ``Future`` containers, none
+of which this codebase uses. Swapping to one later is mechanical because the surface
+matches. Adapters catch exceptions at the boundary and return ``Err``; the pure core and
+the route layer stay on the rails via :meth:`match`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Generic, TypeVar
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-T = TypeVar("T")
-U = TypeVar("U")
-E = TypeVar("E", bound=Exception)
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
-class Ok(Generic[T, E]):
-    """Successful result."""
+@dataclass(frozen=True, slots=True)
+class Ok[T, E: Exception]:
+    """Successful result carrying a value."""
 
-    __slots__ = ("_value",)
-
-    def __init__(self, value: T) -> None:
-        self._value = value
-
-    @property
-    def value(self) -> T:
-        return self._value
+    value: T
 
     def is_ok(self) -> bool:
         return True
@@ -31,33 +29,30 @@ class Ok(Generic[T, E]):
     def is_err(self) -> bool:
         return False
 
-    def map(self, f: Callable[[T], U]) -> Result[U, E]:
-        return Ok(f(self._value))
+    def map[U](self, transform: Callable[[T], U]) -> Result[U, E]:
+        return Ok(transform(self.value))
 
-    def and_then(self, f: Callable[[T], Result[U, E]]) -> Result[U, E]:
-        return f(self._value)
+    def and_then[U](self, transform: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        return transform(self.value)
 
-    def map_err(self, f: Callable[[E], E]) -> Result[T, E]:  # noqa: ARG002
-        return self
+    def map_err[F: Exception](self, transform: Callable[[E], F]) -> Result[T, F]:
+        _ = transform
+        return Ok(self.value)
 
-    def match(self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:  # noqa: ARG002
-        return ok(self._value)
+    def match[U](self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:
+        _ = err
+        return ok(self.value)
 
-    def unwrap_or(self, default: U) -> T | U:  # noqa: ARG002
-        return self._value
+    def unwrap_or[U](self, default: U) -> T | U:
+        _ = default
+        return self.value
 
 
-class Err(Generic[T, E]):
-    """Failed result."""
+@dataclass(frozen=True, slots=True)
+class Err[T, E: Exception]:
+    """Failed result carrying an exception."""
 
-    __slots__ = ("_error",)
-
-    def __init__(self, error: E) -> None:
-        self._error = error
-
-    @property
-    def error(self) -> E:
-        return self._error
+    error: E
 
     def is_ok(self) -> bool:
         return False
@@ -65,30 +60,33 @@ class Err(Generic[T, E]):
     def is_err(self) -> bool:
         return True
 
-    def map(self, f: Callable[[T], U]) -> Result[U, E]:  # noqa: ARG002
-        return self  # type: ignore[return-value]
+    def map[U](self, transform: Callable[[T], U]) -> Result[U, E]:
+        _ = transform
+        return Err(self.error)
 
-    def and_then(self, f: Callable[[T], Result[U, E]]) -> Result[U, E]:  # noqa: ARG002
-        return self  # type: ignore[return-value]
+    def and_then[U](self, transform: Callable[[T], Result[U, E]]) -> Result[U, E]:
+        _ = transform
+        return Err(self.error)
 
-    def map_err(self, f: Callable[[E], E]) -> Result[T, E]:
-        return Err(f(self._error))
+    def map_err[F: Exception](self, transform: Callable[[E], F]) -> Result[T, F]:
+        return Err(transform(self.error))
 
-    def match(self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:  # noqa: ARG002
-        return err(self._error)
+    def match[U](self, ok: Callable[[T], U], err: Callable[[E], U]) -> U:
+        _ = ok
+        return err(self.error)
 
-    def unwrap_or(self, default: U) -> T | U:
+    def unwrap_or[U](self, default: U) -> T | U:
         return default
 
 
-Result = Ok[T, E] | Err[T, E]
+type Result[T, E: Exception] = Ok[T, E] | Err[T, E]
 
 
-def ok(value: T) -> Ok[T, E]:
+def ok[T, E: Exception](value: T) -> Ok[T, E]:
     """Construct a successful result."""
     return Ok(value)
 
 
-def err(error: E) -> Err[T, E]:
+def err[T, E: Exception](error: E) -> Err[T, E]:
     """Construct a failed result."""
     return Err(error)

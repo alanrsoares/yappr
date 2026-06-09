@@ -29,11 +29,11 @@ const TEXT_EDITOR_FIELD_UI: Record<SettingsTextEditor, TextEditorFieldUi> = {
     placeholder: "sk-or-...",
   },
   voiceReferenceAudio: {
-    label: "Voice reference · audio path (Dia): ",
+    label: "Voice reference · audio path: ",
     placeholder: "/absolute/path/to/reference.wav (leave blank to disable)",
   },
   voiceReferenceTranscript: {
-    label: "Voice reference · transcript (Dia): ",
+    label: "Voice reference · transcript: ",
     placeholder: "Exact transcript of the reference audio",
   },
 };

@@ -11,12 +11,12 @@
  *   bun run scripts/smoke-tts-stt.ts                       # defaults
  *   bun run scripts/smoke-tts-stt.ts --text "Hello world"
  *   bun run scripts/smoke-tts-stt.ts --threshold 0.5       # looser
- *   bun run scripts/smoke-tts-stt.ts --backend dia         # advisory only
+ *   bun run scripts/smoke-tts-stt.ts --backend kokoro      # advisory: warn if daemon serves another
  *
  * Exit code: 0 on pass, 1 on similarity fail, 2 on transport error.
  *
- * Dia is non-deterministic and clones speakers per call; expect lower
- * similarity (~0.4-0.6) than Kokoro (~0.85+). Use `--threshold` to tune.
+ * Kokoro is deterministic and scores high (~0.85+). Non-deterministic or
+ * cloning backends score lower (~0.4-0.6); use `--threshold` to tune.
  */
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
