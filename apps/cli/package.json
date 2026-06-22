@@ -14,8 +14,8 @@
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
-    "@tanstack/ai": "^0.18.0",
-    "@tanstack/ai-ollama": "^0.6.15",
+    "@tanstack/ai": "^0.33.0",
+    "@tanstack/ai-ollama": "^0.8.6",
     "@yappr/db": "workspace:*",
     "@yappr/lib": "workspace:*",
     "@yappr/sdk": "workspace:*",
