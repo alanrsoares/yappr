@@ -133,7 +133,9 @@
       "name": "@yappr/lib",
       "version": "0.0.1",
       "dependencies": {
+        "effect": "^3.21.4",
         "marked": "^18.0.3",
+        "neverthrow": "^8.2.0",
       },
     },
     "packages/sdk": {
