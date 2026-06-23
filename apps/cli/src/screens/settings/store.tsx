@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
-import { createContainer } from "@yappr/lib/unstated";
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
 import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
 import { VoiceConfigSchema, type VoiceConfig } from "@yappr/sdk/schemas";
@@ -266,7 +265,15 @@ function commitPickerChoice(
   handlers[kind]();
 }
 
-function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
+/**
+ * Settings screen controller. The screen renders its child views mutually
+ * exclusively (edit-layer XOR picker-panel XOR main-list), so there's no
+ * concurrent shared state — a plain hook owned by the screen, passed down as
+ * props. No store/context needed.
+ */
+export function useSettingsController(
+  initialState?: SettingsStoreInitialState,
+) {
   const onBack = initialState?.onBack ?? (() => {});
 
   const { preferences, savePreferences } = usePreferences();
@@ -685,8 +692,5 @@ function useSettingsStoreLogic(initialState?: SettingsStoreInitialState) {
   return [state, actions] as const;
 }
 
-export const { useContainer: useSettingsStore, Provider: SettingsProvider } =
-  createContainer<
-    ReturnType<typeof useSettingsStoreLogic>,
-    SettingsStoreInitialState
-  >(useSettingsStoreLogic);
+export type SettingsState = ReturnType<typeof useSettingsController>[0];
+export type SettingsActions = ReturnType<typeof useSettingsController>[1];

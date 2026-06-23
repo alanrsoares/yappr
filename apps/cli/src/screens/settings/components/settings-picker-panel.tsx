@@ -3,25 +3,23 @@ import { Box, Text } from "ink";
 import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { semantic } from "~/theme/semantic.js";
 import { PICKER_TITLES } from "../constants.js";
-import { pickerItemLabel, useSettingsStore } from "../store.js";
+import { pickerItemLabel, type SettingsState } from "../store.js";
 
 /** Active picker (model, voice, provider, …). */
-export function SettingsPickerPanel() {
-  const [
-    {
-      picker,
-      modelsLoading,
-      ollamaModelsError,
-      openRouterModelsLoading,
-      openRouterModelsError,
-      pickerFilterText,
-      visiblePickerSlice,
-      visiblePickerStart,
-      pickerLen,
-      visiblePickerRows,
-      effectivePickerIndex,
-    },
-  ] = useSettingsStore();
+export function SettingsPickerPanel({ state }: { state: SettingsState }) {
+  const {
+    picker,
+    modelsLoading,
+    ollamaModelsError,
+    openRouterModelsLoading,
+    openRouterModelsError,
+    pickerFilterText,
+    visiblePickerSlice,
+    visiblePickerStart,
+    pickerLen,
+    visiblePickerRows,
+    effectivePickerIndex,
+  } = state;
 
   if (!picker) return null;
 
