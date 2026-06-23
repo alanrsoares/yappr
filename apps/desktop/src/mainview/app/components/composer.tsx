@@ -1,9 +1,9 @@
 import { useCallback, useState, type ReactNode } from "react";
 
-import { convertFileListToFileUIParts, type FileUIPart } from "ai";
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 
 import { MicButton } from "~/app/components/mic-button";
+import { fileListToAttachments, type Attachment } from "~/lib/attachments";
 import { cn } from "~/lib/utils";
 import { Button } from "~/ui/button";
 import {
@@ -30,7 +30,7 @@ function filesToFileList(files: File[]): FileList {
 }
 
 export type ComposerProps = {
-  onSend: (text: string, files: FileUIPart[]) => void;
+  onSend: (text: string, files: Attachment[]) => void;
   isBusy: boolean;
   onStop: () => void;
   leadingSlot?: ReactNode;
@@ -59,7 +59,7 @@ export function Composer({
   inputDeviceId,
 }: ComposerProps) {
   const [draft, setDraft] = useState("");
-  const [pendingFiles, setPendingFiles] = useState<FileUIPart[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<Attachment[]>([]);
   const [attachBusy, setAttachBusy] = useState(false);
 
   const trimmedLength = draft.trim().length;
@@ -88,7 +88,7 @@ export function Composer({
     if (!list?.length) return;
     setAttachBusy(true);
     try {
-      const converted = await convertFileListToFileUIParts(list);
+      const converted = await fileListToAttachments(list);
       const sizedOk = converted.filter((p) => {
         if (p.url.startsWith("data:")) {
           return p.url.length <= MAX_FILE_BYTES * 2;

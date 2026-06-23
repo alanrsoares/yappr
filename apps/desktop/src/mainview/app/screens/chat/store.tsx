@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useChat } from "@ai-sdk/react";
+import { useChat, type UIMessage } from "@tanstack/ai-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MessageRow } from "@yappr/db/rpc";
 import { createContainer } from "@yappr/lib/unstated";
-import type { FileUIPart, UIMessage } from "ai";
 
+import {
+  attachmentToPart,
+  type Attachment,
+  type ChatContentPart,
+} from "~/lib/attachments";
 import { dbRpc } from "~/lib/db-rpc";
 import {
   conversationsQueryRootKey,
@@ -14,7 +18,7 @@ import {
   preferencesOptions,
 } from "~/lib/queries";
 import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
-import { OllamaTransport } from "~/services/ollama/transport";
+import { createOllamaConnection } from "~/services/ollama/transport";
 
 /**
  * Chat-feature container — colocated with the screen it powers, mirroring
@@ -41,7 +45,7 @@ export interface ChatStoreActions {
   setModel: (next: string) => void;
   setConversationId: (id: string | null) => void;
   setInputDeviceId: (v: string | null) => void;
-  submit: (text: string, files: FileUIPart[]) => Promise<void>;
+  submit: (text: string, files: Attachment[]) => Promise<void>;
   regenerateMessage: (messageId: string) => Promise<void>;
   stop: () => void;
 }
@@ -71,21 +75,21 @@ function dbToUIMessage(m: MessageRow): UIMessage {
   return {
     id: m.id,
     role: m.role,
-    parts: [{ type: "text", text: m.content }],
+    parts: [{ type: "text", content: m.content }],
   };
 }
 
 const buildUserParts = (
   text: string,
-  files: FileUIPart[],
-): UIMessage["parts"] => {
+  files: Attachment[],
+): ChatContentPart[] => {
   const trimmed = text.trim();
-  const out: UIMessage["parts"] = [...files];
-  if (trimmed) out.push({ type: "text", text: trimmed });
+  const out: ChatContentPart[] = files.map(attachmentToPart);
+  if (trimmed) out.push({ type: "text", content: trimmed });
   return out;
 };
 
-const userRowContent = (text: string, files: FileUIPart[]): string => {
+const userRowContent = (text: string, files: Attachment[]): string => {
   const t = text.trim();
   if (t) return t;
   if (files.length === 0) return "";
@@ -93,7 +97,7 @@ const userRowContent = (text: string, files: FileUIPart[]): string => {
 };
 
 export const chatMessageText = (m: UIMessage): string =>
-  m.parts.map((p) => (p.type === "text" ? (p.text ?? "") : "")).join("");
+  m.parts.map((p) => (p.type === "text" ? (p.content ?? "") : "")).join("");
 
 function useChatStoreLogic(): ChatStoreValue {
   const queryClient = useQueryClient();
@@ -167,51 +171,44 @@ function useChatStoreLogic(): ChatStoreValue {
   useEffect(() => {
     modelRef.current = model;
   }, [model]);
-  const transport = useMemo(
+  const connection = useMemo(
     // The closure is invoked later at send time, not during render - the lint
     // rule can't statically see that, so silence it.
     // eslint-disable-next-line react-hooks/refs
-    () => new OllamaTransport(() => modelRef.current),
+    () => createOllamaConnection(() => modelRef.current),
     [],
   );
 
-  const {
-    messages,
-    regenerate,
-    sendMessage,
-    status,
-    error,
-    setMessages,
-    stop,
-  } = useChat({
-    transport,
-    onFinish: async ({ message }) => {
-      const regeneratedMessageId = pendingRegenerateMessageIdRef.current;
-      pendingRegenerateMessageIdRef.current = null;
-      const convId = liveConvIdRef.current;
-      if (!convId) return;
-      const text = chatMessageText(message);
-      if (!text) return;
-      const saved = await appendMessage.mutateAsync({
-        conversationId: convId,
-        role: "assistant",
-        content: text,
-      });
-      persistedMessageIdsRef.current.set(message.id, saved.id);
-      if (regeneratedMessageId) {
-        await deleteMessage.mutateAsync(regeneratedMessageId);
-      }
-      queryClient.invalidateQueries({
-        queryKey: messagesOptions(convId).queryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: conversationsQueryRootKey,
-      });
-    },
-    onError: () => {
-      pendingRegenerateMessageIdRef.current = null;
-    },
-  });
+  const { messages, reload, sendMessage, status, error, setMessages, stop } =
+    useChat({
+      connection,
+      onFinish: async (message) => {
+        const regeneratedMessageId = pendingRegenerateMessageIdRef.current;
+        pendingRegenerateMessageIdRef.current = null;
+        const convId = liveConvIdRef.current;
+        if (!convId) return;
+        const text = chatMessageText(message);
+        if (!text) return;
+        const saved = await appendMessage.mutateAsync({
+          conversationId: convId,
+          role: "assistant",
+          content: text,
+        });
+        persistedMessageIdsRef.current.set(message.id, saved.id);
+        if (regeneratedMessageId) {
+          await deleteMessage.mutateAsync(regeneratedMessageId);
+        }
+        queryClient.invalidateQueries({
+          queryKey: messagesOptions(convId).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: conversationsQueryRootKey,
+        });
+      },
+      onError: () => {
+        pendingRegenerateMessageIdRef.current = null;
+      },
+    });
 
   // Hydrate from the DB when the active conversation or persisted list
   // changes. Skip during an in-flight stream so the transport's live messages
@@ -253,7 +250,7 @@ function useChatStoreLogic(): ChatStoreValue {
   );
 
   const submit = useCallback(
-    async (text: string, files: FileUIPart[]) => {
+    async (text: string, files: Attachment[]) => {
       if (!text.trim() && files.length === 0) return;
       const titleSeed = userRowContent(text, files);
 
@@ -275,14 +272,9 @@ function useChatStoreLogic(): ChatStoreValue {
         content: userRowContent(text, files),
         partsJson,
       });
-      if (files.length > 0) {
-        const trimmed = text.trim();
-        await (trimmed
-          ? sendMessage({ text: trimmed, files })
-          : sendMessage({ files }));
-      } else {
-        await sendMessage({ text: text.trim() });
-      }
+      await (files.length > 0
+        ? sendMessage({ content: parts })
+        : sendMessage(text.trim()));
     },
     [conversationId, queryClient, createConv, appendMessage, sendMessage],
   );
@@ -294,12 +286,12 @@ function useChatStoreLogic(): ChatStoreValue {
         ? (persistedMessageIdsRef.current.get(messageId) ?? messageId)
         : null;
       try {
-        await regenerate({ messageId });
+        await reload();
       } catch {
         pendingRegenerateMessageIdRef.current = null;
       }
     },
-    [conversationId, isBusy, regenerate],
+    [conversationId, isBusy, reload],
   );
 
   return useMemo(

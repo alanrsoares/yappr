@@ -6,9 +6,13 @@ export default defineConfig({
   plugins: [react()],
   root: "src/mainview",
   resolve: {
-    alias: {
-      "~": path.resolve(__dirname, "./src/mainview"),
-    },
+    alias: [
+      { find: "~", replacement: path.resolve(__dirname, "./src/mainview") },
+      // `@tanstack/ai-ollama` imports the node entry of `ollama` (pulls
+      // `node:fs`); the webview runs `chat()` in-process, so resolve to the
+      // browser build, which exposes the same `Ollama` class over fetch.
+      { find: /^ollama$/, replacement: "ollama/browser" },
+    ],
   },
   build: {
     outDir: "../../dist",

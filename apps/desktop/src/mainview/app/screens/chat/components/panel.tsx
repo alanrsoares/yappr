@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
 
-import { isFileUIPart, type FileUIPart } from "ai";
 import {
   AlertTriangle,
   Copy,
@@ -10,6 +9,7 @@ import {
   Volume2,
 } from "lucide-react";
 
+import { messageAttachments, type Attachment } from "~/lib/attachments";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
 import { cn } from "~/lib/utils";
@@ -66,8 +66,7 @@ export function ChatPanel() {
           ) : (
             state.messages.map((m, idx) => {
               const text = chatMessageText(m);
-              const fileParts =
-                m.parts?.filter((p): p is FileUIPart => isFileUIPart(p)) ?? [];
+              const fileParts = messageAttachments(m);
               const isLast = idx === state.messages.length - 1;
               return (
                 <MessageBubble
@@ -147,7 +146,7 @@ function EmptyState() {
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
-  fileAttachments: FileUIPart[];
+  fileAttachments: Attachment[];
   isLast: boolean;
   canSpeak: boolean;
   canRegenerate: boolean;

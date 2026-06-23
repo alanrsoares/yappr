@@ -1,46 +1,35 @@
-import {
-  convertToModelMessages,
-  streamText,
-  type ChatTransport,
-  type UIMessage,
-  type UIMessageChunk,
-} from "ai";
-import { createOllama } from "ollama-ai-provider-v2";
+import { chat } from "@tanstack/ai";
+import { createOllamaChat } from "@tanstack/ai-ollama";
+import { stream } from "@tanstack/ai-react";
 
 import { ollamaRoot } from "./index";
 
 /**
- * AI SDK v6 `ChatTransport` that streams from the local Ollama daemon
- * directly inside the webview — no Next.js-style API route required.
+ * In-process TanStack AI connection adapter that streams from the local Ollama
+ * daemon directly inside the webview — no server route required. `stream()`
+ * wires the `AsyncIterable<StreamChunk>` from `chat()` straight into the
+ * `ChatClient`, so the same engine the CLI uses (`@tanstack/ai` +
+ * `@tanstack/ai-ollama`) drives the desktop too.
  *
- * The provider's `baseURL` follows our Vite proxy in dev (`/ollama/api`) and
- * the Electrobun build's direct loopback (`http://127.0.0.1:11434/api`).
+ * Host comes from {@link ollamaRoot} (same-origin Vite proxy in dev, loopback
+ * daemon in the packaged build); the client appends `/api/chat` itself.
  *
- * Model is read via a getter on every send so that callers can change the
- * selected model without re-instantiating the transport — `useChat` freezes
- * the transport reference at first render, so a stable instance whose
- * behaviour follows the latest model state is what we need.
+ * Model is read through `getModel` on every send so callers can switch models
+ * without recreating the connection — `useChat` freezes the adapter reference
+ * at first render, so a stable adapter whose behaviour follows the latest model
+ * state is what we need.
  */
-export class OllamaTransport implements ChatTransport<UIMessage> {
-  constructor(private readonly getModel: () => string) {}
-
-  async sendMessages({
-    messages,
-    abortSignal,
-  }: Parameters<ChatTransport<UIMessage>["sendMessages"]>[0]): Promise<
-    ReadableStream<UIMessageChunk>
-  > {
-    const provider = createOllama({ baseURL: `${ollamaRoot()}/api` });
-    const modelMessages = await convertToModelMessages(messages);
-    const result = streamText({
-      model: provider(this.getModel()),
-      messages: modelMessages,
-      abortSignal,
-    });
-    return result.toUIMessageStream();
-  }
-
-  async reconnectToStream(): Promise<ReadableStream<UIMessageChunk> | null> {
-    return null;
-  }
+export function createOllamaConnection(getModel: () => string) {
+  return stream((messages, _data, abortSignal) => {
+    const adapter = createOllamaChat(getModel(), ollamaRoot());
+    const abortController = new AbortController();
+    if (abortSignal) {
+      if (abortSignal.aborted) abortController.abort();
+      else
+        abortSignal.addEventListener("abort", () => abortController.abort(), {
+          once: true,
+        });
+    }
+    return chat({ adapter, messages, abortController });
+  });
 }

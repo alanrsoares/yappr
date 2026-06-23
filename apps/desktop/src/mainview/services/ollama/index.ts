@@ -1,6 +1,14 @@
-/** Ollama HTTP root: Vite dev proxies `/ollama` → 127.0.0.1:11434 to avoid CORS. */
+/**
+ * Ollama HTTP root (no trailing `/api`). Must be an absolute URL: the
+ * `@tanstack/ai-ollama` client runs `new URL(host)`, which rejects a bare
+ * relative path. In dev we point at the same-origin Vite proxy (`/ollama` →
+ * 127.0.0.1:11434, avoids CORS); in the packaged build we hit the loopback
+ * daemon directly (relies on `OLLAMA_ORIGINS`).
+ */
 export function ollamaRoot(): string {
-  return import.meta.env.DEV ? "/ollama" : "http://127.0.0.1:11434";
+  return import.meta.env.DEV
+    ? `${globalThis.location.origin}/ollama`
+    : "http://127.0.0.1:11434";
 }
 
 /** Model entry returned by `GET /api/tags`. */
