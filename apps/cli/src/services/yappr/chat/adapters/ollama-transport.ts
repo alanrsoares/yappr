@@ -1,3 +1,5 @@
+import { maxIterations } from "@tanstack/ai";
+
 import type { ChatRuntime } from "../runtime.js";
 import type {
   ChatStreamEvent,
@@ -9,6 +11,13 @@ export interface OllamaTransportConfig {
   model: string;
   baseUrl?: string | undefined;
 }
+
+/**
+ * Upper bound on agent-loop iterations (tool round-trips) per turn. Bounds the
+ * multi-step tool loop so a model that keeps calling tools can't run away; the
+ * tool-call trace surfaces each round, so hitting the cap is visible.
+ */
+const MAX_TOOL_ITERATIONS = 8;
 
 /**
  * {@link ChatTransport} adapter wrapping `@tanstack/ai` + `@tanstack/ai-ollama`.
@@ -33,6 +42,11 @@ export function createOllamaChatTransport(
           systemPrompts: [...req.systemPrompts],
         }),
         tools: [...req.tools],
+        // Bounded multi-step agent loop, but only when tools are present —
+        // a tool-less turn stays single-shot.
+        ...(req.tools.length > 0 && {
+          agentLoopStrategy: maxIterations(MAX_TOOL_ITERATIONS),
+        }),
         ...(abortController && { abortController }),
       });
 
