@@ -8,7 +8,7 @@ import type { ScreenId } from "~/types.js";
 import { ChatHistory } from "./components/chat-history.js";
 import { ChatInput } from "./components/chat-input.js";
 import { EventStreamView } from "./components/event-stream-view.js";
-import { ChatProvider, useChatStore } from "./store.js";
+import { useChatController } from "./store.js";
 
 export interface ChatScreenProps {
   onBack: () => void;
@@ -16,15 +16,7 @@ export interface ChatScreenProps {
 }
 
 export function ChatScreen({ onBack, onNavigate }: ChatScreenProps) {
-  return (
-    <ChatProvider initialState={{ onBack, onNavigate }}>
-      <ChatScreenContent />
-    </ChatProvider>
-  );
-}
-
-function ChatScreenContent() {
-  const [state, actions] = useChatStore();
+  const [state, actions] = useChatController({ onBack, onNavigate });
   const terminalWidth = useTerminalWidth();
 
   useKeyboard({

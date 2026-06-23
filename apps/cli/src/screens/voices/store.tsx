@@ -1,8 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
 
-import { createContainer } from "@yappr/lib/unstated";
-
 import { wantsBackKey } from "~/constants.js";
 import {
   getEffectiveKey,
@@ -25,7 +23,11 @@ export interface VoicesStoreInitialState {
 
 export type VoicePreviewStatus = "idle" | "loading" | "ok" | "error";
 
-function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
+/**
+ * Voices screen controller. Single-consumer (the screen) — a plain hook, no
+ * store/context needed. `useInput` drives filter + selection + preview.
+ */
+export function useVoicesController(initialState?: VoicesStoreInitialState) {
   const onBack = initialState?.onBack ?? (() => {});
 
   const { data: voices = [], error, isLoading } = useQuery(listVoices);
@@ -176,7 +178,7 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
     }
   });
 
-  const state = {
+  return {
     voices,
     error,
     isLoading,
@@ -189,14 +191,4 @@ function useVoicesStoreLogic(initialState?: VoicesStoreInitialState) {
     len,
     effectiveIndex,
   };
-
-  const actions = {};
-
-  return [state, actions] as const;
 }
-
-export const { useContainer: useVoicesStore, Provider: VoicesProvider } =
-  createContainer<
-    ReturnType<typeof useVoicesStoreLogic>,
-    VoicesStoreInitialState
-  >(useVoicesStoreLogic);
