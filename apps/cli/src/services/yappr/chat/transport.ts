@@ -1,4 +1,5 @@
 import type { ModelMessage, SchemaInput, Tool } from "@tanstack/ai";
+import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import { match } from "ts-pattern";
 
 import type { ChatProvider } from "../../../types.js";
@@ -25,6 +26,7 @@ export interface ChatStreamRequest {
 export type ChatStreamEvent =
   | { type: "delta"; text: string }
   | { type: "tool"; phase: "start" | "end"; name: string }
+  | { type: "usage"; usage: Omit<TurnTelemetry, "latencyMs"> }
   | { type: "error"; message: string };
 
 export interface ChatTransport {

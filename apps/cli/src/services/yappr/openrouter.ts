@@ -51,8 +51,17 @@ interface OpenRouterStreamChoice {
   delta?: OpenRouterStreamDelta;
 }
 
+interface OpenRouterUsagePayload {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  /** OpenRouter-reported cost in USD (present when usage accounting is on). */
+  cost?: number;
+}
+
 interface OpenRouterStreamLinePayload {
   choices?: OpenRouterStreamChoice[];
+  usage?: OpenRouterUsagePayload;
 }
 
 interface OpenRouterCompletionMessageBody {
@@ -73,7 +82,16 @@ interface OpenRouterRunErrorBody {
 
 type OpenRouterStreamChunk =
   | { type: "RUN_ERROR"; error: OpenRouterRunErrorBody }
-  | { type: "content"; delta: string; content: string };
+  | { type: "content"; delta: string; content: string }
+  | {
+      type: "usage";
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        cost?: number;
+      };
+    };
 
 interface OpenRouterChatAdapter {
   name: "openrouter";
@@ -154,6 +172,8 @@ export function createOpenRouterChat(
           content: m.content,
         })),
         stream: true,
+        // Ask OpenRouter to append a final usage chunk (tokens + cost).
+        usage: { include: true },
       };
       const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
         method: "POST",
@@ -193,6 +213,18 @@ export function createOpenRouterChat(
                     type: "content",
                     delta,
                     content: accumulated,
+                  };
+                }
+                if (json.usage) {
+                  const u = json.usage;
+                  yield {
+                    type: "usage",
+                    usage: {
+                      promptTokens: u.prompt_tokens ?? 0,
+                      completionTokens: u.completion_tokens ?? 0,
+                      totalTokens: u.total_tokens ?? 0,
+                      ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
+                    },
                   };
                 }
               } catch {
