@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 
+import { shallow, useSelector } from "@tanstack/react-store";
 import type { AudioFormat, VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 import { VOXTRAL_MODEL_ID, VOXTRAL_VOICES } from "@yappr/sdk/voxtral-voices";
 import { match } from "ts-pattern";
 
 import { useInputDevices } from "~/hooks";
-import { useVoiceStore, type VoiceStoreState } from "~/stores/voice";
+import { voiceActions, voiceStore, type VoiceStoreState } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import { Input } from "~/ui/input";
 import { Label } from "~/ui/label";
@@ -38,28 +39,39 @@ interface ChatSettingsSheetProps {
 const INPUT_DEFAULT_SENTINEL = "__system_default__";
 
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
-  const [
-    {
-      serverUrl,
-      voiceConfig,
-      voice,
-      voices,
-      speed,
-      health,
-      engineHealth,
-      voiceReference,
-    },
-    {
-      setServerUrl,
-      setSpeechKind,
-      setSpeechModel,
-      setSpeechFormat,
-      setVoice,
-      setSpeed,
-      setVoiceReference,
-      checkHealth,
-    },
-  ] = useVoiceStore();
+  const {
+    serverUrl,
+    voiceConfig,
+    voice,
+    voices,
+    speed,
+    health,
+    engineHealth,
+    voiceReference,
+  } = useSelector(
+    voiceStore,
+    (s) => ({
+      serverUrl: s.serverUrl,
+      voiceConfig: s.voiceConfig,
+      voice: s.voice,
+      voices: s.voices,
+      speed: s.speed,
+      health: s.health,
+      engineHealth: s.engineHealth,
+      voiceReference: s.voiceReference,
+    }),
+    { compare: shallow },
+  );
+  const {
+    setServerUrl,
+    setSpeechKind,
+    setSpeechModel,
+    setSpeechFormat,
+    setVoice,
+    setSpeed,
+    setVoiceReference,
+    checkHealth,
+  } = voiceActions;
   const [{ inputDeviceId }, { setInputDeviceId }] = useChatStore();
   const inputDevices = useInputDevices();
 

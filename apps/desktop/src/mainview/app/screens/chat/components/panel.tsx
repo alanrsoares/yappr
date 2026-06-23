@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 
+import { useSelector } from "@tanstack/react-store";
 import {
   AlertTriangle,
   Copy,
@@ -13,7 +14,7 @@ import { messageAttachments, type Attachment } from "~/lib/attachments";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
 import { cn } from "~/lib/utils";
-import { useVoiceStore } from "~/stores/voice";
+import { voiceActions, voiceStore } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import {
   ChatContainerContent,
@@ -32,11 +33,12 @@ import { chatMessageText, useChatStore } from "../store";
 import { KaraokeCaptions } from "./karaoke-captions";
 
 export function ChatPanel() {
-  const [voiceState, voiceActions] = useVoiceStore();
   const [state, actions] = useChatStore();
-  const isSpeaking = voiceState.tts.kind === "speaking";
+  const tts = useSelector(voiceStore, (s) => s.tts);
+  const caption = useSelector(voiceStore, (s) => s.caption);
+  const isSpeaking = tts.kind === "speaking";
   const speakingMessageId =
-    voiceState.caption.kind === "active" ? voiceState.caption.messageId : null;
+    caption.kind === "active" ? caption.messageId : null;
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
 
@@ -104,7 +106,7 @@ export function ChatPanel() {
       </ChatContainerRoot>
 
       <KaraokeCaptions
-        caption={voiceState.caption}
+        caption={caption}
         bottomOffset={composerHeight + 16}
         onPause={voiceActions.pauseAudio}
         onResume={voiceActions.resumeAudio}

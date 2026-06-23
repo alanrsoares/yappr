@@ -1,9 +1,10 @@
+import { useSelector } from "@tanstack/react-store";
 import { Settings } from "lucide-react";
 import { match } from "ts-pattern";
 
 import { ModelPicker } from "~/app/components/model-picker";
 import { DRAG, NO_DRAG } from "~/lib/drag-region";
-import { useVoiceStore } from "~/stores/voice";
+import { voiceStore } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import { SidebarTrigger } from "~/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/ui/tooltip";
@@ -15,7 +16,7 @@ interface ChatTopBarProps {
 }
 
 export function ChatTopBar({ model, onModelChange }: ChatTopBarProps) {
-  const [{ health }] = useVoiceStore();
+  const health = useSelector(voiceStore, (s) => s.health);
   const isHealthy = health.kind === "ok";
 
   return (

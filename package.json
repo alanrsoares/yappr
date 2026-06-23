@@ -8,6 +8,8 @@
   ],
   "overrides": {
     "@hono/node-server": "^1.19.10",
+    "@tanstack/react-store": "0.11.0",
+    "@tanstack/store": "0.11.0",
     "@types/node": "^22.10.0",
     "brace-expansion": "^1.1.13",
     "esbuild": "^0.25.12",

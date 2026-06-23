@@ -1,25 +1,21 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 
-import { VoiceStoreProvider } from "~/stores/voice";
+import { queryClient } from "~/lib/query-client";
+import { useVoiceRuntime } from "~/stores/voice";
 import { router } from "./router";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+function AppShell() {
+  // Mount the voice runtime once, inside the Query provider, so it can drive
+  // the voices health query and hydrate the voice store.
+  useVoiceRuntime();
+  return <RouterProvider router={router} />;
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <VoiceStoreProvider>
-        <RouterProvider router={router} />
-      </VoiceStoreProvider>
+      <AppShell />
     </QueryClientProvider>
   );
 }
