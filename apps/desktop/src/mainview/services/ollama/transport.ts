@@ -11,8 +11,8 @@ import { ollamaRoot } from "./index";
  * `ChatClient`, so the same engine the CLI uses (`@tanstack/ai` +
  * `@tanstack/ai-ollama`) drives the desktop too.
  *
- * `baseURL` follows the Vite dev proxy (`/ollama/api`) and the Electrobun
- * build's direct loopback (`http://127.0.0.1:11434/api`) via {@link ollamaRoot}.
+ * Host comes from {@link ollamaRoot} (same-origin Vite proxy in dev, loopback
+ * daemon in the packaged build); the client appends `/api/chat` itself.
  *
  * Model is read through `getModel` on every send so callers can switch models
  * without recreating the connection — `useChat` freezes the adapter reference
@@ -21,7 +21,7 @@ import { ollamaRoot } from "./index";
  */
 export function createOllamaConnection(getModel: () => string) {
   return stream((messages, _data, abortSignal) => {
-    const adapter = createOllamaChat(getModel(), `${ollamaRoot()}/api`);
+    const adapter = createOllamaChat(getModel(), ollamaRoot());
     const abortController = new AbortController();
     if (abortSignal) {
       if (abortSignal.aborted) abortController.abort();
