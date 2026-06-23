@@ -27,7 +27,7 @@ import {
   SheetTrigger,
 } from "~/ui/sheet";
 import { Slider } from "~/ui/slider";
-import { useChatStore } from "../store";
+import { useChatContext } from "../store";
 
 interface ChatSettingsSheetProps {
   children: ReactNode;
@@ -72,7 +72,8 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
     setVoiceReference,
     checkHealth,
   } = voiceActions;
-  const [{ inputDeviceId }, { setInputDeviceId }] = useChatStore();
+  const { store } = useChatContext();
+  const inputDeviceId = useSelector(store, (s) => s.inputDeviceId);
   const inputDevices = useInputDevices();
 
   return (
@@ -382,7 +383,9 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
               <Select
                 value={inputDeviceId ?? INPUT_DEFAULT_SENTINEL}
                 onValueChange={(v) =>
-                  setInputDeviceId(v === INPUT_DEFAULT_SENTINEL ? null : v)
+                  store.actions.setInputDeviceId(
+                    v === INPUT_DEFAULT_SENTINEL ? null : v,
+                  )
                 }
                 disabled={inputDevices.devices.length === 0}
               >

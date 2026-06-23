@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import { useChat, type UIMessage } from "@tanstack/ai-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createStoreContext,
+  useCreateStore,
+  useSelector,
+} from "@tanstack/react-store";
+import type { Store } from "@tanstack/store";
 import type { MessageRow } from "@yappr/db/rpc";
-import { createContainer } from "@yappr/lib/unstated";
 
 import {
   attachmentToPart,
@@ -21,36 +26,34 @@ import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
 import { createOllamaConnection } from "~/services/ollama/transport";
 
 /**
- * Chat-feature container — colocated with the screen it powers, mirroring
- * the CLI's per-screen store layout (apps/cli/src/screens/[name]/store.tsx).
- * Owns chat-only state and side effects that should not leak into the
- * cross-screen voice runtime (TTS/STT/health).
+ * Chat client/UI state — the only state shared across the chat subtree. The
+ * `useChat` runtime (messages, streaming status, send/stop) is NOT here: it
+ * lives in {@link useChatSession}, consumed only by the panel. Server state
+ * (models, messages, prefs) stays in TanStack Query, read directly.
  */
-type ChatRuntimeStatus = "submitted" | "streaming" | "ready" | "error";
-
-export interface ChatStoreState {
+interface ChatClientState {
   model: string;
   conversationId: string | null;
-  messages: UIMessage[];
-  status: ChatRuntimeStatus;
-  error: Error | undefined;
-  isBusy: boolean;
-  showLoading: boolean;
-  modelReady: boolean;
-  modelsLoaded: boolean;
   inputDeviceId: string | null;
 }
 
-export interface ChatStoreActions {
+interface ChatClientActions extends Record<string, (...args: never[]) => void> {
   setModel: (next: string) => void;
   setConversationId: (id: string | null) => void;
   setInputDeviceId: (v: string | null) => void;
-  submit: (text: string, files: Attachment[]) => Promise<void>;
-  regenerateMessage: (messageId: string) => Promise<void>;
-  stop: () => void;
 }
 
-export type ChatStoreValue = readonly [ChatStoreState, ChatStoreActions];
+type ChatStore = Store<ChatClientState, ChatClientActions>;
+
+const { StoreProvider, useStoreContext } = createStoreContext<{
+  store: ChatStore;
+}>();
+
+/** Access the chat client store (model / conversationId / inputDeviceId). */
+export const useChatContext = useStoreContext;
+
+const persist = (entries: Record<string, unknown>) =>
+  void dbRpc.request("preferences:setMany", entries).catch(() => {});
 
 const truncateTitle = (text: string): string => {
   const trimmed = text.trim().replace(/\s+/g, " ");
@@ -99,81 +102,108 @@ const userRowContent = (text: string, files: Attachment[]): string => {
 export const chatMessageText = (m: UIMessage): string =>
   m.parts.map((p) => (p.type === "text" ? (p.content ?? "") : "")).join("");
 
-function useChatStoreLogic(): ChatStoreValue {
-  const queryClient = useQueryClient();
-  const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [inputDeviceId, setInputDeviceId] = useState<string | null>(null);
-  // Live conversation id captured at send-time so onFinish writes to the
-  // right row even if the user navigates between conversations mid-stream.
-  const liveConvIdRef = useRef<string | null>(conversationId);
-  const persistedMessageIdsRef = useRef(new Map<string, string>());
-  const pendingRegenerateMessageIdRef = useRef<string | null>(null);
+/**
+ * Provides the chat client store to its subtree and coordinates client state
+ * with persisted prefs + the installed-models list. The `useChat` runtime is
+ * intentionally absent here — see {@link useChatSession}.
+ */
+export function ChatProvider({ children }: { children: ReactNode }) {
+  const store = useCreateStore<ChatClientState, ChatClientActions>(
+    {
+      model: DEFAULT_CHAT_MODEL,
+      conversationId: null,
+      inputDeviceId: null,
+    },
+    ({ setState }) => ({
+      setModel: (next) => {
+        setState((s) => ({ ...s, model: next }));
+        persist({ defaultChatModel: next });
+      },
+      setConversationId: (id) =>
+        setState((s) => ({ ...s, conversationId: id })),
+      setInputDeviceId: (next) => {
+        setState((s) => ({ ...s, inputDeviceId: next }));
+        // Empty string round-trips as "system default" (null on the renderer).
+        persist({ defaultInputDeviceId: next ?? "" });
+      },
+    }),
+  );
 
+  // Hydrate once from persisted prefs (setState directly so we don't re-persist).
   const { data: prefs } = useQuery(preferencesOptions);
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!prefs || hydratedRef.current) return;
-    if (typeof prefs.defaultChatModel === "string" && prefs.defaultChatModel) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setModel(prefs.defaultChatModel);
-    }
-    if (typeof prefs.defaultInputDeviceId === "string") {
-      // Empty string round-trips as "system default" (null on the renderer
-      // side). See `setInputDeviceIdPersist` below for the inverse.
-      setInputDeviceId(prefs.defaultInputDeviceId || null);
-    }
     hydratedRef.current = true;
-  }, [prefs]);
+    store.setState((s) => ({
+      ...s,
+      ...(typeof prefs.defaultChatModel === "string" && prefs.defaultChatModel
+        ? { model: prefs.defaultChatModel }
+        : {}),
+      ...(typeof prefs.defaultInputDeviceId === "string"
+        ? { inputDeviceId: prefs.defaultInputDeviceId || null }
+        : {}),
+    }));
+  }, [prefs, store]);
 
+  // Keep the selected model valid as the installed-models list arrives.
   const { data: models } = useQuery(ollamaModelsOptions);
   useEffect(() => {
     if (!models || models.length === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setModel((prev) => pickModel(prev)(models));
-  }, [models]);
+    store.setState((s) => ({ ...s, model: pickModel(s.model)(models) }));
+  }, [models, store]);
 
+  return <StoreProvider value={{ store }}>{children}</StoreProvider>;
+}
+
+export interface ChatSession {
+  messages: UIMessage[];
+  status: "submitted" | "streaming" | "ready" | "error";
+  error: Error | undefined;
+  isBusy: boolean;
+  showLoading: boolean;
+  modelReady: boolean;
+  modelsLoaded: boolean;
+  submit: (text: string, files: Attachment[]) => Promise<void>;
+  regenerateMessage: (messageId: string) => Promise<void>;
+  stop: () => void;
+}
+
+/**
+ * The `useChat`-driven chat runtime. Single-instance: mount it once, in the
+ * panel. Reads client state from {@link useChatContext}; server state comes
+ * from TanStack Query. Returns everything the message list + composer need.
+ */
+export function useChatSession(): ChatSession {
+  const { store } = useChatContext();
+  const queryClient = useQueryClient();
+  const model = useSelector(store, (s) => s.model);
+  const conversationId = useSelector(store, (s) => s.conversationId);
+
+  const { data: models } = useQuery(ollamaModelsOptions);
   const { data } = useQuery(messagesOptions(conversationId));
-  // Stable empty-array ref so the hydration effect below doesn't loop on
-  // every render when the query is disabled (conversationId === null) and
-  // `data` stays undefined.
+  // Stable empty-array ref so the hydration effect doesn't loop while the
+  // query is disabled (conversationId === null) and `data` stays undefined.
   const persisted = useMemo<MessageRow[]>(() => data ?? [], [data]);
+
+  // Live conversation id captured at send-time so onFinish writes to the right
+  // row even if the user navigates between conversations mid-stream.
+  const liveConvIdRef = useRef<string | null>(conversationId);
+  const persistedMessageIdsRef = useRef(new Map<string, string>());
+  const pendingRegenerateMessageIdRef = useRef<string | null>(null);
   useEffect(() => {
     persistedMessageIdsRef.current = new Map(
       persisted.map((m) => [m.id, m.id]),
     );
   }, [persisted]);
 
-  const persistPrefs = useMutation({
-    mutationFn: (entries: Record<string, unknown>) =>
-      dbRpc.request("preferences:setMany", entries),
-  });
-  const createConv = useMutation({
-    mutationFn: (title: string) =>
-      dbRpc.request("conversations:create", { title, model }),
-  });
-  const appendMessage = useMutation({
-    mutationFn: (params: {
-      conversationId: string;
-      role: "user" | "assistant";
-      content: string;
-      partsJson?: string;
-    }) => dbRpc.request("messages:append", params),
-  });
-  const deleteMessage = useMutation({
-    mutationFn: (id: string) => dbRpc.request("messages:delete", { id }),
-  });
-
-  // useChat freezes the transport at first render. Wrap the model lookup in a
-  // ref-backed getter so picking a different model at runtime takes effect
-  // without re-creating the chat instance (which would lose live state).
+  // useChat freezes the connection at first render; read the live model via a
+  // ref so switching models takes effect without recreating the chat instance.
   const modelRef = useRef(model);
   useEffect(() => {
     modelRef.current = model;
   }, [model]);
   const connection = useMemo(
-    // The closure is invoked later at send time, not during render - the lint
-    // rule can't statically see that, so silence it.
     // eslint-disable-next-line react-hooks/refs
     () => createOllamaConnection(() => modelRef.current),
     [],
@@ -189,31 +219,27 @@ function useChatStoreLogic(): ChatStoreValue {
         if (!convId) return;
         const text = chatMessageText(message);
         if (!text) return;
-        const saved = await appendMessage.mutateAsync({
+        const saved = await dbRpc.request("messages:append", {
           conversationId: convId,
           role: "assistant",
           content: text,
         });
         persistedMessageIdsRef.current.set(message.id, saved.id);
         if (regeneratedMessageId) {
-          await deleteMessage.mutateAsync(regeneratedMessageId);
+          await dbRpc.request("messages:delete", { id: regeneratedMessageId });
         }
         queryClient.invalidateQueries({
           queryKey: messagesOptions(convId).queryKey,
         });
-        queryClient.invalidateQueries({
-          queryKey: conversationsQueryRootKey,
-        });
+        queryClient.invalidateQueries({ queryKey: conversationsQueryRootKey });
       },
       onError: () => {
         pendingRegenerateMessageIdRef.current = null;
       },
     });
 
-  // Hydrate from the DB when the active conversation or persisted list
-  // changes. Skip during an in-flight stream so the transport's live messages
-  // aren't clobbered. setMessages is ref-stashed because useChat re-creates
-  // its identity each render and would otherwise re-trigger the effect.
+  // Hydrate messages from the DB when the conversation / persisted list
+  // changes, skipping in-flight streams so live messages aren't clobbered.
   const setMessagesRef = useRef(setMessages);
   useEffect(() => {
     setMessagesRef.current = setMessages;
@@ -233,40 +259,23 @@ function useChatStoreLogic(): ChatStoreValue {
       (m) => m.role === "assistant" && chatMessageText(m).length > 0,
     );
 
-  const setModelPersist = useCallback(
-    (next: string) => {
-      setModel(next);
-      persistPrefs.mutate({ defaultChatModel: next });
-    },
-    [persistPrefs],
-  );
-
-  const setInputDeviceIdPersist = useCallback(
-    (next: string | null) => {
-      setInputDeviceId(next);
-      persistPrefs.mutate({ defaultInputDeviceId: next ?? "" });
-    },
-    [persistPrefs],
-  );
-
   const submit = useCallback(
     async (text: string, files: Attachment[]) => {
       if (!text.trim() && files.length === 0) return;
-      const titleSeed = userRowContent(text, files);
-
-      let convId = conversationId;
+      let convId = store.state.conversationId;
       if (!convId) {
-        const conv = await createConv.mutateAsync(truncateTitle(titleSeed));
-        convId = conv.id;
-        setConversationId(convId);
-        queryClient.invalidateQueries({
-          queryKey: conversationsQueryRootKey,
+        const conv = await dbRpc.request("conversations:create", {
+          title: truncateTitle(userRowContent(text, files)),
+          model: store.state.model,
         });
+        convId = conv.id;
+        store.actions.setConversationId(convId);
+        queryClient.invalidateQueries({ queryKey: conversationsQueryRootKey });
       }
       liveConvIdRef.current = convId;
       const parts = buildUserParts(text, files);
       const partsJson = files.length > 0 ? JSON.stringify(parts) : undefined;
-      await appendMessage.mutateAsync({
+      await dbRpc.request("messages:append", {
         conversationId: convId,
         role: "user",
         content: userRowContent(text, files),
@@ -276,13 +285,13 @@ function useChatStoreLogic(): ChatStoreValue {
         ? sendMessage({ content: parts })
         : sendMessage(text.trim()));
     },
-    [conversationId, queryClient, createConv, appendMessage, sendMessage],
+    [store, sendMessage, queryClient],
   );
 
   const regenerateMessage = useCallback(
     async (messageId: string) => {
       if (isBusy) return;
-      pendingRegenerateMessageIdRef.current = conversationId
+      pendingRegenerateMessageIdRef.current = store.state.conversationId
         ? (persistedMessageIdsRef.current.get(messageId) ?? messageId)
         : null;
       try {
@@ -291,52 +300,19 @@ function useChatStoreLogic(): ChatStoreValue {
         pendingRegenerateMessageIdRef.current = null;
       }
     },
-    [conversationId, isBusy, reload],
+    [store, isBusy, reload],
   );
 
-  return useMemo(
-    () =>
-      [
-        {
-          model,
-          conversationId,
-          messages,
-          status,
-          error,
-          isBusy,
-          showLoading,
-          modelReady,
-          modelsLoaded: Boolean(models),
-          inputDeviceId,
-        },
-        {
-          setModel: setModelPersist,
-          setConversationId,
-          setInputDeviceId: setInputDeviceIdPersist,
-          submit,
-          regenerateMessage,
-          stop,
-        },
-      ] as const,
-    [
-      model,
-      conversationId,
-      messages,
-      status,
-      error,
-      isBusy,
-      showLoading,
-      modelReady,
-      models,
-      inputDeviceId,
-      setModelPersist,
-      setInputDeviceIdPersist,
-      submit,
-      regenerateMessage,
-      stop,
-    ],
-  );
+  return {
+    messages,
+    status,
+    error,
+    isBusy,
+    showLoading,
+    modelReady,
+    modelsLoaded: Boolean(models),
+    submit,
+    regenerateMessage,
+    stop,
+  };
 }
-
-export const { useContainer: useChatStore, Provider: ChatStoreProvider } =
-  createContainer<ChatStoreValue>(useChatStoreLogic);
