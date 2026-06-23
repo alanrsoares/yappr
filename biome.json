@@ -31,7 +31,7 @@
     "enabled": true,
     "domains": { "react": "recommended" },
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": "off",
       "correctness": { "useExhaustiveDependencies": "off" },
       "suspicious": {
