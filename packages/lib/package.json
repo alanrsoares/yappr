@@ -12,9 +12,12 @@
     "./image-path": "./src/image-path.ts",
     "./narration-text": "./src/narration-text.ts",
     "./result": "./src/result.ts",
-    "./telemetry": "./src/telemetry.ts"
+    "./telemetry": "./src/telemetry.ts",
+    "./effect": "./src/effect.ts"
   },
   "dependencies": {
-    "marked": "^18.0.3"
+    "effect": "^3.21.4",
+    "marked": "^18.0.3",
+    "neverthrow": "^8.2.0"
   }
 }
