@@ -4,7 +4,11 @@ import TextInput from "ink-text-input";
 import { Footer, Header } from "~/components";
 import { FOOTER_SETTINGS_EDIT } from "~/footer-items.js";
 import { SETTINGS_SUBTITLE } from "../constants.js";
-import { useSettingsStore, type SettingsTextEditor } from "../store.js";
+import type {
+  SettingsActions,
+  SettingsState,
+  SettingsTextEditor,
+} from "../store.js";
 
 interface TextEditorFieldUi {
   label: string;
@@ -66,9 +70,14 @@ function EditFieldShell(props: {
   );
 }
 
-/** Full-screen inline editors (must render under `SettingsProvider`). */
-export function SettingsEditLayer() {
-  const [state, actions] = useSettingsStore();
+/** Full-screen inline editors. */
+export function SettingsEditLayer({
+  state,
+  actions,
+}: {
+  state: SettingsState;
+  actions: SettingsActions;
+}) {
   const session = state.textEditorSession;
   if (!session) return null;
 

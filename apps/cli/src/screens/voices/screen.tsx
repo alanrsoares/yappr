@@ -4,11 +4,7 @@ import { Footer, Header, Loading } from "~/components";
 import { footerVoices } from "~/footer-items.js";
 import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { semantic } from "~/theme/semantic.js";
-import {
-  useVoicesStore,
-  VoicesProvider,
-  type VoicePreviewStatus,
-} from "./store.js";
+import { useVoicesController, type VoicePreviewStatus } from "./store.js";
 
 export interface VoicesScreenProps {
   onBack: () => void;
@@ -36,15 +32,6 @@ function EmptyVoicesMessage({ voices }: { voices: readonly string[] }) {
 }
 
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
-  return (
-    <VoicesProvider initialState={{ onBack }}>
-      <VoicesScreenContent />
-    </VoicesProvider>
-  );
-}
-
-function VoicesScreenContent() {
-  const [state] = useVoicesStore();
   const {
     voices,
     error,
@@ -57,7 +44,7 @@ function VoicesScreenContent() {
     len,
     effectiveIndex,
     filterText,
-  } = state;
+  } = useVoicesController({ onBack });
 
   let content = (
     <Box flexDirection="column" marginTop={1}>

@@ -9,7 +9,7 @@ import { chatModelRowText } from "../chat-model-row.js";
 import {
   CHAT_PROVIDER_LABEL,
   SETTINGS_LIST_ROW,
-  useSettingsStore,
+  type SettingsState,
 } from "../store.js";
 import { SettingsListRow } from "./settings-list-row.js";
 
@@ -35,20 +35,18 @@ function speechEndpointLabel(
 }
 
 /** Main settings rows when no picker is open. */
-export function SettingsMainList() {
-  const [
-    {
-      preferences,
-      engineHealth,
-      modelsLoading,
-      openRouterModelsLoading,
-      inputDevicesLoading,
-      outputDevicesLoading,
-      inputDeviceLabel,
-      outputDeviceLabel,
-      selectedRow,
-    },
-  ] = useSettingsStore();
+export function SettingsMainList({ state }: { state: SettingsState }) {
+  const {
+    preferences,
+    engineHealth,
+    modelsLoading,
+    openRouterModelsLoading,
+    inputDevicesLoading,
+    outputDevicesLoading,
+    inputDeviceLabel,
+    outputDeviceLabel,
+    selectedRow,
+  } = state;
 
   const R = SETTINGS_LIST_ROW;
 

@@ -6,7 +6,6 @@ import {
   parseImageTokens,
 } from "@yappr/lib/image-path";
 import { markdownToNarrationText } from "@yappr/lib/narration-text";
-import { createContainer } from "@yappr/lib/unstated";
 import { okAsync } from "neverthrow";
 
 import { buildChatFooterItems } from "~/footer-items.js";
@@ -54,7 +53,11 @@ export interface ChatStoreInitialState {
   onNavigate?: (screen: ScreenId) => void;
 }
 
-function useChatStoreLogic(initialState?: ChatStoreInitialState) {
+/**
+ * Chat screen controller. Single-consumer (the screen) — a plain hook, no
+ * store/context needed.
+ */
+export function useChatController(initialState?: ChatStoreInitialState) {
   const noop = useCallback(() => {}, []);
   const onBack = initialState?.onBack ?? noop;
   const onNavigate = initialState?.onNavigate;
@@ -715,8 +718,3 @@ function useChatStoreLogic(initialState?: ChatStoreInitialState) {
 
   return [state, actions] as const;
 }
-
-export const { useContainer: useChatStore, Provider: ChatProvider } =
-  createContainer<ReturnType<typeof useChatStoreLogic>, ChatStoreInitialState>(
-    useChatStoreLogic,
-  );
