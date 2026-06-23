@@ -1,5 +1,7 @@
 import { toError } from "@yappr/lib/result";
+import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import { ResultAsync } from "neverthrow";
+import { match } from "ts-pattern";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
 import type { ChatOptions } from "../../../types.js";
@@ -42,6 +44,7 @@ export function chat(
     systemPrompts = [],
     abortController,
     onToolCall,
+    onTelemetry,
     runtime = defaultChatRuntime,
   } = options;
 
@@ -64,7 +67,7 @@ export function chat(
         ...(abortController && { signal: abortController.signal }),
       };
       return ResultAsync.fromPromise(
-        drainStream(transport, req, { onUpdate, onToolCall }, mcp),
+        drainStream(transport, req, { onUpdate, onToolCall, onTelemetry }, mcp),
         toError,
       );
     });
@@ -73,6 +76,7 @@ export function chat(
 interface ChatCallbacks {
   onUpdate: ChatOptions["onUpdate"];
   onToolCall: ChatOptions["onToolCall"];
+  onTelemetry: ChatOptions["onTelemetry"];
 }
 
 async function drainStream(
@@ -82,25 +86,32 @@ async function drainStream(
   mcp: { close: () => Promise<void> },
 ): Promise<string | null> {
   let finalContent = "";
+  let usage: Omit<TurnTelemetry, "latencyMs"> | null = null;
+  const startedAt = Date.now();
   try {
     for await (const event of transport.stream(req)) {
       throwIfAborted(req.signal);
-      switch (event.type) {
-        case "delta": {
-          finalContent += event.text;
-          callbacks.onUpdate?.(finalContent);
-          break;
-        }
-        case "tool": {
-          callbacks.onToolCall?.(event.name, event.phase);
-          break;
-        }
-        case "error": {
-          throw new Error(event.message);
-        }
+      // Usage is captured outside the match so control-flow analysis can
+      // narrow `usage` after the loop (closure writes are invisible to CFA).
+      if (event.type === "usage") {
+        usage = event.usage;
+        continue;
       }
+      match(event)
+        .with({ type: "delta" }, (e) => {
+          finalContent += e.text;
+          callbacks.onUpdate?.(finalContent);
+        })
+        .with({ type: "tool" }, (e) => callbacks.onToolCall?.(e.name, e.phase))
+        .with({ type: "error" }, (e) => {
+          throw new Error(e.message);
+        })
+        .exhaustive();
     }
     throwIfAborted(req.signal);
+    if (usage) {
+      callbacks.onTelemetry?.({ ...usage, latencyMs: Date.now() - startedAt });
+    }
     return finalContent || null;
   } finally {
     await mcp.close();

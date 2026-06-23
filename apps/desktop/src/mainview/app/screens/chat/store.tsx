@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { useChat, type UIMessage } from "@tanstack/ai-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +16,7 @@ import {
 } from "@tanstack/react-store";
 import type { Store } from "@tanstack/store";
 import type { MessageRow } from "@yappr/db/rpc";
+import type { TurnTelemetry } from "@yappr/lib/telemetry";
 
 import {
   attachmentToPart,
@@ -164,6 +172,8 @@ export interface ChatSession {
   showLoading: boolean;
   modelReady: boolean;
   modelsLoaded: boolean;
+  /** Stats for the most recent completed turn; null until the first reply. */
+  telemetry: TurnTelemetry | null;
   submit: (text: string, files: Attachment[]) => Promise<void>;
   regenerateMessage: (messageId: string) => Promise<void>;
   stop: () => void;
@@ -191,6 +201,12 @@ export function useChatSession(): ChatSession {
   const liveConvIdRef = useRef<string | null>(conversationId);
   const persistedMessageIdsRef = useRef(new Map<string, string>());
   const pendingRegenerateMessageIdRef = useRef<string | null>(null);
+
+  // Per-turn telemetry: usage captured from the RUN_FINISHED chunk, latency
+  // measured from send to finish. Cleared at send so stale stats don't linger.
+  const [telemetry, setTelemetry] = useState<TurnTelemetry | null>(null);
+  const sentAtRef = useRef<number | null>(null);
+  const usageRef = useRef<Omit<TurnTelemetry, "latencyMs"> | null>(null);
   useEffect(() => {
     persistedMessageIdsRef.current = new Map(
       persisted.map((m) => [m.id, m.id]),
@@ -212,7 +228,24 @@ export function useChatSession(): ChatSession {
   const { messages, reload, sendMessage, status, error, setMessages, stop } =
     useChat({
       connection,
+      onChunk: (chunk) => {
+        if (chunk.type === "RUN_FINISHED" && chunk.usage) {
+          const u = chunk.usage;
+          usageRef.current = {
+            promptTokens: u.promptTokens,
+            completionTokens: u.completionTokens,
+            totalTokens: u.totalTokens,
+            ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
+          };
+        }
+      },
       onFinish: async (message) => {
+        if (usageRef.current) {
+          const latencyMs = sentAtRef.current
+            ? Date.now() - sentAtRef.current
+            : 0;
+          setTelemetry({ ...usageRef.current, latencyMs });
+        }
         const regeneratedMessageId = pendingRegenerateMessageIdRef.current;
         pendingRegenerateMessageIdRef.current = null;
         const convId = liveConvIdRef.current;
@@ -281,6 +314,9 @@ export function useChatSession(): ChatSession {
         content: userRowContent(text, files),
         partsJson,
       });
+      sentAtRef.current = Date.now();
+      usageRef.current = null;
+      setTelemetry(null);
       await (files.length > 0
         ? sendMessage({ content: parts })
         : sendMessage(text.trim()));
@@ -294,6 +330,9 @@ export function useChatSession(): ChatSession {
       pendingRegenerateMessageIdRef.current = store.state.conversationId
         ? (persistedMessageIdsRef.current.get(messageId) ?? messageId)
         : null;
+      sentAtRef.current = Date.now();
+      usageRef.current = null;
+      setTelemetry(null);
       try {
         await reload();
       } catch {
@@ -311,6 +350,7 @@ export function useChatSession(): ChatSession {
     showLoading,
     modelReady,
     modelsLoaded: Boolean(models),
+    telemetry,
     submit,
     regenerateMessage,
     stop,

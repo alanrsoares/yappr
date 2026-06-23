@@ -54,6 +54,8 @@ export function createOpenRouterChatTransport(
           };
         } else if (chunk.type === "content" && chunk.delta) {
           yield { type: "delta", text: chunk.delta };
+        } else if (chunk.type === "usage") {
+          yield { type: "usage", usage: chunk.usage };
         }
       }
     },

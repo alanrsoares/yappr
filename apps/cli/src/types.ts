@@ -1,3 +1,4 @@
+import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import type { VoiceConfig, VoiceReference } from "@yappr/sdk/schemas";
 
 import type { ChatRuntime } from "./services/yappr/chat/runtime.js";
@@ -89,5 +90,7 @@ export interface ChatOptions {
   abortController?: AbortController;
   /** Called when an MCP tool call starts or ends (for UI status). */
   onToolCall?: (name: string, phase: "start" | "end") => void;
+  /** Called once per turn with token + latency stats when the stream reports usage. */
+  onTelemetry?: (telemetry: TurnTelemetry) => void;
   runtime?: ChatRuntime;
 }

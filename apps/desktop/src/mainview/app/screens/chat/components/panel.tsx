@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 
 import { useSelector } from "@tanstack/react-store";
+import { formatTelemetry } from "@yappr/lib/telemetry";
 import {
   AlertTriangle,
   Copy,
@@ -129,6 +130,11 @@ export function ChatPanel() {
         className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70"
       >
         <div className="mx-auto max-w-3xl">
+          {session.telemetry && !session.isBusy ? (
+            <div className="mb-1 text-center font-mono text-[10px] tracking-wide text-foil-mute">
+              {formatTelemetry(session.telemetry)}
+            </div>
+          ) : null}
           <Composer
             onSend={(t, f) => void session.submit(t, f)}
             isBusy={session.isBusy}

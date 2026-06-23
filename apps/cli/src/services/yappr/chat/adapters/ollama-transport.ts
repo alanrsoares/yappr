@@ -51,6 +51,17 @@ export function createOllamaChatTransport(
             type: "error",
             message: chunk.error?.message ?? "Chat stream error",
           };
+        } else if (chunk.type === "RUN_FINISHED" && chunk.usage) {
+          const u = chunk.usage;
+          yield {
+            type: "usage",
+            usage: {
+              promptTokens: u.promptTokens,
+              completionTokens: u.completionTokens,
+              totalTokens: u.totalTokens,
+              ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
+            },
+          };
         }
       }
     },

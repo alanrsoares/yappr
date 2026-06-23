@@ -6,6 +6,7 @@ import {
   parseImageTokens,
 } from "@yappr/lib/image-path";
 import { markdownToNarrationText } from "@yappr/lib/narration-text";
+import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import { okAsync } from "neverthrow";
 
 import { buildChatFooterItems } from "~/footer-items.js";
@@ -80,6 +81,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
   const [isEventStreamOpen, setIsEventStreamOpen] = useState(false);
   const [hasStoppedRecording, setHasStoppedRecording] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<string[]>([]);
+  const [telemetry, setTelemetry] = useState<TurnTelemetry | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const chatAbortRef = useRef<AbortController | null>(null);
   const runStartedAtRef = useRef(0);
@@ -195,6 +197,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
     })();
     void persistUser;
 
+    setTelemetry(null);
     return chat(prompt, {
       provider,
       model,
@@ -203,6 +206,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
       mcpConfigPath,
       messages: priorMessages,
       images,
+      onTelemetry: setTelemetry,
       onUpdate: (text) => {
         if (firstTokenAtRef.current === null)
           firstTokenAtRef.current = Date.now();
@@ -695,6 +699,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
     statusContent,
     slashNotice,
     pendingAttachments,
+    telemetry,
     footerItems: buildChatFooterItems({
       isSlashPalette,
       isChatPending: chatMutation.isPending,

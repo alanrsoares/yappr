@@ -1,5 +1,7 @@
 import { Box, Text } from "ink";
 
+import { formatTelemetry } from "@yappr/lib/telemetry";
+
 import { Footer, Header } from "~/components";
 import { useKeyboard, useTerminalWidth } from "~/hooks";
 import { truncateDisplayWidth } from "~/string-display.js";
@@ -94,6 +96,12 @@ export function ChatScreen({ onBack, onNavigate }: ChatScreenProps) {
             </Text>
           ))}
           <Text dimColor>ctrl+x clears all attachments</Text>
+        </Box>
+      )}
+
+      {!state.isEventStreamOpen && state.telemetry !== null && (
+        <Box marginBottom={1}>
+          <Text dimColor>{formatTelemetry(state.telemetry)}</Text>
         </Box>
       )}
 
