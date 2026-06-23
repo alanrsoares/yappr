@@ -1,7 +1,6 @@
-import { Box, Text } from "ink";
-
 import type { HealthSnapshot } from "@yappr/sdk/health";
 import { detectSpeechPreset } from "@yappr/sdk/speech-presets";
+import { Box, Text } from "ink";
 import { match } from "ts-pattern";
 
 import type { Preferences } from "~/types.js";

@@ -1,7 +1,6 @@
+import { marked } from "marked";
 import { memo, useId, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
-
-import { marked } from "marked";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 

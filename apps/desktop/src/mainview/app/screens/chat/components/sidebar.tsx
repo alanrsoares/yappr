@@ -1,5 +1,3 @@
-import { useMemo, useState } from "react";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
@@ -10,6 +8,7 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { DRAG, NO_DRAG } from "~/lib/drag-region";
@@ -121,7 +120,6 @@ export function ChatSidebar({
 
   const { groups, archivedGroups } = useMemo(() => {
     // Buckets are wall-clock relative (Today / Yesterday / …).
-    // eslint-disable-next-line react-hooks/purity -- Date.now for time buckets
     const now = Date.now();
     return {
       groups: buildGroups(

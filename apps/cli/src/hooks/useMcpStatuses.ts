@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
-
 import { McpManager } from "@yappr/sdk/mcp";
 import type { ServerStatus } from "@yappr/sdk/types";
+import { useEffect, useRef } from "react";
 
 import { useQuery } from "./useQuery.js";
 

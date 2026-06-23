@@ -3,18 +3,18 @@ import { DEFAULT_SPEED, DEFAULT_VOICE } from "@yappr/sdk/defaults";
 import { ResultAsync } from "neverthrow";
 
 import type { SpeakOptions } from "../../types.js";
-import { getDefaultAudioRuntime, type AudioRuntime } from "./audio-runtime.js";
+import { type AudioRuntime, getDefaultAudioRuntime } from "./audio-runtime.js";
 
 export {
+  type AudioPaths,
+  type AudioRuntime,
   createAudioRuntime,
   createPlaybackPort,
   getDefaultAudioRuntime,
-  resetDefaultAudioRuntimeForTests,
-  resolveAudioPaths,
-  type AudioPaths,
-  type AudioRuntime,
   type PlaybackPort,
   type RecorderPort,
+  resetDefaultAudioRuntimeForTests,
+  resolveAudioPaths,
   type TtsPort,
 } from "./audio-runtime.js";
 
@@ -96,7 +96,7 @@ export function recordAndTranscribeWithRuntime(
 }
 
 export {
+  type AudioDevice,
   listInputDevices,
   listOutputDevices,
-  type AudioDevice,
 } from "@yappr/sdk/audio-devices";

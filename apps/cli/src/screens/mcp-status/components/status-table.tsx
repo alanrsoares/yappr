@@ -1,6 +1,5 @@
-import { Box, Text } from "ink";
-
 import type { ServerStatus } from "@yappr/sdk/types";
+import { Box, Text } from "ink";
 
 import { semantic } from "~/theme/semantic.js";
 

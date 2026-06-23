@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import { useMemo, useState } from "react";
 
 import { match } from "ts-pattern";
 
 import {
-  getEffectiveKey,
   type ExtendedKey,
+  getEffectiveKey,
   type InkKeyWithAlt,
 } from "~/hooks/index.js";
 import { clampSelectedIndex, cycleIndex } from "~/list-nav.js";

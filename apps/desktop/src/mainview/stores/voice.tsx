@@ -1,5 +1,3 @@
-import { useEffect, type ReactNode } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import {
   createStoreContext,
@@ -8,19 +6,21 @@ import {
 } from "@tanstack/react-store";
 import type { Store } from "@tanstack/store";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
-import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
+import { type HealthSnapshot, probeHealth } from "@yappr/sdk/health";
 import {
-  VoiceConfigSchema,
-  VoiceReferenceSchema,
   type AudioFormat,
   type VoiceConfig,
+  VoiceConfigSchema,
   type VoiceId,
   type VoiceReference,
+  VoiceReferenceSchema,
 } from "@yappr/sdk/schemas";
 import { buildSpeechPreset } from "@yappr/sdk/speech-presets";
 import { createVoiceClient } from "@yappr/sdk/voice";
+import { type ReactNode, useEffect } from "react";
 
 import {
+  type AudioHandle,
   buildAudio,
   DEFAULT_SERVER_URL,
   DEFAULT_SPEED,
@@ -29,7 +29,6 @@ import {
   toHealthFail,
   toHealthOk,
   toTtsError,
-  type AudioHandle,
 } from "~/lib/audio";
 import { dbRpc } from "~/lib/db-rpc";
 import { NarrationCache, narrationCacheKey } from "~/lib/narration-cache";
@@ -445,7 +444,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       ...s,
       voiceReference: ref.success ? ref.data : null,
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Boolean(prefs)]);
 
   const speech = useSelector(store, (s) => s.voiceConfig.speech);

@@ -1,5 +1,3 @@
-import { memo, useEffect, useRef, useState } from "react";
-
 import { useSelector } from "@tanstack/react-store";
 import { formatTelemetry } from "@yappr/lib/telemetry";
 import {
@@ -10,8 +8,9 @@ import {
   Square,
   Volume2,
 } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
 
-import { messageAttachments, type Attachment } from "~/lib/attachments";
+import { type Attachment, messageAttachments } from "~/lib/attachments";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
 import { cn } from "~/lib/utils";

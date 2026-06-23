@@ -44,7 +44,6 @@ export function useAudioAnalyser(
 
   useEffect(() => {
     if (!audio) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReadings(ZERO_READINGS);
       return;
     }

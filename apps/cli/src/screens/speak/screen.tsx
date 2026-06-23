@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+import { useCallback, useState } from "react";
 
 import { Footer, Header, Loading } from "~/components";
 import { DEFAULT_KEYS } from "~/constants.js";

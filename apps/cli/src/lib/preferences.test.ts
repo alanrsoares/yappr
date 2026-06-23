@@ -1,3 +1,4 @@
+import { expect, test } from "bun:test";
 import {
   existsSync,
   mkdirSync,
@@ -7,7 +8,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, test } from "bun:test";
 
 import {
   DEFAULT_PREFERENCES,

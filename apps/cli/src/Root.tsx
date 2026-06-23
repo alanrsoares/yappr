@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
 import { Box } from "ink";
+import { useCallback, useState } from "react";
 
 import pkg from "../package.json" with { type: "json" };
 import { Splash } from "./components/index.js";

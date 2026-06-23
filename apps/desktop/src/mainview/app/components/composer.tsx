@@ -1,9 +1,8 @@
-import { useCallback, useState, type ReactNode } from "react";
-
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
+import { type ReactNode, useCallback, useState } from "react";
 
 import { MicButton } from "~/app/components/mic-button";
-import { fileListToAttachments, type Attachment } from "~/lib/attachments";
+import { type Attachment, fileListToAttachments } from "~/lib/attachments";
 import { cn } from "~/lib/utils";
 import { Button } from "~/ui/button";
 import {

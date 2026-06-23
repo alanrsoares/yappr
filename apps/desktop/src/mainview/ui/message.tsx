@@ -129,8 +129,8 @@ const MessageAction = ({
 
 export {
   Message,
+  MessageAction,
+  MessageActions,
   MessageAvatar,
   MessageContent,
-  MessageActions,
-  MessageAction,
 };

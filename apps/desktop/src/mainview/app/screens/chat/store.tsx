@@ -1,13 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-
-import { useChat, type UIMessage } from "@tanstack/ai-react";
+import { type UIMessage, useChat } from "@tanstack/ai-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createStoreContext,
@@ -17,10 +8,18 @@ import {
 import type { Store } from "@tanstack/store";
 import type { MessageRow } from "@yappr/db/rpc";
 import type { TurnTelemetry } from "@yappr/lib/telemetry";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
-  attachmentToPart,
   type Attachment,
+  attachmentToPart,
   type ChatContentPart,
 } from "~/lib/attachments";
 import { dbRpc } from "~/lib/db-rpc";
@@ -220,7 +219,6 @@ export function useChatSession(): ChatSession {
     modelRef.current = model;
   }, [model]);
   const connection = useMemo(
-    // eslint-disable-next-line react-hooks/refs
     () => createOllamaConnection(() => modelRef.current),
     [],
   );

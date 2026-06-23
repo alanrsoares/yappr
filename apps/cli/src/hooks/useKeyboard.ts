@@ -1,4 +1,4 @@
-import { useInput, type Key } from "ink";
+import { type Key, useInput } from "ink";
 
 export interface KeyBinding {
   keys: string[];

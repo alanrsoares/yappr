@@ -4,16 +4,16 @@ import { Cause, Context, Effect, Exit, Ref, Stream } from "effect";
 import {
   errAsync,
   okAsync,
-  ResultAsync,
   type ResultAsync as RA,
+  ResultAsync,
 } from "neverthrow";
 import { match } from "ts-pattern";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
 import type { ChatOptions } from "../../../types.js";
 import { buildChatModelMessages } from "./messages.js";
-import { defaultChatRuntime, type ChatRuntime } from "./runtime.js";
-import { createChatTransport, type ChatStreamRequest } from "./transport.js";
+import { type ChatRuntime, defaultChatRuntime } from "./runtime.js";
+import { type ChatStreamRequest, createChatTransport } from "./transport.js";
 
 /**
  * SPIKE: the `chat()` orchestration re-expressed as an Effect program, to
@@ -175,4 +175,4 @@ export function chatEffect(
   );
 }
 
-export { ChatRuntimeTag, acquireMcp };
+export { acquireMcp, ChatRuntimeTag };

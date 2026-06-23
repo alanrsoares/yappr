@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { getEffectiveKey, type ExtendedKey } from "./useKeyboard";
+import { type ExtendedKey, getEffectiveKey } from "./useKeyboard";
 
 function key(overrides: Partial<ExtendedKey> = {}): ExtendedKey {
   return {

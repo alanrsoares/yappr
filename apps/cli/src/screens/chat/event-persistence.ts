@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { err, ok, okAsync, ResultAsync, type Result } from "neverthrow";
+import { err, ok, okAsync, type Result, ResultAsync } from "neverthrow";
 
 import { getDb } from "~/lib/db.js";
 import type { ChatEvent } from "./events.js";

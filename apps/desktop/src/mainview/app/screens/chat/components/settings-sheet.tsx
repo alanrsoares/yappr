@@ -1,9 +1,8 @@
-import type { ReactNode } from "react";
-
 import { shallow, useSelector } from "@tanstack/react-store";
 import type { AudioFormat, VoiceConfig, VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 import { VOXTRAL_MODEL_ID, VOXTRAL_VOICES } from "@yappr/sdk/voxtral-voices";
+import type { ReactNode } from "react";
 import { match } from "ts-pattern";
 
 import { useInputDevices } from "~/hooks";

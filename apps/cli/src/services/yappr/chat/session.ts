@@ -8,9 +8,9 @@ import type { ChatOptions } from "../../../types.js";
 import { buildChatModelMessages } from "./messages.js";
 import { defaultChatRuntime } from "./runtime.js";
 import {
-  createChatTransport,
   type ChatStreamRequest,
   type ChatTransport,
+  createChatTransport,
 } from "./transport.js";
 
 function throwIfAborted(signal: AbortSignal | undefined): void {

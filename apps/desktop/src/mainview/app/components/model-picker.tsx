@@ -1,7 +1,6 @@
-import { useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, RefreshCcw } from "lucide-react";
+import { useState } from "react";
 
 import { ollamaModelsOptions } from "~/lib/queries";
 import { cn } from "~/lib/utils";

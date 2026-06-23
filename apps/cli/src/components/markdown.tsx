@@ -1,9 +1,8 @@
-import { useMemo } from "react";
-import { Text } from "ink";
-
 import { highlight } from "cli-highlight";
+import { Text } from "ink";
 import { marked, type Renderer } from "marked";
 import TerminalRenderer from "marked-terminal";
+import { useMemo } from "react";
 
 export interface MarkdownProps {
   children: string;
@@ -12,7 +11,7 @@ export interface MarkdownProps {
 // Initialize the renderer once
 const renderer = new TerminalRenderer({
   code: (code: string, lang?: string) => {
-    const language = lang && lang.trim() ? lang.trim() : undefined;
+    const language = lang?.trim() ? lang.trim() : undefined;
     try {
       return highlight(code, { language, ignoreIllegals: true });
     } catch {

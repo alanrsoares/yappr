@@ -1,6 +1,5 @@
-import { Box, Text } from "ink";
-
 import { formatTelemetry } from "@yappr/lib/telemetry";
+import { Box, Text } from "ink";
 
 import { Footer, Header } from "~/components";
 import { useKeyboard, useTerminalWidth } from "~/hooks";

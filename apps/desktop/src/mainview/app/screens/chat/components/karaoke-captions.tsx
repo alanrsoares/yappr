@@ -1,12 +1,11 @@
+import { Pause, Play, RotateCcw, Square } from "lucide-react";
 import {
+  type CSSProperties,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
-
-import { Pause, Play, RotateCcw, Square } from "lucide-react";
 
 import {
   CAPTION_FONT_FAMILY,
