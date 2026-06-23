@@ -14,7 +14,7 @@ import { messageAttachments, type Attachment } from "~/lib/attachments";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
 import { cn } from "~/lib/utils";
-import { voiceActions, voiceStore } from "~/stores/voice";
+import { useVoiceContext } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import {
   ChatContainerContent,
@@ -35,6 +35,7 @@ import { KaraokeCaptions } from "./karaoke-captions";
 export function ChatPanel() {
   const session = useChatSession();
   const { store } = useChatContext();
+  const { store: voiceStore } = useVoiceContext();
   const inputDeviceId = useSelector(store, (s) => s.inputDeviceId);
   const tts = useSelector(voiceStore, (s) => s.tts);
   const caption = useSelector(voiceStore, (s) => s.caption);
@@ -94,11 +95,14 @@ export function ChatPanel() {
                   }
                   onRegenerate={() => void session.regenerateMessage(m.id)}
                   onSpeak={() =>
-                    void voiceActions.speak(markdownToNarrationText(text), {
-                      messageId: m.id,
-                    })
+                    void voiceStore.actions.speak(
+                      markdownToNarrationText(text),
+                      {
+                        messageId: m.id,
+                      },
+                    )
                   }
-                  onStop={voiceActions.stopAudio}
+                  onStop={voiceStore.actions.stopAudio}
                 />
               );
             })
@@ -114,10 +118,10 @@ export function ChatPanel() {
       <KaraokeCaptions
         caption={caption}
         bottomOffset={composerHeight + 16}
-        onPause={voiceActions.pauseAudio}
-        onResume={voiceActions.resumeAudio}
-        onRestart={voiceActions.restartAudio}
-        onStop={voiceActions.stopAudio}
+        onPause={voiceStore.actions.pauseAudio}
+        onResume={voiceStore.actions.resumeAudio}
+        onRestart={voiceStore.actions.restartAudio}
+        onStop={voiceStore.actions.stopAudio}
       />
 
       <div
@@ -131,7 +135,7 @@ export function ChatPanel() {
             onStop={session.stop}
             disabled={!session.modelReady}
             placeholder={composerPlaceholder}
-            transcribe={voiceActions.transcribe}
+            transcribe={voiceStore.actions.transcribe}
             inputDeviceId={inputDeviceId}
           />
         </div>
