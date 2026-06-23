@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, type ReactNode } from "react";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { createContainer } from "@yappr/lib/unstated";
+import { useQuery } from "@tanstack/react-query";
+import {
+  createStoreContext,
+  useCreateStore,
+  useSelector,
+} from "@tanstack/react-store";
+import type { Store } from "@tanstack/store";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
 import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
 import {
@@ -29,6 +34,7 @@ import {
 import { dbRpc } from "~/lib/db-rpc";
 import { NarrationCache, narrationCacheKey } from "~/lib/narration-cache";
 import { preferencesOptions, voicesOptions } from "~/lib/queries";
+import { queryClient } from "~/lib/query-client";
 import type { HealthState, TtsState } from "~/types";
 
 export type VoiceCaptionState =
@@ -43,101 +49,108 @@ export type VoiceCaptionState =
       paused: boolean;
     };
 
-export type VoiceStoreState = {
+/** Voice client/UI state. `voices`/`health` are server state — read via
+ * {@link useVoiceHealth} (TanStack Query), not stored here. */
+export interface VoiceClientState {
   serverUrl: string;
   voiceConfig: VoiceConfig;
   voiceReference: VoiceReference | null;
-  health: HealthState;
   /** Daemon engine snapshot from `GET /health` (which TTS/STT backend is loaded). */
   engineHealth: HealthSnapshot | null;
-  voices: VoiceId[];
   voice: VoiceId;
   speed: number;
   tts: TtsState;
   caption: VoiceCaptionState;
-};
+}
 
-type SpeakOptions = {
-  messageId?: string;
-};
+type SpeakOptions = { messageId?: string };
 
-type VoiceStoreActions = {
+interface VoiceActions extends Record<string, (...args: never[]) => unknown> {
   setServerUrl: (v: string) => void;
   setSpeechKind: (v: VoiceConfig["speech"]["kind"]) => void;
   setSpeechModel: (v: string) => void;
   setSpeechFormat: (v: AudioFormat) => void;
   setVoice: (v: VoiceId) => void;
   setSpeed: (v: number) => void;
-  /** Voice-clone reference for cloning-capable backends. Pass `null` to disable. */
   setVoiceReference: (next: VoiceReference | null) => void;
-  /** Force a backend re-probe (delegates to TanStack Query refetch). */
   checkHealth: () => Promise<void>;
   pauseAudio: () => void;
   resumeAudio: () => void;
   restartAudio: () => void;
   stopAudio: () => void;
-  /** Speak the given text; no-op on empty. */
   speak: (text: string, options?: SpeakOptions) => Promise<void>;
-  /** Send a recorded audio Blob to the STT endpoint. Resolves with transcript. */
   transcribe: (blob: Blob) => Promise<string>;
-};
+}
 
-type VoiceStoreValue = readonly [VoiceStoreState, VoiceStoreActions];
+type VoiceStore = Store<VoiceClientState, VoiceActions>;
+
+const { StoreProvider, useStoreContext } = createStoreContext<{
+  store: VoiceStore;
+}>();
+
+/** Access the voice client store. */
+export const useVoiceContext = useStoreContext;
 
 const speechSpeed = (speech: VoiceConfig["speech"]) =>
   speech.kind === "yappr" ? speech.speed : (speech.speed ?? DEFAULT_SPEED);
 
-function useVoiceStoreLogic(): VoiceStoreValue {
-  const [voiceConfig, setVoiceConfig] =
-    useState<VoiceConfig>(DEFAULT_VOICE_CONFIG);
-  const [voiceReference, setVoiceReferenceState] =
-    useState<VoiceReference | null>(null);
-  const [engineHealth, setEngineHealth] = useState<HealthSnapshot | null>(null);
-  const [tts, setTts] = useState<TtsState>({ kind: "idle" });
-  const [caption, setCaption] = useState<VoiceCaptionState>({ kind: "idle" });
-  const audioHandleRef = useRef<AudioHandle | null>(null);
-  const narrationCacheRef = useRef(new NarrationCache());
-  const speakRunRef = useRef(0);
+const initialState = (config: VoiceConfig): VoiceClientState => ({
+  serverUrl: config.speech.baseUrl,
+  voiceConfig: config,
+  voiceReference: null,
+  engineHealth: null,
+  voice: config.speech.voice as VoiceId,
+  speed: speechSpeed(config.speech),
+  tts: { kind: "idle" },
+  caption: { kind: "idle" },
+});
 
-  const { data: prefs } = useQuery(preferencesOptions);
-  const hydratedRef = useRef(false);
-  useEffect(() => {
-    if (!prefs || hydratedRef.current) return;
-    const parsed = VoiceConfigSchema.safeParse(prefs.voice);
-    setVoiceConfig(parsed.success ? parsed.data : DEFAULT_VOICE_CONFIG);
-    const ref = VoiceReferenceSchema.safeParse(prefs.voiceReference);
-    setVoiceReferenceState(ref.success ? ref.data : null);
-    hydratedRef.current = true;
-  }, [prefs]);
+// Module-scoped imperative handles — the voice runtime is an app-global
+// singleton (one provider at the app root), so these live at module scope.
+let audioHandle: AudioHandle | null = null;
+const narrationCache = new NarrationCache();
+let speakRun = 0;
 
-  const persistPrefs = useMutation({
-    mutationFn: (voice: VoiceConfig) =>
-      dbRpc.request("preferences:setMany", { voice }),
-  });
+const persistVoiceConfig = (voice: VoiceConfig) =>
+  void dbRpc.request("preferences:setMany", { voice }).catch(() => {});
 
-  const persistVoiceConfig = useCallback(
-    (nextConfig: VoiceConfig) => {
-      persistPrefs.mutate(nextConfig);
-    },
-    [persistPrefs],
-  );
+type Setter = VoiceStore["setState"];
+type Getter = VoiceStore["get"];
 
-  const persistReferencePrefs = useMutation({
-    mutationFn: (ref: VoiceReference | null) =>
-      dbRpc.request("preferences:setMany", { voiceReference: ref }),
-  });
-  const setVoiceReference = useCallback(
-    (next: VoiceReference | null) => {
-      setVoiceReferenceState(next);
-      persistReferencePrefs.mutate(next);
-    },
-    [persistReferencePrefs],
-  );
+/** Write a VoiceConfig (with derived fields) and optionally persist it. */
+const applyVoiceConfig = (
+  setState: Setter,
+  next: VoiceConfig,
+  persist = true,
+): void => {
+  setState((s) => ({
+    ...s,
+    voiceConfig: next,
+    serverUrl: next.speech.baseUrl,
+    voice: next.speech.voice as VoiceId,
+    speed: speechSpeed(next.speech),
+  }));
+  if (persist) persistVoiceConfig(next);
+};
 
-  const setServerUrlPersist = useCallback(
-    (next: string) => {
-      setVoiceConfig((current) => {
-        const nextConfig = VoiceConfigSchema.parse({
+const voiceActionsFactory = ({
+  setState,
+  get,
+}: {
+  setState: Setter;
+  get: Getter;
+}): VoiceActions => {
+  const updateSpeech = (
+    mutate: (current: VoiceConfig) => VoiceConfig | null,
+  ) => {
+    const next = mutate(get().voiceConfig);
+    if (next) applyVoiceConfig(setState, next);
+  };
+
+  return {
+    setServerUrl: (next) =>
+      updateSpeech((current) =>
+        VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, baseUrl: next },
           transcription:
@@ -145,204 +158,160 @@ function useVoiceStoreLogic(): VoiceStoreValue {
             current.transcription.kind === "yappr"
               ? { ...current.transcription, baseUrl: next }
               : current.transcription,
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setSpeechKindPersist = useCallback(
-    (next: VoiceConfig["speech"]["kind"]) => {
-      setVoiceConfig((current) => {
-        if (current.speech.kind === next) return current;
+        }),
+      ),
+    setSpeechKind: (next) =>
+      updateSpeech((current) => {
+        if (current.speech.kind === next) return null;
         const voice = current.speech.voice as VoiceId;
         const speed = speechSpeed(current.speech);
-        const nextConfig = VoiceConfigSchema.parse({
+        return VoiceConfigSchema.parse({
           ...current,
           speech:
             next === "yappr"
-              ? {
-                  kind: "yappr",
-                  baseUrl: DEFAULT_SERVER_URL,
-                  voice,
-                  speed,
-                }
+              ? { kind: "yappr", baseUrl: DEFAULT_SERVER_URL, voice, speed }
               : { ...buildSpeechPreset("voxtral"), speed },
         });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setSpeechModelPersist = useCallback(
-    (next: string) => {
-      setVoiceConfig((current) => {
-        if (current.speech.kind !== "openai-compatible") return current;
-        const nextConfig = VoiceConfigSchema.parse({
-          ...current,
-          speech: { ...current.speech, model: next },
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setSpeechFormatPersist = useCallback(
-    (next: AudioFormat) => {
-      setVoiceConfig((current) => {
-        if (current.speech.kind !== "openai-compatible") return current;
-        const nextConfig = VoiceConfigSchema.parse({
-          ...current,
-          speech: { ...current.speech, format: next },
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setVoicePersist = useCallback(
-    (next: VoiceId) => {
-      setVoiceConfig((current) => {
-        const nextConfig = VoiceConfigSchema.parse({
+      }),
+    setSpeechModel: (next) =>
+      updateSpeech((current) =>
+        current.speech.kind !== "openai-compatible"
+          ? null
+          : VoiceConfigSchema.parse({
+              ...current,
+              speech: { ...current.speech, model: next },
+            }),
+      ),
+    setSpeechFormat: (next) =>
+      updateSpeech((current) =>
+        current.speech.kind !== "openai-compatible"
+          ? null
+          : VoiceConfigSchema.parse({
+              ...current,
+              speech: { ...current.speech, format: next },
+            }),
+      ),
+    setVoice: (next) =>
+      updateSpeech((current) =>
+        VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, voice: next },
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
-      });
-    },
-    [persistVoiceConfig],
-  );
-  const setSpeedPersist = useCallback(
-    (next: number) => {
-      setVoiceConfig((current) => {
-        const nextConfig = VoiceConfigSchema.parse({
+        }),
+      ),
+    setSpeed: (next) =>
+      updateSpeech((current) =>
+        VoiceConfigSchema.parse({
           ...current,
           speech: { ...current.speech, speed: next },
-        });
-        persistVoiceConfig(nextConfig);
-        return nextConfig;
+        }),
+      ),
+    setVoiceReference: (next) => {
+      setState((s) => ({ ...s, voiceReference: next }));
+      void dbRpc
+        .request("preferences:setMany", { voiceReference: next })
+        .catch(() => {});
+    },
+    checkHealth: async () => {
+      const speech = get().voiceConfig.speech;
+      await queryClient.refetchQueries({
+        queryKey: voicesOptions(speech).queryKey,
+      });
+      if (speech.kind !== "yappr") {
+        setState((s) => ({ ...s, engineHealth: null }));
+        return;
+      }
+      const snapshot = await probeHealth(speech.baseUrl);
+      setState((s) => ({
+        ...s,
+        engineHealth: snapshot.match(
+          (snap) => snap,
+          () => null,
+        ),
+      }));
+    },
+    stopAudio: () => {
+      speakRun += 1;
+      if (audioHandle) {
+        disposeAudio(audioHandle);
+        audioHandle = null;
+      }
+      setState((s) =>
+        s.tts.kind === "speaking"
+          ? { ...s, tts: { kind: "idle" }, caption: { kind: "idle" } }
+          : { ...s, caption: { kind: "idle" } },
+      );
+    },
+    pauseAudio: () => {
+      const handle = audioHandle;
+      if (!handle) return;
+      handle.audio.pause();
+      setState((s) =>
+        s.caption.kind === "active"
+          ? { ...s, caption: { ...s.caption, paused: true } }
+          : s,
+      );
+    },
+    resumeAudio: () => {
+      const handle = audioHandle;
+      if (!handle) return;
+      void handle.audio.play().catch((error: unknown) => {
+        if (audioHandle !== handle) return;
+        disposeAudio(handle);
+        audioHandle = null;
+        const message =
+          error instanceof Error ? error.message : "Audio playback failed";
+        setState((s) => ({
+          ...s,
+          tts: toTtsError(message),
+          caption: { kind: "idle" },
+        }));
       });
     },
-    [persistVoiceConfig],
-  );
-  const client = useMemo(() => createVoiceClient(voiceConfig), [voiceConfig]);
-
-  const voicesQuery = useQuery(voicesOptions(voiceConfig.speech));
-  const voices = useMemo(() => voicesQuery.data ?? [], [voicesQuery.data]);
-
-  const health = useMemo<HealthState>(() => {
-    if (voicesQuery.isPending) return { kind: "checking" };
-    if (voicesQuery.isError) {
-      const err = voicesQuery.error;
-      return toHealthFail(err instanceof Error ? err.message : "Unknown error");
-    }
-    return toHealthOk(voices);
-  }, [voicesQuery.isPending, voicesQuery.isError, voicesQuery.error, voices]);
-
-  useEffect(() => {
-    if (voices.length === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVoiceConfig((current) => {
-      const prev = current.speech.voice as VoiceId;
-      const next = pickVoice(prev)(voices);
-      if (next === prev) return current;
-      return VoiceConfigSchema.parse({
-        ...current,
-        speech: { ...current.speech, voice: next },
-      });
-    });
-  }, [voices]);
-
-  const checkHealth = useCallback(async () => {
-    await voicesQuery.refetch();
-    const speech = voiceConfig.speech;
-    if (speech.kind !== "yappr") {
-      setEngineHealth(null);
-      return;
-    }
-    const snapshot = await probeHealth(speech.baseUrl);
-    setEngineHealth(
-      snapshot.match(
-        (s) => s,
-        () => null,
-      ),
-    );
-  }, [voicesQuery, voiceConfig.speech]);
-
-  const stopAudio = useCallback(() => {
-    speakRunRef.current += 1;
-    if (audioHandleRef.current) {
-      disposeAudio(audioHandleRef.current);
-      audioHandleRef.current = null;
-    }
-    setTts((prev) => (prev.kind === "speaking" ? { kind: "idle" } : prev));
-    setCaption({ kind: "idle" });
-  }, []);
-
-  const pauseAudio = useCallback(() => {
-    const handle = audioHandleRef.current;
-    if (!handle) return;
-    handle.audio.pause();
-    setCaption((prev) =>
-      prev.kind === "active" ? { ...prev, paused: true } : prev,
-    );
-  }, []);
-
-  const resumeAudio = useCallback(() => {
-    const handle = audioHandleRef.current;
-    if (!handle) return;
-    void handle.audio.play().catch((error: unknown) => {
-      if (audioHandleRef.current !== handle) return;
-      disposeAudio(handle);
-      audioHandleRef.current = null;
-      const message =
-        error instanceof Error ? error.message : "Audio playback failed";
-      setTts(toTtsError(message));
-      setCaption({ kind: "idle" });
-    });
-  }, []);
-
-  const restartAudio = useCallback(() => {
-    const handle = audioHandleRef.current;
-    if (!handle) return;
-    handle.audio.currentTime = 0;
-    setCaption((prev) =>
-      prev.kind === "active"
-        ? {
-            ...prev,
-            currentTime: 0,
-            progress: 0,
-            paused: handle.audio.paused,
-          }
-        : prev,
-    );
-  }, []);
-
-  const speak = useCallback(
-    async (text: string, options?: SpeakOptions) => {
+    restartAudio: () => {
+      const handle = audioHandle;
+      if (!handle) return;
+      handle.audio.currentTime = 0;
+      setState((s) =>
+        s.caption.kind === "active"
+          ? {
+              ...s,
+              caption: {
+                ...s.caption,
+                currentTime: 0,
+                progress: 0,
+                paused: handle.audio.paused,
+              },
+            }
+          : s,
+      );
+    },
+    speak: async (text, options) => {
       const phrase = text.trim();
       if (phrase.length === 0) return;
-      stopAudio();
-      const runId = speakRunRef.current;
-      const { speech } = voiceConfig;
+      // Inline stop (sibling actions aren't reachable from inside the factory).
+      speakRun += 1;
+      if (audioHandle) {
+        disposeAudio(audioHandle);
+        audioHandle = null;
+      }
+      const runId = speakRun;
+      const { speech } = get().voiceConfig;
       const voice = speech.voice as VoiceId;
       const speed = speechSpeed(speech);
-      setTts({ kind: "speaking" });
       const messageId = options?.messageId ?? null;
-      setCaption({
-        kind: "active",
-        messageId,
-        text: phrase,
-        currentTime: 0,
-        duration: 0,
-        progress: 0,
-        paused: false,
-      });
+      setState((s) => ({
+        ...s,
+        tts: { kind: "speaking" },
+        caption: {
+          kind: "active",
+          messageId,
+          text: phrase,
+          currentTime: 0,
+          duration: 0,
+          progress: 0,
+          paused: false,
+        },
+      }));
       const cacheKey = narrationCacheKey({
         speech,
         voice,
@@ -350,24 +319,27 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         text: phrase,
       });
       const playBuffer = (buffer: ArrayBuffer) => {
-        if (speakRunRef.current !== runId) return;
+        if (speakRun !== runId) return;
         const handle = buildAudio(buffer);
-        audioHandleRef.current = handle;
+        audioHandle = handle;
         const updateCaption = () => {
-          if (audioHandleRef.current !== handle) return;
+          if (audioHandle !== handle) return;
           const duration = Number.isFinite(handle.audio.duration)
             ? handle.audio.duration
             : 0;
           const currentTime = handle.audio.currentTime;
-          setCaption({
-            kind: "active",
-            messageId,
-            text: phrase,
-            currentTime,
-            duration,
-            progress: duration > 0 ? currentTime / duration : 0,
-            paused: handle.audio.paused,
-          });
+          setState((s) => ({
+            ...s,
+            caption: {
+              kind: "active",
+              messageId,
+              text: phrase,
+              currentTime,
+              duration,
+              progress: duration > 0 ? currentTime / duration : 0,
+              paused: handle.audio.paused,
+            },
+          }));
         };
         updateCaption();
         handle.audio.addEventListener("loadedmetadata", updateCaption);
@@ -376,56 +348,67 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         handle.audio.addEventListener("playing", updateCaption);
         handle.audio.addEventListener("timeupdate", updateCaption);
         handle.audio.addEventListener("ended", () => {
-          if (audioHandleRef.current !== handle) return;
+          if (audioHandle !== handle) return;
           disposeAudio(handle);
-          audioHandleRef.current = null;
-          setTts({ kind: "idle" });
-          setCaption({ kind: "idle" });
+          audioHandle = null;
+          setState((s) => ({
+            ...s,
+            tts: { kind: "idle" },
+            caption: { kind: "idle" },
+          }));
         });
         handle.audio.addEventListener("error", () => {
-          if (audioHandleRef.current !== handle) return;
+          if (audioHandle !== handle) return;
           disposeAudio(handle);
-          audioHandleRef.current = null;
-          setTts(toTtsError("Audio playback failed"));
-          setCaption({ kind: "idle" });
+          audioHandle = null;
+          setState((s) => ({
+            ...s,
+            tts: toTtsError("Audio playback failed"),
+            caption: { kind: "idle" },
+          }));
         });
         void handle.audio.play().catch((error: unknown) => {
-          if (audioHandleRef.current !== handle) return;
+          if (audioHandle !== handle) return;
           disposeAudio(handle);
-          audioHandleRef.current = null;
+          audioHandle = null;
           const message =
             error instanceof Error ? error.message : "Audio playback failed";
-          setTts(toTtsError(message));
-          setCaption({ kind: "idle" });
+          setState((s) => ({
+            ...s,
+            tts: toTtsError(message),
+            caption: { kind: "idle" },
+          }));
         });
       };
-      const cached = narrationCacheRef.current.get(cacheKey);
+      const cached = narrationCache.get(cacheKey);
       if (cached.isOk()) {
         playBuffer(cached.value);
         return;
       }
+      const client = createVoiceClient(get().voiceConfig);
+      const reference = get().voiceReference;
       const result = await client.synthesize(phrase, {
         voice,
         speed,
-        ...(voiceReference ? { reference: voiceReference } : {}),
+        ...(reference ? { reference } : {}),
       });
-      if (speakRunRef.current !== runId) return;
+      if (speakRun !== runId) return;
       result.match(
         (buffer) => {
-          narrationCacheRef.current.set(cacheKey, buffer);
+          narrationCache.set(cacheKey, buffer);
           playBuffer(buffer);
         },
         (err) => {
-          setTts(toTtsError(err.message));
-          setCaption({ kind: "idle" });
+          setState((s) => ({
+            ...s,
+            tts: toTtsError(err.message),
+            caption: { kind: "idle" },
+          }));
         },
       );
     },
-    [client, voiceConfig, voiceReference, stopAudio],
-  );
-
-  const transcribe = useCallback(
-    async (blob: Blob): Promise<string> => {
+    transcribe: async (blob) => {
+      const client = createVoiceClient(get().voiceConfig);
       const result = await client.transcribe(blob);
       return result.match(
         (t) => t,
@@ -434,49 +417,76 @@ function useVoiceStoreLogic(): VoiceStoreValue {
         },
       );
     },
-    [client],
+  };
+};
+
+/**
+ * Provides the voice store and wires React-only concerns: prefs hydration,
+ * the voices health query (to keep the selected voice valid), and audio
+ * disposal on unmount. Mount once at the app root.
+ */
+export function VoiceProvider({ children }: { children: ReactNode }) {
+  const store = useCreateStore<VoiceClientState, VoiceActions>(
+    initialState(DEFAULT_VOICE_CONFIG),
+    voiceActionsFactory,
   );
+
+  const { data: prefs } = useQuery(preferencesOptions);
+  useEffect(() => {
+    if (!prefs) return;
+    const parsed = VoiceConfigSchema.safeParse(prefs.voice);
+    applyVoiceConfig(
+      store.setState,
+      parsed.success ? parsed.data : DEFAULT_VOICE_CONFIG,
+      false,
+    );
+    const ref = VoiceReferenceSchema.safeParse(prefs.voiceReference);
+    store.setState((s) => ({
+      ...s,
+      voiceReference: ref.success ? ref.data : null,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(prefs)]);
+
+  const speech = useSelector(store, (s) => s.voiceConfig.speech);
+  const voicesQuery = useQuery(voicesOptions(speech));
+  useEffect(() => {
+    const voices = voicesQuery.data ?? [];
+    if (voices.length === 0) return;
+    store.setState((s) => {
+      const prev = s.voiceConfig.speech.voice as VoiceId;
+      const next = pickVoice(prev)(voices);
+      if (next === prev) return s;
+      const voiceConfig = VoiceConfigSchema.parse({
+        ...s.voiceConfig,
+        speech: { ...s.voiceConfig.speech, voice: next },
+      });
+      return { ...s, voiceConfig, voice: next };
+    });
+  }, [voicesQuery.data, store]);
 
   useEffect(
     () => () => {
-      if (audioHandleRef.current) disposeAudio(audioHandleRef.current);
+      if (audioHandle) disposeAudio(audioHandle);
     },
     [],
   );
 
-  const speech = voiceConfig.speech;
-  const state = {
-    serverUrl: speech.baseUrl,
-    voiceConfig,
-    voiceReference,
-    health,
-    engineHealth,
-    voices,
-    voice: speech.voice as VoiceId,
-    speed: speechSpeed(speech),
-    tts,
-    caption,
-  };
-
-  const actions = {
-    setServerUrl: setServerUrlPersist,
-    setSpeechKind: setSpeechKindPersist,
-    setSpeechModel: setSpeechModelPersist,
-    setSpeechFormat: setSpeechFormatPersist,
-    setVoice: setVoicePersist,
-    setSpeed: setSpeedPersist,
-    setVoiceReference,
-    checkHealth,
-    pauseAudio,
-    resumeAudio,
-    restartAudio,
-    stopAudio,
-    speak,
-    transcribe,
-  };
-
-  return [state, actions] as const;
+  return <StoreProvider value={{ store }}>{children}</StoreProvider>;
 }
 
-export const { useContainer: useVoiceStore, Provider: VoiceStoreProvider } =
-  createContainer<VoiceStoreValue>(useVoiceStoreLogic);
+/** Voices list + health, derived from the voices query (server state). */
+export function useVoiceHealth(): { voices: VoiceId[]; health: HealthState } {
+  const { store } = useVoiceContext();
+  const speech = useSelector(store, (s) => s.voiceConfig.speech);
+  const q = useQuery(voicesOptions(speech));
+  const voices = q.data ?? [];
+  const health: HealthState = q.isPending
+    ? { kind: "checking" }
+    : q.isError
+      ? toHealthFail(
+          q.error instanceof Error ? q.error.message : "Unknown error",
+        )
+      : toHealthOk(voices);
+  return { voices, health };
+}

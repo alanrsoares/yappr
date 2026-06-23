@@ -1,25 +1,16 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 
-import { VoiceStoreProvider } from "~/stores/voice";
+import { queryClient } from "~/lib/query-client";
+import { VoiceProvider } from "~/stores/voice";
 import { router } from "./router";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <VoiceStoreProvider>
+      <VoiceProvider>
         <RouterProvider router={router} />
-      </VoiceStoreProvider>
+      </VoiceProvider>
     </QueryClientProvider>
   );
 }

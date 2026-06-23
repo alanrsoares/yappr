@@ -32,6 +32,8 @@
     "@tanstack/ai-react": "^0.15.10",
     "@tanstack/react-query": "^5.100.10",
     "@tanstack/react-router": "^1.169.2",
+    "@tanstack/react-store": "^0.11.0",
+    "@tanstack/store": "^0.11.0",
     "@yappr/db": "workspace:*",
     "@yappr/lib": "workspace:*",
     "@yappr/sdk": "workspace:*",

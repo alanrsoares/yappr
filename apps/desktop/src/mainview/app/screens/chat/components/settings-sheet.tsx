@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 
-import type { AudioFormat, VoiceId } from "@yappr/sdk/schemas";
+import { shallow, useSelector } from "@tanstack/react-store";
+import type { AudioFormat, VoiceConfig, VoiceId } from "@yappr/sdk/schemas";
 import { formatSpeed } from "@yappr/sdk/state";
 import { VOXTRAL_MODEL_ID, VOXTRAL_VOICES } from "@yappr/sdk/voxtral-voices";
 import { match } from "ts-pattern";
 
 import { useInputDevices } from "~/hooks";
-import { useVoiceStore, type VoiceStoreState } from "~/stores/voice";
+import { useVoiceContext, useVoiceHealth } from "~/stores/voice";
+import type { HealthState } from "~/types";
 import { Button } from "~/ui/button";
 import { Input } from "~/ui/input";
 import { Label } from "~/ui/label";
@@ -26,7 +28,7 @@ import {
   SheetTrigger,
 } from "~/ui/sheet";
 import { Slider } from "~/ui/slider";
-import { useChatStore } from "../store";
+import { useChatContext } from "../store";
 
 interface ChatSettingsSheetProps {
   children: ReactNode;
@@ -38,29 +40,33 @@ interface ChatSettingsSheetProps {
 const INPUT_DEFAULT_SENTINEL = "__system_default__";
 
 export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
-  const [
-    {
-      serverUrl,
-      voiceConfig,
-      voice,
-      voices,
-      speed,
-      health,
-      engineHealth,
-      voiceReference,
-    },
-    {
-      setServerUrl,
-      setSpeechKind,
-      setSpeechModel,
-      setSpeechFormat,
-      setVoice,
-      setSpeed,
-      setVoiceReference,
-      checkHealth,
-    },
-  ] = useVoiceStore();
-  const [{ inputDeviceId }, { setInputDeviceId }] = useChatStore();
+  const { store: voiceStore } = useVoiceContext();
+  const { serverUrl, voiceConfig, voice, speed, engineHealth, voiceReference } =
+    useSelector(
+      voiceStore,
+      (s) => ({
+        serverUrl: s.serverUrl,
+        voiceConfig: s.voiceConfig,
+        voice: s.voice,
+        speed: s.speed,
+        engineHealth: s.engineHealth,
+        voiceReference: s.voiceReference,
+      }),
+      { compare: shallow },
+    );
+  const { voices, health } = useVoiceHealth();
+  const {
+    setServerUrl,
+    setSpeechKind,
+    setSpeechModel,
+    setSpeechFormat,
+    setVoice,
+    setSpeed,
+    setVoiceReference,
+    checkHealth,
+  } = voiceStore.actions;
+  const { store } = useChatContext();
+  const inputDeviceId = useSelector(store, (s) => s.inputDeviceId);
   const inputDevices = useInputDevices();
 
   return (
@@ -85,9 +91,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
             <Select
               value={voiceConfig.speech.kind}
               onValueChange={(v) =>
-                setSpeechKind(
-                  v as VoiceStoreState["voiceConfig"]["speech"]["kind"],
-                )
+                setSpeechKind(v as VoiceConfig["speech"]["kind"])
               }
             >
               <SelectTrigger
@@ -370,7 +374,9 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
               <Select
                 value={inputDeviceId ?? INPUT_DEFAULT_SENTINEL}
                 onValueChange={(v) =>
-                  setInputDeviceId(v === INPUT_DEFAULT_SENTINEL ? null : v)
+                  store.actions.setInputDeviceId(
+                    v === INPUT_DEFAULT_SENTINEL ? null : v,
+                  )
                 }
                 disabled={inputDevices.devices.length === 0}
               >
@@ -433,7 +439,7 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   );
 }
 
-const healthLine = (health: VoiceStoreState["health"]): string => {
+const healthLine = (health: HealthState): string => {
   return match(health)
     .with({ kind: "idle" }, () => "Not checked.")
     .with({ kind: "checking" }, () => "Probing…")

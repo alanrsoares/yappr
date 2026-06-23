@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 
+import { useSelector } from "@tanstack/react-store";
 import {
   AlertTriangle,
   Copy,
@@ -13,7 +14,7 @@ import { messageAttachments, type Attachment } from "~/lib/attachments";
 import { measureUserTextBubbleWidth } from "~/lib/message-bubble-layout";
 import { markdownToNarrationText } from "~/lib/narration-text";
 import { cn } from "~/lib/utils";
-import { useVoiceStore } from "~/stores/voice";
+import { useVoiceContext } from "~/stores/voice";
 import { Button } from "~/ui/button";
 import {
   ChatContainerContent,
@@ -28,15 +29,19 @@ import {
   MessageContent,
 } from "~/ui/message";
 import { Composer } from "../../../components/composer";
-import { chatMessageText, useChatStore } from "../store";
+import { chatMessageText, useChatContext, useChatSession } from "../store";
 import { KaraokeCaptions } from "./karaoke-captions";
 
 export function ChatPanel() {
-  const [voiceState, voiceActions] = useVoiceStore();
-  const [state, actions] = useChatStore();
-  const isSpeaking = voiceState.tts.kind === "speaking";
+  const session = useChatSession();
+  const { store } = useChatContext();
+  const { store: voiceStore } = useVoiceContext();
+  const inputDeviceId = useSelector(store, (s) => s.inputDeviceId);
+  const tts = useSelector(voiceStore, (s) => s.tts);
+  const caption = useSelector(voiceStore, (s) => s.caption);
+  const isSpeaking = tts.kind === "speaking";
   const speakingMessageId =
-    voiceState.caption.kind === "active" ? voiceState.caption.messageId : null;
+    caption.kind === "active" ? caption.messageId : null;
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
 
@@ -51,9 +56,9 @@ export function ChatPanel() {
   }, []);
 
   let composerPlaceholder = "Loading models from Ollama…";
-  if (state.modelReady) {
+  if (session.modelReady) {
     composerPlaceholder = "Ask the local model… (Shift+Enter for newline)";
-  } else if (state.modelsLoaded) {
+  } else if (session.modelsLoaded) {
     composerPlaceholder = "Select an installed model to start chatting…";
   }
 
@@ -61,55 +66,62 @@ export function ChatPanel() {
     <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col">
       <ChatContainerRoot className="min-h-0 flex-1 px-4 py-4">
         <ChatContainerContent className="gap-6">
-          {state.messages.length === 0 && !state.showLoading && !state.error ? (
+          {session.messages.length === 0 &&
+          !session.showLoading &&
+          !session.error ? (
             <EmptyState />
           ) : (
-            state.messages.map((m, idx) => {
+            session.messages.map((m, idx) => {
               const text = chatMessageText(m);
               const fileParts = messageAttachments(m);
-              const isLast = idx === state.messages.length - 1;
+              const isLast = idx === session.messages.length - 1;
               return (
                 <MessageBubble
                   key={m.id}
                   role={m.role === "system" ? "assistant" : m.role}
-                  content={text || (state.isBusy ? "…" : "")}
+                  content={text || (session.isBusy ? "…" : "")}
                   fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}
                   canSpeak={m.role === "assistant" && text.trim().length > 0}
                   canRegenerate={
                     m.role === "assistant" &&
                     isLast &&
-                    !state.isBusy &&
+                    !session.isBusy &&
                     text.trim().length > 0
                   }
                   isSpeaking={
                     isSpeaking &&
                     (speakingMessageId === m.id || speakingMessageId === null)
                   }
-                  onRegenerate={() => void actions.regenerateMessage(m.id)}
+                  onRegenerate={() => void session.regenerateMessage(m.id)}
                   onSpeak={() =>
-                    void voiceActions.speak(markdownToNarrationText(text), {
-                      messageId: m.id,
-                    })
+                    void voiceStore.actions.speak(
+                      markdownToNarrationText(text),
+                      {
+                        messageId: m.id,
+                      },
+                    )
                   }
-                  onStop={voiceActions.stopAudio}
+                  onStop={voiceStore.actions.stopAudio}
                 />
               );
             })
           )}
-          {state.showLoading ? <LoadingMessage /> : null}
-          {state.error ? <ErrorMessage message={state.error.message} /> : null}
+          {session.showLoading ? <LoadingMessage /> : null}
+          {session.error ? (
+            <ErrorMessage message={session.error.message} />
+          ) : null}
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
       </ChatContainerRoot>
 
       <KaraokeCaptions
-        caption={voiceState.caption}
+        caption={caption}
         bottomOffset={composerHeight + 16}
-        onPause={voiceActions.pauseAudio}
-        onResume={voiceActions.resumeAudio}
-        onRestart={voiceActions.restartAudio}
-        onStop={voiceActions.stopAudio}
+        onPause={voiceStore.actions.pauseAudio}
+        onResume={voiceStore.actions.resumeAudio}
+        onRestart={voiceStore.actions.restartAudio}
+        onStop={voiceStore.actions.stopAudio}
       />
 
       <div
@@ -118,13 +130,13 @@ export function ChatPanel() {
       >
         <div className="mx-auto max-w-3xl">
           <Composer
-            onSend={(t, f) => void actions.submit(t, f)}
-            isBusy={state.isBusy}
-            onStop={stop}
-            disabled={!state.modelReady}
+            onSend={(t, f) => void session.submit(t, f)}
+            isBusy={session.isBusy}
+            onStop={session.stop}
+            disabled={!session.modelReady}
             placeholder={composerPlaceholder}
-            transcribe={voiceActions.transcribe}
-            inputDeviceId={state.inputDeviceId}
+            transcribe={voiceStore.actions.transcribe}
+            inputDeviceId={inputDeviceId}
           />
         </div>
       </div>
