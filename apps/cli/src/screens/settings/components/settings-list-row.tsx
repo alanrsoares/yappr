@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { Box, Text } from "ink";
+import type { ReactNode } from "react";
 
 import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { semantic } from "~/theme/semantic.js";

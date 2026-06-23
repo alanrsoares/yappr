@@ -2,12 +2,12 @@ import { toError } from "@yappr/lib/result";
 import { ResultAsync } from "neverthrow";
 
 import {
+  type SynthesizeRequestInput,
   SynthesizeRequestSchema,
   TranscribeResponseSchema,
-  VoicesResponseSchema,
-  type SynthesizeRequestInput,
   type VoiceId,
   type VoiceReferenceInput,
+  VoicesResponseSchema,
 } from "./schemas.js";
 
 const filenameFor = (blob: Blob): string => {

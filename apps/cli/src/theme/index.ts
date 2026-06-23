@@ -1,6 +1,6 @@
-export { semantic } from "./semantic.js";
 export {
   bubbleBorderForRole,
-  streamingBubbleBorder,
   type ChatBubbleRole,
+  streamingBubbleBorder,
 } from "./chat-appearance.js";
+export { semantic } from "./semantic.js";

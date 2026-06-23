@@ -26,8 +26,8 @@ import type {
 } from "./schemas.js";
 import {
   VOXTRAL_MODEL_ID,
-  voxtralSpeechPreset,
   type VoxtralVoiceId,
+  voxtralSpeechPreset,
 } from "./voxtral-voices.js";
 
 export type SpeechPresetKind = "yappr" | "voxtral" | "custom";

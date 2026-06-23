@@ -7,9 +7,8 @@ export interface RecordOptions {
   signal?: AbortSignal;
 }
 
-export type { TTSOptions } from "./tts.js";
-
 export type { McpConfig, McpServerConfig } from "./schemas.js";
+export type { TTSOptions } from "./tts.js";
 
 export type TransportKind = "stdio" | "streamable-http" | "sse";
 

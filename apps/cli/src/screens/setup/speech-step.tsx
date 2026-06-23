@@ -1,12 +1,8 @@
-import { useMemo, useState } from "react";
-import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
-
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
 import {
-  VoiceConfigSchema,
   type VoiceConfig,
   type VoiceConfigInput,
+  VoiceConfigSchema,
 } from "@yappr/sdk/schemas";
 import {
   buildSpeechPreset,
@@ -18,6 +14,9 @@ import {
   VOXTRAL_DEFAULT_VOICE,
   VOXTRAL_VOICES,
 } from "@yappr/sdk/voxtral-voices";
+import { Box, Text } from "ink";
+import TextInput from "ink-text-input";
+import { useMemo, useState } from "react";
 
 import { useKeyboard } from "~/hooks";
 import { listSelectionPrefix } from "~/list-selection-prefix.js";

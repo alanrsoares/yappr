@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-
 import type { ResultAsync } from "neverthrow";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseQueryOptions {
   enabled?: boolean;
@@ -55,7 +54,6 @@ export function useQuery<T, E = Error>(
     }
     const timeoutId = setTimeout(run, 0);
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run is stable; deps drive refetch
   }, [enabled, run, ...deps]);
 
   return {

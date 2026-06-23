@@ -9,11 +9,11 @@ import {
   ConversationsListInput,
   ConversationsRenameInput,
   ConversationsSetArchivedInput,
+  type DbRpcSchema,
   MessagesAppendInput,
   MessagesDeleteInput,
   MessagesListInput,
   PreferencesSetManyInput,
-  type DbRpcSchema,
 } from "@yappr/db/rpc";
 
 type Requests = DbRpcSchema["bun"]["requests"];

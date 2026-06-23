@@ -1,5 +1,3 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-
 import {
   findInsertedImagePath,
   formatImageToken,
@@ -8,6 +6,7 @@ import {
 import { markdownToNarrationText } from "@yappr/lib/narration-text";
 import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import { okAsync } from "neverthrow";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { buildChatFooterItems } from "~/footer-items.js";
 import { useMutation, usePreferences, useVoiceToggle } from "~/hooks";
@@ -31,6 +30,8 @@ import {
 } from "./event-persistence.js";
 import {
   appendChatEvent,
+  type ChatEvent,
+  type ChatEventInput,
   createChatEvent,
   createMessageId,
   createRunId,
@@ -41,8 +42,6 @@ import {
   deriveMessages,
   deriveStreamingResponse,
   mergeChatEvents,
-  type ChatEvent,
-  type ChatEventInput,
 } from "./events.js";
 import {
   resolveSlashSubmit,

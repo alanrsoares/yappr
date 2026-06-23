@@ -3,20 +3,20 @@ import { ResultAsync } from "neverthrow";
 
 import { DEFAULT_SERVER_URL, DEFAULT_VOICE_CONFIG } from "./defaults.js";
 import {
-  OpenAiCompatibleVoicesResponseSchema,
-  SpeechAudioResponseSchema,
-  SpeechEndpointSchema,
-  TranscribeResponseSchema,
-  TranscriptionEndpointSchema,
-  VoiceConfigSchema,
   type OpenAiCompatibleSpeechEndpoint,
   type OpenAiCompatibleTranscriptionEndpoint,
+  OpenAiCompatibleVoicesResponseSchema,
+  SpeechAudioResponseSchema,
   type SpeechEndpoint,
   type SpeechEndpointInput,
+  SpeechEndpointSchema,
+  TranscribeResponseSchema,
   type TranscriptionEndpoint,
   type TranscriptionEndpointInput,
+  TranscriptionEndpointSchema,
   type VoiceConfig,
   type VoiceConfigInput,
+  VoiceConfigSchema,
   type VoiceId,
 } from "./schemas.js";
 import { TTSClient, type TTSOptions } from "./tts.js";

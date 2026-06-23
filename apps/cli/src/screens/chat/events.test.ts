@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  type ChatEvent,
   createChatEvent,
   deriveActiveToolCall,
   deriveChatPhase,
@@ -8,7 +9,6 @@ import {
   deriveMessages,
   deriveStreamingResponse,
   mergeChatEvents,
-  type ChatEvent,
 } from "./events.js";
 
 const base = {

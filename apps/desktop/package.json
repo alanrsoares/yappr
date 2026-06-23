@@ -1,10 +1,9 @@
 {
   "name": "@yappr/desktop",
   "version": "0.0.1",
-  "description": "Yappr desktop companion (experimental) — voice loop + chat surface for the local-first Yappr stack",
+  "description": "Yappr desktop companion (experimental) \u2014 voice loop + chat surface for the local-first Yappr stack",
   "private": true,
   "scripts": {
-    "lint": "eslint .",
     "start": "vite build && electrobun dev",
     "dev": "electrobun dev --watch",
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",

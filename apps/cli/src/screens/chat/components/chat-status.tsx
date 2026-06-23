@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { Text } from "ink";
+import type { ReactNode } from "react";
 
 import { Loading } from "~/components/index.js";
 import { semantic } from "~/theme/semantic.js";

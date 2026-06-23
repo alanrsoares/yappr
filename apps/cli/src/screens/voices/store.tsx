@@ -1,13 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
 import { useInput } from "ink";
+import { useCallback, useMemo, useState } from "react";
 
 import { wantsBackKey } from "~/constants.js";
 import {
+  type ExtendedKey,
   getEffectiveKey,
+  type InkKeyWithAlt,
   usePreferences,
   useQuery,
-  type ExtendedKey,
-  type InkKeyWithAlt,
 } from "~/hooks/index.js";
 import { filterBySubstring } from "~/list-filter.js";
 import { clampSelectedIndex, cycleIndex } from "~/list-nav.js";

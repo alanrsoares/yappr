@@ -9,7 +9,7 @@ import type {
   CallToolResult,
   Tool as McpTool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { toolDefinition, type SchemaInput, type Tool } from "@tanstack/ai";
+import { type SchemaInput, type Tool, toolDefinition } from "@tanstack/ai";
 import { toError } from "@yappr/lib/result";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 import type { Tool as OllamaTool } from "ollama";
@@ -226,7 +226,7 @@ export class McpManager {
     transport: TransportKind,
   ): Promise<ServerStatus> {
     const startedAt = Date.now();
-    let result;
+    let result: Awaited<ReturnType<typeof client.listTools>>;
     try {
       result = await client.listTools();
     } catch (error) {

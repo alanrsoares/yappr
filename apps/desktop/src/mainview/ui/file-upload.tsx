@@ -193,4 +193,4 @@ function FileUploadContent({
   return createPortal(content, document.body);
 }
 
-export { FileUpload, FileUploadTrigger, FileUploadContent };
+export { FileUpload, FileUploadContent, FileUploadTrigger };

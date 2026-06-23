@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 import { codeToHtml } from "shiki";
 
@@ -62,6 +63,7 @@ function CodeBlockCode({
   return highlightedHtml ? (
     <div
       className={classNames}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted shiki-highlighted output
       dangerouslySetInnerHTML={{ __html: highlightedHtml }}
       {...props}
     />
@@ -91,4 +93,4 @@ function CodeBlockGroup({
   );
 }
 
-export { CodeBlockGroup, CodeBlockCode, CodeBlock };
+export { CodeBlock, CodeBlockCode, CodeBlockGroup };

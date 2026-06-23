@@ -1,22 +1,21 @@
-import { useCallback, useMemo, useState } from "react";
-import { useInput } from "ink";
-
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
-import { probeHealth, type HealthSnapshot } from "@yappr/sdk/health";
-import { VoiceConfigSchema, type VoiceConfig } from "@yappr/sdk/schemas";
+import { type HealthSnapshot, probeHealth } from "@yappr/sdk/health";
+import { type VoiceConfig, VoiceConfigSchema } from "@yappr/sdk/schemas";
 import {
   buildSpeechPreset,
   type SpeechPresetKind,
 } from "@yappr/sdk/speech-presets";
 import { VOXTRAL_DEFAULT_VOICE } from "@yappr/sdk/voxtral-voices";
+import { useInput } from "ink";
+import { useCallback, useMemo, useState } from "react";
 
 import { wantsBackKey } from "~/constants.js";
 import {
+  type ExtendedKey,
   getEffectiveKey,
+  type InkKeyWithAlt,
   usePreferences,
   useQuery,
-  type ExtendedKey,
-  type InkKeyWithAlt,
 } from "~/hooks/index.js";
 import { filterBySubstring } from "~/list-filter.js";
 import { clampSelectedIndex, cycleIndex } from "~/list-nav.js";

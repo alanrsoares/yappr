@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
 import { Box } from "ink";
+import { useMemo, useState } from "react";
 
 import { Footer, Header } from "~/components/index.js";
 import { MENU_ITEMS } from "~/constants.js";

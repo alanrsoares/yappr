@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Footer, Header, Loading } from "~/components";
 import { DEFAULT_KEYS } from "~/constants.js";
@@ -215,6 +215,7 @@ function PythonStep({ onNext }: StepNextProps) {
 
   useEffect(() => {
     if (!repoRoot) return;
+    // biome-ignore lint/suspicious/useIterableCallbackReturn: ResultAsync.map (neverthrow), not Array.map
     pythonVenvExists(repoRoot).map((exists) => {
       setPhase(exists ? "ready" : "syncing");
     });
@@ -297,7 +298,6 @@ function ServerStep({ onNext }: ServerStepProps) {
   useEffect(() => {
     mutation.mutate();
     // mutate is stable from useMutation; intentionally not in deps to avoid loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
   useKeyboard({

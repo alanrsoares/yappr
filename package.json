@@ -2,10 +2,7 @@
   "name": "yappr",
   "type": "module",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "overrides": {
     "@hono/node-server": "^1.19.10",
     "@tanstack/react-store": "0.11.0",
@@ -29,15 +26,15 @@
     "openapi:export": "PYTHONPATH=python uv --project python run python python/export_openapi.py && bunx openapi-typescript openapi.json -o packages/sdk/src/schema.d.ts",
     "test:py": "cd python && uv run pytest tests/ -v",
     "check:py": "cd python && uv run check",
-    "lint": "bun run --filter='./**' lint",
+    "lint": "biome lint .",
     "typecheck": "bun run --filter='./**' typecheck",
     "test": "bun test",
-    "format:check": "prettier --check .",
-    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
+    "format:check": "biome format .",
+    "check": "biome check . && bun run typecheck && bun run test",
     "db:generate": "bun run --filter @yappr/db db:generate",
     "deadcode": "knip --no-exit-code",
     "deadcode:strict": "knip",
-    "format": "prettier --write .",
+    "format": "biome format --write .",
     "prepare": "husky",
     "serve": "bun run start:py",
     "serve:kokoro": "bun run start:py:kokoro",
@@ -49,23 +46,17 @@
     "desktop": "bun --filter @yappr/desktop dev:hmr"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
-    "@eslint/js": "^9.39.4",
-    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-unicorn": "^64.0.0",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
     "knip": "^6.14.1",
+    "lint-staged": "^17.0.8",
     "openapi-typescript": "^7.13.0",
-    "prettier": "^3.8.3",
-    "pretty-quick": "^4.2.2",
-    "typescript-eslint": "^8.59.3"
+    "pretty-quick": "^4.2.2"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"

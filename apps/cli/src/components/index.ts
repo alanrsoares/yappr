@@ -1,10 +1,10 @@
-export { Footer } from "./footer";
 export type { FooterItem, FooterProps } from "./footer";
-export { Header } from "./header";
+export { Footer } from "./footer";
 export type { HeaderProps } from "./header";
-export { Loading } from "./loading";
+export { Header } from "./header";
 export type { LoadingProps } from "./loading";
-export { Markdown } from "./markdown";
+export { Loading } from "./loading";
 export type { MarkdownProps } from "./markdown";
-export { Splash } from "./splash";
+export { Markdown } from "./markdown";
 export type { SplashProps } from "./splash";
+export { Splash } from "./splash";

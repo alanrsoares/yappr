@@ -1,8 +1,8 @@
 import {
-  layoutWithLines,
-  prepareWithSegments,
   type LayoutLine,
+  layoutWithLines,
   type PreparedTextWithSegments,
+  prepareWithSegments,
 } from "@chenglou/pretext";
 
 export const CAPTION_FONT_FAMILY =

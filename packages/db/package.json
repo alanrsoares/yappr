@@ -1,11 +1,10 @@
 {
   "name": "@yappr/db",
   "version": "0.0.1",
-  "description": "Yappr persistence — bun:sqlite + Drizzle. Shared by CLI and desktop. DB lives at ~/.yappr/yappr.db.",
+  "description": "Yappr persistence \u2014 bun:sqlite + Drizzle. Shared by CLI and desktop. DB lives at ~/.yappr/yappr.db.",
   "type": "module",
   "private": true,
   "scripts": {
-    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "cd ../.. && drizzle-kit generate --config packages/db/drizzle.config.ts"
   },

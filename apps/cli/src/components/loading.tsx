@@ -1,6 +1,6 @@
-import type { ComponentProps } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
+import type { ComponentProps } from "react";
 
 import { semantic } from "~/theme/semantic.js";
 

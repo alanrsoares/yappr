@@ -1,9 +1,0 @@
-node_modules
-python
-dist
-apps/desktop/dist
-apps/desktop/build
-bun.lock
-.cursor
-.claude
-.git

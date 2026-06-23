@@ -1,2 +1,2 @@
-export { SetupScreen } from "./screen.js";
 export type { SetupScreenProps } from "./screen.js";
+export { SetupScreen } from "./screen.js";

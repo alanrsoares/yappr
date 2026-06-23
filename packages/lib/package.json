@@ -5,7 +5,6 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "exports": {

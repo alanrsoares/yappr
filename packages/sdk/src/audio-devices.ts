@@ -74,4 +74,4 @@ export function listOutputDevices(): ResultAsync<AudioDevice[], Error> {
   return ResultAsync.fromSafePromise(Promise.resolve(OUTPUT_SYSTEM_DEFAULT));
 }
 
-export { type AudioDevice } from "./types.js";
+export type { AudioDevice } from "./types.js";

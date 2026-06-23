@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { Box, Text, useInput } from "ink";
+import { useEffect } from "react";
 
 import { semantic } from "~/theme/semantic.js";
 
