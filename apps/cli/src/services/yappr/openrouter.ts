@@ -33,89 +33,6 @@ function isUsableOpenRouterModel(
   return Boolean(m.id && hasText && hasTools);
 }
 
-export interface OpenRouterTextMessage {
-  role: string;
-  content: string;
-}
-
-interface OpenRouterChatStreamOptions {
-  messages: OpenRouterTextMessage[];
-  request?: RequestInit;
-}
-
-interface OpenRouterStreamDelta {
-  content?: string;
-}
-
-interface OpenRouterStreamChoice {
-  delta?: OpenRouterStreamDelta;
-}
-
-interface OpenRouterUsagePayload {
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  total_tokens?: number;
-  /** OpenRouter-reported cost in USD (present when usage accounting is on). */
-  cost?: number;
-}
-
-interface OpenRouterStreamLinePayload {
-  choices?: OpenRouterStreamChoice[];
-  usage?: OpenRouterUsagePayload;
-}
-
-interface OpenRouterCompletionMessageBody {
-  content?: string;
-}
-
-interface OpenRouterCompletionChoice {
-  message?: OpenRouterCompletionMessageBody;
-}
-
-interface OpenRouterChatCompletionResponse {
-  choices?: OpenRouterCompletionChoice[];
-}
-
-interface OpenRouterRunErrorBody {
-  message: string;
-}
-
-type OpenRouterStreamChunk =
-  | { type: "RUN_ERROR"; error: OpenRouterRunErrorBody }
-  | { type: "content"; delta: string; content: string }
-  | {
-      type: "usage";
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-        cost?: number;
-      };
-    };
-
-interface OpenRouterChatAdapter {
-  name: "openrouter";
-  model: string;
-  chatStream: (
-    opts: OpenRouterChatStreamOptions,
-  ) => AsyncIterable<OpenRouterStreamChunk>;
-}
-
-function mergeOpenRouterRequestHeaders(
-  apiKey: string,
-  request: RequestInit,
-): Headers {
-  const headers = new Headers(request.headers);
-  headers.set("Content-Type", "application/json");
-  headers.set("Authorization", `Bearer ${apiKey}`);
-  return headers;
-}
-
-export interface OpenRouterNarrationMessage {
-  role: "system" | "user";
-  content: string;
-}
-
 async function readOpenRouterFailureMessage(res: Response): Promise<string> {
   const text = await res.text();
   return `${res.status}: ${text}`;
@@ -125,6 +42,10 @@ async function throwOpenRouterHttpError(res: Response): Promise<never> {
   throw new Error(await readOpenRouterFailureMessage(res));
 }
 
+/**
+ * List tool-capable OpenRouter models for the settings picker. Chat itself
+ * goes through `@tanstack/ai-openrouter` (see chat/runtime.ts), not this file.
+ */
 export function listOpenRouterModels(
   apiKey: string,
 ): ResultAsync<OpenRouterModelInfo[], Error> {
@@ -152,112 +73,4 @@ export function listOpenRouterModels(
     })(),
     toError,
   );
-}
-
-export function createOpenRouterChat(
-  model: string,
-  apiKey: string,
-): OpenRouterChatAdapter {
-  return {
-    name: "openrouter",
-    model,
-    async *chatStream({
-      messages,
-      request = {},
-    }: OpenRouterChatStreamOptions): AsyncIterable<OpenRouterStreamChunk> {
-      const body = {
-        model,
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        stream: true,
-        // Ask OpenRouter to append a final usage chunk (tokens + cost).
-        usage: { include: true },
-      };
-      const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-        method: "POST",
-        headers: mergeOpenRouterRequestHeaders(apiKey, request),
-        body: JSON.stringify(body),
-        signal: request.signal,
-      });
-      if (!res.ok) {
-        yield {
-          type: "RUN_ERROR",
-          error: { message: await readOpenRouterFailureMessage(res) },
-        };
-        return;
-      }
-      let accumulated = "";
-      const reader = res.body?.getReader();
-      if (!reader) return;
-      const decoder = new TextDecoder();
-      let buffer = "";
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") continue;
-              try {
-                const json = JSON.parse(data) as OpenRouterStreamLinePayload;
-                const delta = json.choices?.[0]?.delta?.content ?? "";
-                if (delta) {
-                  accumulated += delta;
-                  yield {
-                    type: "content",
-                    delta,
-                    content: accumulated,
-                  };
-                }
-                if (json.usage) {
-                  const u = json.usage;
-                  yield {
-                    type: "usage",
-                    usage: {
-                      promptTokens: u.prompt_tokens ?? 0,
-                      completionTokens: u.completion_tokens ?? 0,
-                      totalTokens: u.total_tokens ?? 0,
-                      ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
-                    },
-                  };
-                }
-              } catch {
-                /* skip malformed SSE chunk */
-              }
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    },
-  };
-}
-
-export async function fetchOpenRouterChatCompletion(
-  model: string,
-  apiKey: string,
-  messages: OpenRouterNarrationMessage[],
-): Promise<string> {
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-    }),
-  });
-  if (!res.ok) await throwOpenRouterHttpError(res);
-  const data = (await res.json()) as OpenRouterChatCompletionResponse;
-  return data.choices?.[0]?.message?.content ?? "";
 }

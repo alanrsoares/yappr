@@ -1,12 +1,6 @@
-import type { ModelMessage } from "@tanstack/ai";
-
-import type { OpenRouterTextMessage } from "../../openrouter.js";
 import type { ChatRuntime } from "../runtime.js";
-import type {
-  ChatStreamEvent,
-  ChatStreamRequest,
-  ChatTransport,
-} from "../transport.js";
+import type { ChatStreamRequest, ChatTransport } from "../transport.js";
+import { streamTanstackChat } from "./tanstack-chat.js";
 
 export interface OpenRouterTransportConfig {
   model: string;
@@ -14,12 +8,10 @@ export interface OpenRouterTransportConfig {
 }
 
 /**
- * {@link ChatTransport} adapter for the OpenRouter chat-completion API.
- *
- * OpenRouter's request shape is text-only — multimodal {@link ModelMessage}s
- * are flattened to their text parts before send. Tool execution isn't wired
- * on this path today (the OpenRouter MCP bridge lives separately); any tools
- * passed in the request are dropped silently.
+ * {@link ChatTransport} for OpenRouter via `@tanstack/ai-openrouter`. Routes
+ * through `@tanstack/ai` like the Ollama path, so tool-calling + the bounded
+ * agent loop + usage telemetry work uniformly (the previous bespoke SSE client
+ * dropped tools).
  */
 export function createOpenRouterChatTransport(
   runtime: ChatRuntime,
@@ -27,48 +19,16 @@ export function createOpenRouterChatTransport(
 ): ChatTransport {
   return {
     name: "openrouter",
-    async *stream(req: ChatStreamRequest): AsyncIterable<ChatStreamEvent> {
-      const adapter = runtime.createOpenRouterChat(config.model, config.apiKey);
-      const textOnly = req.messages.map(
-        (m): OpenRouterTextMessage => ({
-          role: m.role,
-          content: flattenContentToText(m.content),
-        }),
-      );
-      const messages: OpenRouterTextMessage[] =
-        req.systemPrompts.length > 0
-          ? [
-              { role: "system", content: req.systemPrompts.join("\n\n") },
-              ...textOnly,
-            ]
-          : textOnly;
-
-      for await (const chunk of adapter.chatStream({
-        messages,
-        request: req.signal ? { signal: req.signal } : undefined,
-      })) {
-        if (chunk.type === "RUN_ERROR") {
-          yield {
-            type: "error",
-            message: chunk.error?.message ?? "OpenRouter error",
-          };
-        } else if (chunk.type === "content" && chunk.delta) {
-          yield { type: "delta", text: chunk.delta };
-        } else if (chunk.type === "usage") {
-          yield { type: "usage", usage: chunk.usage };
-        }
-      }
-    },
+    stream: (req: ChatStreamRequest) =>
+      streamTanstackChat(
+        runtime,
+        // OpenRouter model ids are user-configured; the adapter's model union
+        // is autocomplete-only, so accept any string.
+        runtime.createOpenRouterText(
+          config.model as Parameters<ChatRuntime["createOpenRouterText"]>[0],
+          config.apiKey,
+        ),
+        req,
+      ),
   };
-}
-
-function flattenContentToText(
-  content: ModelMessage["content"] | undefined,
-): string {
-  if (content == null) return "";
-  if (typeof content === "string") return content;
-  return content
-    .map((part) => (part.type === "text" ? part.content : ""))
-    .filter(Boolean)
-    .join("\n");
 }

@@ -1,20 +1,16 @@
 import { chat as tanstackChat } from "@tanstack/ai";
 import { createOllamaChat } from "@tanstack/ai-ollama";
+import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { McpManager } from "@yappr/sdk/mcp";
 
 import { getOllamaClient } from "../ollama.js";
-import {
-  createOpenRouterChat,
-  fetchOpenRouterChatCompletion,
-} from "../openrouter.js";
 
 export interface ChatRuntime {
   createMcpManager: () => McpManager;
   tanstackChat: typeof tanstackChat;
   createOllamaChat: typeof createOllamaChat;
+  createOpenRouterText: typeof createOpenRouterText;
   getOllamaClient: typeof getOllamaClient;
-  createOpenRouterChat: typeof createOpenRouterChat;
-  fetchOpenRouterChatCompletion: typeof fetchOpenRouterChatCompletion;
 }
 
 export function createDefaultChatRuntime(): ChatRuntime {
@@ -22,9 +18,8 @@ export function createDefaultChatRuntime(): ChatRuntime {
     createMcpManager: () => new McpManager(),
     tanstackChat,
     createOllamaChat,
+    createOpenRouterText,
     getOllamaClient,
-    createOpenRouterChat,
-    fetchOpenRouterChatCompletion,
   };
 }
 
