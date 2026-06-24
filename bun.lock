@@ -27,6 +27,7 @@
       "dependencies": {
         "@tanstack/ai": "^0.33.0",
         "@tanstack/ai-ollama": "^0.8.6",
+        "@tanstack/ai-openrouter": "^0.14.2",
         "@yappr/db": "workspace:*",
         "@yappr/lib": "workspace:*",
         "@yappr/sdk": "workspace:*",
@@ -362,6 +363,8 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
+    "@openrouter/sdk": ["@openrouter/sdk@0.12.35", "", { "dependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-s4QVLLnG1AmfW3TjnnHUqGfsCkzwVK+kboGcZmKbde09m1DPqgzl4RUFt/HJ5v97MX8aEaN0UG3mKv2S+qj2Gw=="],
+
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.130.0", "", { "os": "android", "cpu": "arm" }, "sha512-h/xYU8/7ADWzVSf5I+YalLpj33LOy9CI/zgbJNIZ5eunRBG+Czqa3lZsvuPHHf3rOt6z1c5+UzoxjbAzAvhwVw=="],
@@ -621,6 +624,8 @@
     "@tanstack/ai-event-client": ["@tanstack/ai-event-client@0.6.4", "", { "dependencies": { "@tanstack/devtools-event-client": "^0.4.1" }, "peerDependencies": { "@tanstack/ai": "0.33.0" } }, "sha512-cvBS/aXDv7exZ+9ESGD87CGhJpnOzvDv2qAltpno/wBFijTAxRfbhAlTPQpWICkefUG/Zv2Rz7k80JPrNMch/Q=="],
 
     "@tanstack/ai-ollama": ["@tanstack/ai-ollama@0.8.6", "", { "dependencies": { "@tanstack/ai-utils": "0.2.2", "ollama": "^0.6.3" }, "peerDependencies": { "@tanstack/ai": "^0.33.0" } }, "sha512-tBqwTvNHpER3q++qiQl/YaTnrZS5es+PlM+NVSvJtyiyOOkP4xukFMo/t/JZExcDb3rK4IXgq0Tgnup046Mp7w=="],
+
+    "@tanstack/ai-openrouter": ["@tanstack/ai-openrouter@0.14.2", "", { "dependencies": { "@openrouter/sdk": "0.12.35", "@tanstack/ai-utils": "0.3.0" }, "peerDependencies": { "@tanstack/ai": "^0.34.0" } }, "sha512-7vfhEreT/BDRnq8CjreP9leTv4PVQEg1UvZun6Lhk0jLJQZ5LZVz0M449epYrETxN0oOLPid8YZnOBhBkRyHfA=="],
 
     "@tanstack/ai-react": ["@tanstack/ai-react@0.15.10", "", { "dependencies": { "@tanstack/ai-client": "0.18.1" }, "peerDependencies": { "@tanstack/ai": "^0.33.0", "@types/react": ">=18.0.0", "react": ">=18.0.0" } }, "sha512-1cLeN5qc2VDwy1qmj3CKJ5Don5WXIWKla8CdZinn4dqMUbXToRIpjZUovwLAhbQ0Kf/PZ3L3kEizr8RY4K+Hvw=="],
 
@@ -1703,6 +1708,8 @@
     "@radix-ui/react-visually-hidden/@radix-ui/react-primitive": ["@radix-ui/react-primitive@2.1.3", "", { "dependencies": { "@radix-ui/react-slot": "1.2.3" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-m9gTwRkhy2lvCPe6QJp4d3G1TYEUHn/FzJUtq9MjH46an1wJU+GdoGC5VLof8RX8Ft/DlpshApkhswDLZzHIcQ=="],
 
     "@styled-cva/core/tailwind-merge": ["tailwind-merge@2.6.1", "", {}, "sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ=="],
+
+    "@tanstack/ai-openrouter/@tanstack/ai-utils": ["@tanstack/ai-utils@0.3.0", "", {}, "sha512-gy36dQvyd+DG2uuvZK533kEfBhK5S6eV2AGc7iBQBBTeCpzs+hMhqeJ5xAnqfZ2nyHsn6jzkzLyfabyrLU5dKA=="],
 
     "@types/estree-jsx/@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
 
