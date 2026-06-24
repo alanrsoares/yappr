@@ -23,84 +23,82 @@ export interface ConversationListOptions {
 const clampLimit = (limit: number | undefined) =>
   Math.min(Math.max(limit ?? 200, 1), 1000);
 
-export function makeConversationsRepo(db: Db) {
-  return {
-    list(
-      scope: ConversationListScope = "active",
-      options?: ConversationListOptions,
-    ): schema.Conversation[] {
-      const order = desc(schema.conversations.updatedAt);
-      if (scope === "all") {
-        return db
-          .select()
-          .from(schema.conversations)
-          .orderBy(order)
-          .limit(clampLimit(options?.limit))
-          .all();
-      }
-      const archivedInt = scope === "archived" ? 1 : 0;
+export const makeConversationsRepo = (db: Db) => ({
+  list(
+    scope: ConversationListScope = "active",
+    options?: ConversationListOptions,
+  ): schema.Conversation[] {
+    const order = desc(schema.conversations.updatedAt);
+    if (scope === "all") {
       return db
         .select()
         .from(schema.conversations)
-        .where(eq(schema.conversations.archived, archivedInt))
         .orderBy(order)
         .limit(clampLimit(options?.limit))
         .all();
-    },
+    }
+    const archivedInt = scope === "archived" ? 1 : 0;
+    return db
+      .select()
+      .from(schema.conversations)
+      .where(eq(schema.conversations.archived, archivedInt))
+      .orderBy(order)
+      .limit(clampLimit(options?.limit))
+      .all();
+  },
 
-    get(id: string): schema.Conversation | null {
-      return (
-        db
-          .select()
-          .from(schema.conversations)
-          .where(eq(schema.conversations.id, id))
-          .get() ?? null
-      );
-    },
-
-    create(input: NewConversationInput): schema.Conversation {
-      const now = Date.now();
-      const id = input.id ?? newId();
-      const row: schema.NewConversation = {
-        id,
-        title: input.title,
-        model: input.model ?? null,
-        archived: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-      db.insert(schema.conversations).values(row).run();
-      return { ...row, model: row.model ?? null } as schema.Conversation;
-    },
-
-    rename(id: string, title: string): void {
-      db.update(schema.conversations)
-        .set({ title, updatedAt: Date.now() })
+  get(id: string): schema.Conversation | null {
+    return (
+      db
+        .select()
+        .from(schema.conversations)
         .where(eq(schema.conversations.id, id))
-        .run();
-    },
+        .get() ?? null
+    );
+  },
 
-    touch(id: string): void {
-      db.update(schema.conversations)
-        .set({ updatedAt: Date.now() })
-        .where(eq(schema.conversations.id, id))
-        .run();
-    },
+  create(input: NewConversationInput): schema.Conversation {
+    const now = Date.now();
+    const id = input.id ?? newId();
+    const row: schema.NewConversation = {
+      id,
+      title: input.title,
+      model: input.model ?? null,
+      archived: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.insert(schema.conversations).values(row).run();
+    return { ...row, model: row.model ?? null } as schema.Conversation;
+  },
 
-    setArchived(id: string, archived: boolean): void {
-      db.update(schema.conversations)
-        .set({ archived: archived ? 1 : 0, updatedAt: Date.now() })
-        .where(eq(schema.conversations.id, id))
-        .run();
-    },
+  rename(id: string, title: string): void {
+    db.update(schema.conversations)
+      .set({ title, updatedAt: Date.now() })
+      .where(eq(schema.conversations.id, id))
+      .run();
+  },
 
-    delete(id: string): void {
-      // Messages cascade via FK.
-      db.delete(schema.conversations)
-        .where(eq(schema.conversations.id, id))
-        .run();
-    },
-  };
-}
+  touch(id: string): void {
+    db.update(schema.conversations)
+      .set({ updatedAt: Date.now() })
+      .where(eq(schema.conversations.id, id))
+      .run();
+  },
+
+  setArchived(id: string, archived: boolean): void {
+    db.update(schema.conversations)
+      .set({ archived: archived ? 1 : 0, updatedAt: Date.now() })
+      .where(eq(schema.conversations.id, id))
+      .run();
+  },
+
+  delete(id: string): void {
+    // Messages cascade via FK.
+    db.delete(schema.conversations)
+      .where(eq(schema.conversations.id, id))
+      .run();
+  },
+});
 
 export type ConversationsRepo = ReturnType<typeof makeConversationsRepo>;

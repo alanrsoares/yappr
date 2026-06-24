@@ -10,20 +10,18 @@ export type CodeBlockProps = {
   className?: string;
 } & React.HTMLProps<HTMLDivElement>;
 
-function CodeBlock({ children, className, ...props }: CodeBlockProps) {
-  return (
-    <div
-      className={cn(
-        "not-prose flex w-full flex-col overflow-clip border",
-        "border-border bg-card text-card-foreground rounded-xl",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+const CodeBlock = ({ children, className, ...props }: CodeBlockProps) => (
+  <div
+    className={cn(
+      "not-prose flex w-full flex-col overflow-clip border",
+      "border-border bg-card text-card-foreground rounded-xl",
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+);
 
 export type CodeBlockCodeProps = {
   code: string;
@@ -78,19 +76,17 @@ function CodeBlockCode({
 
 export type CodeBlockGroupProps = React.HTMLAttributes<HTMLDivElement>;
 
-function CodeBlockGroup({
+const CodeBlockGroup = ({
   children,
   className,
   ...props
-}: CodeBlockGroupProps) {
-  return (
-    <div
-      className={cn("flex items-center justify-between", className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+}: CodeBlockGroupProps) => (
+  <div
+    className={cn("flex items-center justify-between", className)}
+    {...props}
+  >
+    {children}
+  </div>
+);
 
 export { CodeBlock, CodeBlockCode, CodeBlockGroup };

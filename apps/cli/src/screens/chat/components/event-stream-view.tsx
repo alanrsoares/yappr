@@ -40,11 +40,18 @@ const isErrorEvent = (event: ChatEvent) =>
   (event.type === "run.end" && event.status === "error");
 
 function eventMatchesFilter(event: ChatEvent, filter: EventFilter) {
-  if (filter === "all") return true;
-  if (filter === "messages") return isMessageEvent(event);
-  if (filter === "tools") return isToolEvent(event);
-  if (filter === "audio") return isAudioEvent(event);
-  if (filter === "errors") return isErrorEvent(event);
+  switch (filter) {
+    case "all":
+      return true;
+    case "messages":
+      return isMessageEvent(event);
+    case "tools":
+      return isToolEvent(event);
+    case "audio":
+      return isAudioEvent(event);
+    case "errors":
+      return isErrorEvent(event);
+  }
   return event.type === "system";
 }
 
@@ -126,9 +133,8 @@ function eventColor(event: ChatEvent) {
     return semantic.accent;
 }
 
-function eventDetailLines(event: ChatEvent) {
-  return JSON.stringify(event, null, 2).split("\n").slice(0, DETAIL_MAX_LINES);
-}
+const eventDetailLines = (event: ChatEvent) =>
+  JSON.stringify(event, null, 2).split("\n").slice(0, DETAIL_MAX_LINES);
 
 function nextEventFilter(current: EventFilter): EventFilter {
   const index = EVENT_FILTERS.indexOf(current);

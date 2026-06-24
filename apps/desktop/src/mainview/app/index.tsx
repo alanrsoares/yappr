@@ -5,14 +5,12 @@ import { queryClient } from "~/lib/query-client";
 import { VoiceProvider } from "~/stores/voice";
 import { router } from "./router";
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <VoiceProvider>
-        <RouterProvider router={router} />
-      </VoiceProvider>
-    </QueryClientProvider>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <VoiceProvider>
+      <RouterProvider router={router} />
+    </VoiceProvider>
+  </QueryClientProvider>
+);
 
 export default App;

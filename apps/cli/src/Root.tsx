@@ -48,15 +48,11 @@ export function Root() {
     setShowSplash(false);
   }, []);
 
-  if (showSplash) {
-    return (
-      <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
-        <Splash version={pkg.version} onDismiss={dismissSplash} />
-      </Box>
-    );
-  }
-
-  return (
+  return showSplash ? (
+    <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
+      <Splash version={pkg.version} onDismiss={dismissSplash} />
+    </Box>
+  ) : (
     <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
       {effectiveScreen === "menu" && (
         <MainMenuScreen onSelect={(id) => setScreen(id)} />

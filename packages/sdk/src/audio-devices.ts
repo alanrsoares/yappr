@@ -9,11 +9,11 @@ export class AudioDeviceError extends Data.TaggedError("AudioDeviceError")<{
   readonly cause?: unknown;
 }> {}
 
-export function listInputDevices(): Effect.Effect<
+export const listInputDevices = (): Effect.Effect<
   AudioDevice[],
   AudioDeviceError
-> {
-  return Effect.tryPromise({
+> =>
+  Effect.tryPromise({
     try: () =>
       new Promise<AudioDevice[]>((resolve, reject) => {
         const proc = spawn(
@@ -50,7 +50,6 @@ export function listInputDevices(): Effect.Effect<
         cause,
       }),
   });
-}
 
 function parseAvFoundationDevices(output: string): AudioDevice[] {
   const lines = output.split("\n");
@@ -83,8 +82,7 @@ const OUTPUT_SYSTEM_DEFAULT: AudioDevice[] = [
   { index: 0, name: "System default" },
 ];
 
-export function listOutputDevices(): Effect.Effect<AudioDevice[], never> {
-  return Effect.succeed(OUTPUT_SYSTEM_DEFAULT);
-}
+export const listOutputDevices = (): Effect.Effect<AudioDevice[], never> =>
+  Effect.succeed(OUTPUT_SYSTEM_DEFAULT);
 
 export type { AudioDevice } from "./types.js";

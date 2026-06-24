@@ -8,13 +8,11 @@ import { ChatPanel } from "./panel";
 import { ChatSidebar } from "./sidebar";
 import { ChatTopBar } from "./top-bar";
 
-export function ChatLayout() {
-  return (
-    <ChatProvider>
-      <ChatLayoutContent />
-    </ChatProvider>
-  );
-}
+export const ChatLayout = () => (
+  <ChatProvider>
+    <ChatLayoutContent />
+  </ChatProvider>
+);
 
 function ChatLayoutContent() {
   const { store } = useChatContext();

@@ -34,7 +34,5 @@ export function resolveMcpConfigPath(): string {
   if (fs.existsSync(yappr)) return yappr;
 
   const cursor = MCP_CONFIG_PRESETS.cursor();
-  if (fs.existsSync(cursor)) return cursor;
-
-  return yappr;
+  return fs.existsSync(cursor) ? cursor : yappr;
 }

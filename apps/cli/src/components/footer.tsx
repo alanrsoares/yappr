@@ -20,9 +20,8 @@ export interface FooterProps {
 
 type ArrowPulse = "up" | "down" | null;
 
-function footerKeyHasArrows(keyText: string) {
-  return keyText.includes(ARROW_UP) || keyText.includes(ARROW_DOWN);
-}
+const footerKeyHasArrows = (keyText: string) =>
+  keyText.includes(ARROW_UP) || keyText.includes(ARROW_DOWN);
 
 function FooterKeyPart(props: { part: string; pulse: ArrowPulse }) {
   const { part, pulse } = props;
@@ -63,26 +62,21 @@ function FooterKeyPart(props: { part: string; pulse: ArrowPulse }) {
 
 function FooterKeyCell(props: { item: FooterItem; pulse: ArrowPulse }) {
   const { item, pulse } = props;
-  if (!footerKeyHasArrows(item.key)) {
-    return (
-      <Text bold color={semantic.accent}>
-        {item.key}
-      </Text>
-    );
-  }
-  return (
-    <>
-      {item.key
-        .split(ARROW_KEY_SPLIT)
-        .filter((p) => p.length > 0)
-        .map((part, j) => (
-          <FooterKeyPart
-            key={`${item.key}-${j}-${part}`}
-            part={part}
-            pulse={pulse}
-          />
-        ))}
-    </>
+  return !footerKeyHasArrows(item.key) ? (
+    <Text bold color={semantic.accent}>
+      {item.key}
+    </Text>
+  ) : (
+    item.key
+      .split(ARROW_KEY_SPLIT)
+      .filter((p) => p.length > 0)
+      .map((part, j) => (
+        <FooterKeyPart
+          key={`${item.key}-${j}-${part}`}
+          part={part}
+          pulse={pulse}
+        />
+      ))
   );
 }
 

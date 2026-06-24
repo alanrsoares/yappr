@@ -46,31 +46,29 @@ async function throwOpenRouterHttpError(res: Response): Promise<never> {
  * List tool-capable OpenRouter models for the settings picker. Chat itself
  * goes through `@tanstack/ai-openrouter` (see chat/runtime.ts), not this file.
  */
-export function listOpenRouterModels(
+export const listOpenRouterModels = (
   apiKey: string,
-): Effect.Effect<OpenRouterModelInfo[], Error> {
-  if (!apiKey.trim()) {
-    return Effect.succeed([]);
-  }
-  return Effect.tryPromise({
-    try: async () => {
-      const res = await fetch(
-        `${OPENROUTER_BASE}/models?supported_parameters=tools`,
-        {
-          headers: { Authorization: `Bearer ${apiKey.trim()}` },
+): Effect.Effect<OpenRouterModelInfo[], Error> =>
+  !apiKey.trim()
+    ? Effect.succeed([])
+    : Effect.tryPromise({
+        try: async () => {
+          const res = await fetch(
+            `${OPENROUTER_BASE}/models?supported_parameters=tools`,
+            {
+              headers: { Authorization: `Bearer ${apiKey.trim()}` },
+            },
+          );
+          if (!res.ok) await throwOpenRouterHttpError(res);
+          const json = (await res.json()) as OpenRouterModelsApiResponse;
+          const list = json.data ?? [];
+          return list
+            .filter(isUsableOpenRouterModel)
+            .map((m) => ({
+              id: m.id,
+              name: m.name ?? m.id,
+            }))
+            .toSorted((a, b) => a.name.localeCompare(b.name));
         },
-      );
-      if (!res.ok) await throwOpenRouterHttpError(res);
-      const json = (await res.json()) as OpenRouterModelsApiResponse;
-      const list = json.data ?? [];
-      return list
-        .filter(isUsableOpenRouterModel)
-        .map((m) => ({
-          id: m.id,
-          name: m.name ?? m.id,
-        }))
-        .toSorted((a, b) => a.name.localeCompare(b.name));
-    },
-    catch: toError,
-  });
-}
+        catch: toError,
+      });

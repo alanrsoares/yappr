@@ -21,24 +21,25 @@ const DURABLE_EVENT_TYPES = new Set<ChatEvent["type"]>([
 export const isDurableChatEvent = (event: ChatEvent) =>
   DURABLE_EVENT_TYPES.has(event.type);
 
-export function persistChatEvent(event: ChatEvent): Effect.Effect<void, Error> {
-  if (!isDurableChatEvent(event)) return Effect.void;
-
-  return Effect.try({
-    try: () => {
-      const db = getDb();
-      db.agentEvents.append({
-        id: event.id,
-        conversationId: event.conversationId,
-        runId: event.runId,
-        type: event.type,
-        eventJson: JSON.stringify(event),
-        createdAt: event.timestamp,
+export const persistChatEvent = (
+  event: ChatEvent,
+): Effect.Effect<void, Error> =>
+  !isDurableChatEvent(event)
+    ? Effect.void
+    : Effect.try({
+        try: () => {
+          const db = getDb();
+          db.agentEvents.append({
+            id: event.id,
+            conversationId: event.conversationId,
+            runId: event.runId,
+            type: event.type,
+            eventJson: JSON.stringify(event),
+            createdAt: event.timestamp,
+          });
+        },
+        catch: toError,
       });
-    },
-    catch: toError,
-  });
-}
 
 /** Parse a persisted row, dropping malformed JSON or shape mismatches. */
 function parsePersistedEvent(eventJson: string): ChatEvent | null {
@@ -55,10 +56,10 @@ function parsePersistedEvent(eventJson: string): ChatEvent | null {
   }
 }
 
-export function listPersistedChatEvents(
+export const listPersistedChatEvents = (
   conversationId: string,
-): Effect.Effect<ChatEvent[], Error> {
-  return Effect.try({
+): Effect.Effect<ChatEvent[], Error> =>
+  Effect.try({
     try: () => {
       const db = getDb();
       return db.agentEvents
@@ -68,4 +69,3 @@ export function listPersistedChatEvents(
     },
     catch: toError,
   });
-}

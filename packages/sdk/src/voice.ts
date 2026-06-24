@@ -234,28 +234,28 @@ export function createSpeechClient(
   endpoint: SpeechEndpointInput,
 ): YapprSpeechClient | OpenAiCompatibleSpeechClient {
   const parsed = SpeechEndpointSchema.parse(endpoint);
-  if (parsed.kind === "yappr") return new YapprSpeechClient(parsed);
-  return new OpenAiCompatibleSpeechClient(parsed);
+  return parsed.kind === "yappr"
+    ? new YapprSpeechClient(parsed)
+    : new OpenAiCompatibleSpeechClient(parsed);
 }
 
 export function createTranscriptionClient(
   endpoint: TranscriptionEndpointInput,
 ): YapprTranscriptionClient | OpenAiCompatibleTranscriptionClient {
   const parsed = TranscriptionEndpointSchema.parse(endpoint);
-  if (parsed.kind === "yappr") return new YapprTranscriptionClient(parsed);
-  return new OpenAiCompatibleTranscriptionClient(parsed);
+  return parsed.kind === "yappr"
+    ? new YapprTranscriptionClient(parsed)
+    : new OpenAiCompatibleTranscriptionClient(parsed);
 }
 
-export function createVoiceClient(
+export const createVoiceClient = (
   config: VoiceConfigInput = DEFAULT_VOICE_CONFIG,
-): VoiceClient {
-  return new EndpointVoiceClient(config);
-}
+): VoiceClient => new EndpointVoiceClient(config);
 
-export function localVoiceConfig(
+export const localVoiceConfig = (
   baseUrl: string = DEFAULT_SERVER_URL,
-): VoiceConfig {
-  return VoiceConfigSchema.parse({
+): VoiceConfig =>
+  VoiceConfigSchema.parse({
     speech: {
       ...DEFAULT_VOICE_CONFIG.speech,
       baseUrl,
@@ -265,7 +265,6 @@ export function localVoiceConfig(
       baseUrl,
     },
   });
-}
 
 export function withSpeechEndpoint(
   config: VoiceConfigInput,

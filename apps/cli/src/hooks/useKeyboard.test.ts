@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 
 import { type ExtendedKey, getEffectiveKey } from "./useKeyboard";
 
-function key(overrides: Partial<ExtendedKey> = {}): ExtendedKey {
-  return {
+const key = (overrides: Partial<ExtendedKey> = {}): ExtendedKey =>
+  ({
     upArrow: false,
     downArrow: false,
     leftArrow: false,
@@ -30,8 +30,7 @@ function key(overrides: Partial<ExtendedKey> = {}): ExtendedKey {
     f11: false,
     f12: false,
     ...overrides,
-  } as ExtendedKey;
-}
+  }) as ExtendedKey;
 
 test("getEffectiveKey maps special keys", () => {
   expect(getEffectiveKey("", key({ escape: true }))).toBe("escape");

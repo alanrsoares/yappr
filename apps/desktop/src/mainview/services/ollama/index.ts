@@ -5,11 +5,10 @@
  * 127.0.0.1:11434, avoids CORS); in the packaged build we hit the loopback
  * daemon directly (relies on `OLLAMA_ORIGINS`).
  */
-export function ollamaRoot(): string {
-  return import.meta.env.DEV
+export const ollamaRoot = (): string =>
+  import.meta.env.DEV
     ? `${globalThis.location.origin}/ollama`
     : "http://127.0.0.1:11434";
-}
 
 /** Model entry returned by `GET /api/tags`. */
 export interface OllamaModel {

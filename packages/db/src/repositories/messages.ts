@@ -23,47 +23,42 @@ const newId = (): string =>
 const clampLimit = (limit: number | undefined) =>
   Math.min(Math.max(limit ?? 500, 1), 5000);
 
-export function makeMessagesRepo(db: Db) {
-  return {
-    list(
-      conversationId: string,
-      options?: MessageListOptions,
-    ): schema.Message[] {
-      return db
-        .select()
-        .from(schema.messages)
-        .where(eq(schema.messages.conversationId, conversationId))
-        .orderBy(asc(schema.messages.createdAt))
-        .limit(clampLimit(options?.limit))
-        .all();
-    },
+export const makeMessagesRepo = (db: Db) => ({
+  list(conversationId: string, options?: MessageListOptions): schema.Message[] {
+    return db
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.conversationId, conversationId))
+      .orderBy(asc(schema.messages.createdAt))
+      .limit(clampLimit(options?.limit))
+      .all();
+  },
 
-    append(input: NewMessageInput): schema.Message {
-      const now = Date.now();
-      const row: schema.NewMessage = {
-        id: input.id ?? newId(),
-        conversationId: input.conversationId,
-        role: input.role,
-        content: input.content,
-        partsJson: input.partsJson ?? null,
-        createdAt: now,
-      };
-      // Append message + bump the conversation's updatedAt in one transaction
-      // so the sidebar's "most recent first" ordering stays accurate.
-      db.transaction((tx) => {
-        tx.insert(schema.messages).values(row).run();
-        tx.update(schema.conversations)
-          .set({ updatedAt: now })
-          .where(eq(schema.conversations.id, input.conversationId))
-          .run();
-      });
-      return row as schema.Message;
-    },
+  append(input: NewMessageInput): schema.Message {
+    const now = Date.now();
+    const row: schema.NewMessage = {
+      id: input.id ?? newId(),
+      conversationId: input.conversationId,
+      role: input.role,
+      content: input.content,
+      partsJson: input.partsJson ?? null,
+      createdAt: now,
+    };
+    // Append message + bump the conversation's updatedAt in one transaction
+    // so the sidebar's "most recent first" ordering stays accurate.
+    db.transaction((tx) => {
+      tx.insert(schema.messages).values(row).run();
+      tx.update(schema.conversations)
+        .set({ updatedAt: now })
+        .where(eq(schema.conversations.id, input.conversationId))
+        .run();
+    });
+    return row as schema.Message;
+  },
 
-    delete(id: string): void {
-      db.delete(schema.messages).where(eq(schema.messages.id, id)).run();
-    },
-  };
-}
+  delete(id: string): void {
+    db.delete(schema.messages).where(eq(schema.messages.id, id)).run();
+  },
+});
 
 export type MessagesRepo = ReturnType<typeof makeMessagesRepo>;

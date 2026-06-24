@@ -8,17 +8,15 @@ export interface OllamaTransportConfig {
 }
 
 /** {@link ChatTransport} for Ollama via `@tanstack/ai-ollama`. */
-export function createOllamaChatTransport(
+export const createOllamaChatTransport = (
   runtime: ChatRuntime,
   config: OllamaTransportConfig,
-): ChatTransport {
-  return {
-    name: "ollama",
-    stream: (req: ChatStreamRequest) =>
-      streamTanstackChat(
-        runtime,
-        runtime.createOllamaChat(config.model, config.baseUrl),
-        req,
-      ),
-  };
-}
+): ChatTransport => ({
+  name: "ollama",
+  stream: (req: ChatStreamRequest) =>
+    streamTanstackChat(
+      runtime,
+      runtime.createOllamaChat(config.model, config.baseUrl),
+      req,
+    ),
+});

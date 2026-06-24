@@ -65,9 +65,8 @@ export type VoxtralVoiceId = (typeof VOXTRAL_VOICES)[number];
 
 const VOXTRAL_VOICE_SET = new Set<string>(VOXTRAL_VOICES);
 
-export function isVoxtralVoiceId(value: string): value is VoxtralVoiceId {
-  return VOXTRAL_VOICE_SET.has(value);
-}
+export const isVoxtralVoiceId = (value: string): value is VoxtralVoiceId =>
+  VOXTRAL_VOICE_SET.has(value);
 
 export const VOXTRAL_MODEL_ID = "mistralai/Voxtral-4B-TTS-2603";
 
@@ -89,17 +88,15 @@ export const VOXTRAL_DEFAULT_VOICE: VoxtralVoiceId = "casual_male";
  * instance serving Voxtral. Apps use this as a one-click "Voxtral preset" so
  * users don't have to type the model id / voice field / format by hand.
  */
-export function voxtralSpeechPreset(overrides?: {
+export const voxtralSpeechPreset = (overrides?: {
   baseUrl?: string;
   apiKey?: string;
   voice?: VoxtralVoiceId;
-}) {
-  return {
-    kind: "openai-compatible" as const,
-    baseUrl: overrides?.baseUrl ?? VOXTRAL_DEFAULT_BASE_URL,
-    ...(overrides?.apiKey ? { apiKey: overrides.apiKey } : {}),
-    model: VOXTRAL_MODEL_ID,
-    voice: overrides?.voice ?? VOXTRAL_DEFAULT_VOICE,
-    format: VOXTRAL_DEFAULT_RESPONSE_FORMAT,
-  };
-}
+}) => ({
+  kind: "openai-compatible" as const,
+  baseUrl: overrides?.baseUrl ?? VOXTRAL_DEFAULT_BASE_URL,
+  ...(overrides?.apiKey ? { apiKey: overrides.apiKey } : {}),
+  model: VOXTRAL_MODEL_ID,
+  voice: overrides?.voice ?? VOXTRAL_DEFAULT_VOICE,
+  format: VOXTRAL_DEFAULT_RESPONSE_FORMAT,
+});

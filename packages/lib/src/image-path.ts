@@ -33,15 +33,15 @@ export function normalizeImagePath(value: string): string {
   return s.trim();
 }
 
-export function looksLikeImagePath(value: string): boolean {
-  return IMAGE_EXT_RE.test(normalizeImagePath(value));
-}
+export const looksLikeImagePath = (value: string): boolean =>
+  IMAGE_EXT_RE.test(normalizeImagePath(value));
 
 /** Returns the image MIME type for a path by file extension, or `null`. */
 export function imageMimeForPath(path: string): string | null {
   const dot = path.lastIndexOf(".");
-  if (dot === -1) return null;
-  return MIME_BY_EXT[path.slice(dot).toLowerCase()] ?? null;
+  return dot === -1
+    ? null
+    : (MIME_BY_EXT[path.slice(dot).toLowerCase()] ?? null);
 }
 
 /**
@@ -51,9 +51,7 @@ export function imageMimeForPath(path: string): string | null {
  */
 export const IMAGE_TOKEN_RE = /\[Image #(\d+)\]/g;
 
-export function formatImageToken(n: number): string {
-  return `[Image #${n}]`;
-}
+export const formatImageToken = (n: number): string => `[Image #${n}]`;
 
 /**
  * Parses inline image tokens out of `text` and returns the cleaned prompt
@@ -102,10 +100,11 @@ export function findInsertedImagePath(
     s++;
   }
   const inserted = next.slice(p, next.length - s);
-  if (!inserted || !looksLikeImagePath(inserted)) return null;
-  return {
-    path: normalizeImagePath(inserted),
-    startIdx: p,
-    endIdx: next.length - s,
-  };
+  return !inserted || !looksLikeImagePath(inserted)
+    ? null
+    : {
+        path: normalizeImagePath(inserted),
+        startIdx: p,
+        endIdx: next.length - s,
+      };
 }

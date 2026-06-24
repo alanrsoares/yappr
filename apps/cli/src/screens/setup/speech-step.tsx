@@ -65,9 +65,8 @@ const TRANSCRIPTION_YAPPR: VoiceConfigInput["transcription"] = {
   baseUrl: DEFAULT_SERVER_URL,
 };
 
-function parseVoiceConfig(input: VoiceConfigInput): VoiceConfig {
-  return VoiceConfigSchema.parse(input);
-}
+const parseVoiceConfig = (input: VoiceConfigInput): VoiceConfig =>
+  VoiceConfigSchema.parse(input);
 
 export function SpeechStep({ onPick, onSkip }: SpeechStepProps) {
   const [phase, setPhase] = useState<Phase>("select");

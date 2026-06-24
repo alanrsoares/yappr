@@ -47,11 +47,11 @@ export interface ChatTransportConfig {
  * Adding a new provider = new adapter file + new branch here; the
  * orchestrator code does not change.
  */
-export function createChatTransport(
+export const createChatTransport = (
   runtime: ChatRuntime,
   config: ChatTransportConfig,
-): ChatTransport {
-  return match(config.provider)
+): ChatTransport =>
+  match(config.provider)
     .with("openrouter", () =>
       createOpenRouterChatTransport(runtime, {
         model: config.model,
@@ -65,4 +65,3 @@ export function createChatTransport(
       }),
     )
     .exhaustive();
-}

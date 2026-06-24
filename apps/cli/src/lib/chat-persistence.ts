@@ -41,11 +41,11 @@ export function createConversationSync(
  * transaction (handled inside the repo). Role mirrors the Ollama/OpenRouter
  * chat contract: `user` | `assistant` | `system`.
  */
-export function appendMessage(
+export const appendMessage = (
   conversationId: string,
   message: ChatMessage,
-): Effect.Effect<void, Error> {
-  return Effect.try({
+): Effect.Effect<void, Error> =>
+  Effect.try({
     try: () => {
       const db = getDb();
       const role = message.role as "user" | "assistant" | "system";
@@ -57,4 +57,3 @@ export function appendMessage(
     },
     catch: toError,
   });
-}

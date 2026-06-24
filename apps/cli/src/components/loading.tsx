@@ -15,15 +15,13 @@ export interface LoadingProps {
   spinner?: LoadingSpinnerName;
 }
 
-export function Loading({
+export const Loading = ({
   message = "Loading...",
   spinner = "dots",
-}: LoadingProps) {
-  return (
-    <Box>
-      <Text color={semantic.accent}>
-        <Spinner type={spinner} /> {message}
-      </Text>
-    </Box>
-  );
-}
+}: LoadingProps) => (
+  <Box>
+    <Text color={semantic.accent}>
+      <Spinner type={spinner} /> {message}
+    </Text>
+  </Box>
+);

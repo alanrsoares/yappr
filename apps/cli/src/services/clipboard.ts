@@ -56,12 +56,11 @@ export function readClipboardImage(): Effect.Effect<string | null, Error> {
   });
 }
 
-export function imagePathExists(path: string): Effect.Effect<boolean, Error> {
-  return Effect.tryPromise({
+export const imagePathExists = (path: string): Effect.Effect<boolean, Error> =>
+  Effect.tryPromise({
     try: () =>
       access(path)
         .then(() => true)
         .catch(() => false),
     catch: toError,
   });
-}

@@ -38,9 +38,7 @@ const PromptInputContext = createContext<PromptInputContextType>({
   textareaRef: { current: null },
 });
 
-function usePromptInput() {
-  return useContext(PromptInputContext);
-}
+const usePromptInput = () => useContext(PromptInputContext);
 
 export type PromptInputProps = {
   isLoading?: boolean;
@@ -180,17 +178,15 @@ function PromptInputTextarea({
 
 export type PromptInputActionsProps = React.HTMLAttributes<HTMLDivElement>;
 
-function PromptInputActions({
+const PromptInputActions = ({
   children,
   className,
   ...props
-}: PromptInputActionsProps) {
-  return (
-    <div className={cn("flex items-center gap-2", className)} {...props}>
-      {children}
-    </div>
-  );
-}
+}: PromptInputActionsProps) => (
+  <div className={cn("flex items-center gap-2", className)} {...props}>
+    {children}
+  </div>
+);
 
 export type PromptInputActionProps = {
   className?: string;

@@ -103,16 +103,13 @@ export class McpManager {
         try: () => McpConfigSchema.safeParse(JSON.parse(content)),
         catch: toMcpError,
       });
-      if (!parsed.success) {
-        return yield* Effect.fail(
-          new McpError({
-            message: `Invalid MCP config: ${parsed.error.message}`,
-          }),
-        );
-      }
-      return yield* Effect.promise(() =>
-        this.connectAll(parsed.data.mcpServers),
-      );
+      return !parsed.success
+        ? yield* Effect.fail(
+            new McpError({
+              message: `Invalid MCP config: ${parsed.error.message}`,
+            }),
+          )
+        : yield* Effect.promise(() => this.connectAll(parsed.data.mcpServers));
     });
   }
 

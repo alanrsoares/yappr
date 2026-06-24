@@ -139,13 +139,12 @@ export const createMessageId = () => `msg_${randomId()}`;
 export const createToolCallId = (runId: string, name: string) =>
   `${runId}:tool:${name}:${randomId()}`;
 
-export function createChatEvent(input: ChatEventInput): ChatEvent {
-  return {
+export const createChatEvent = (input: ChatEventInput): ChatEvent =>
+  ({
     id: randomId(),
     timestamp: Date.now(),
     ...input,
-  } as ChatEvent;
-}
+  }) as ChatEvent;
 
 export function appendChatEvent(
   events: ChatEvent[],

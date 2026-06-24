@@ -86,10 +86,13 @@ export function KaraokeCaptions({
     () => (activeText && fontsReady ? prepareCaption(activeText) : null),
     [activeText, fontsReady],
   );
-  const layout = useMemo(() => {
-    if (!prepared || width <= 0) return null;
-    return layoutCaption(prepared, Math.max(1, width - 32), activeProgress);
-  }, [activeProgress, prepared, width]);
+  const layout = useMemo(
+    () =>
+      !prepared || width <= 0
+        ? null
+        : layoutCaption(prepared, Math.max(1, width - 32), activeProgress),
+    [activeProgress, prepared, width],
+  );
 
   if (!active) return null;
 

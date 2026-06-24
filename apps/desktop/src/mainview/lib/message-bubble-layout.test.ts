@@ -11,13 +11,14 @@ const installMeasureShim = () => {
     configurable: true,
     value: class {
       getContext(kind: string) {
-        if (kind !== "2d") return null;
-        return {
-          font: "",
-          measureText: (text: string) => ({
-            width: [...text].length * 8,
-          }),
-        } as OffscreenCanvasRenderingContext2D;
+        return kind !== "2d"
+          ? null
+          : ({
+              font: "",
+              measureText: (text: string) => ({
+                width: [...text].length * 8,
+              }),
+            } as OffscreenCanvasRenderingContext2D);
       }
     },
   });

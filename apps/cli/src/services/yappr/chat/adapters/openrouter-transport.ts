@@ -13,22 +13,20 @@ export interface OpenRouterTransportConfig {
  * agent loop + usage telemetry work uniformly (the previous bespoke SSE client
  * dropped tools).
  */
-export function createOpenRouterChatTransport(
+export const createOpenRouterChatTransport = (
   runtime: ChatRuntime,
   config: OpenRouterTransportConfig,
-): ChatTransport {
-  return {
-    name: "openrouter",
-    stream: (req: ChatStreamRequest) =>
-      streamTanstackChat(
-        runtime,
-        // OpenRouter model ids are user-configured; the adapter's model union
-        // is autocomplete-only, so accept any string.
-        runtime.createOpenRouterText(
-          config.model as Parameters<ChatRuntime["createOpenRouterText"]>[0],
-          config.apiKey,
-        ),
-        req,
+): ChatTransport => ({
+  name: "openrouter",
+  stream: (req: ChatStreamRequest) =>
+    streamTanstackChat(
+      runtime,
+      // OpenRouter model ids are user-configured; the adapter's model union
+      // is autocomplete-only, so accept any string.
+      runtime.createOpenRouterText(
+        config.model as Parameters<ChatRuntime["createOpenRouterText"]>[0],
+        config.apiKey,
       ),
-  };
-}
+      req,
+    ),
+});

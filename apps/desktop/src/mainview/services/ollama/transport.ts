@@ -26,11 +26,11 @@ type McpTools = Array<Tool<SchemaInput, SchemaInput>>;
  * multi-step agent loop is enabled (tools-only, matching the CLI); a tool-less
  * turn stays single-shot.
  */
-export function createOllamaConnection(
+export const createOllamaConnection = (
   getModel: () => string,
   getTools: () => McpTools = () => [],
-) {
-  return stream((messages, _data, abortSignal) => {
+) =>
+  stream((messages, _data, abortSignal) => {
     const adapter = createOllamaChat(getModel(), ollamaRoot());
     const abortController = new AbortController();
     if (abortSignal) {
@@ -51,4 +51,3 @@ export function createOllamaConnection(
       }),
     });
   });
-}

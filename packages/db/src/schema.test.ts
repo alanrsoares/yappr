@@ -2,37 +2,33 @@ import { describe, expect, test } from "bun:test";
 
 import { createDb } from "./client.js";
 
-function tableNames(db: ReturnType<typeof createDb>) {
-  return db.raw
+const tableNames = (db: ReturnType<typeof createDb>) =>
+  db.raw
     .prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
     .all() as Array<{ name: string }>;
-}
 
-function indexNames(db: ReturnType<typeof createDb>) {
-  return db.raw
+const indexNames = (db: ReturnType<typeof createDb>) =>
+  db.raw
     .prepare(
       "SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
     )
     .all() as Array<{ name: string }>;
-}
 
-function strictTables(db: ReturnType<typeof createDb>) {
-  return db.raw.prepare("PRAGMA table_list").all() as Array<{
+const strictTables = (db: ReturnType<typeof createDb>) =>
+  db.raw.prepare("PRAGMA table_list").all() as Array<{
     name: string;
     strict: number;
   }>;
-}
 
-function foreignKeys(db: ReturnType<typeof createDb>, table: string) {
-  return db.raw.prepare(`PRAGMA foreign_key_list(${table})`).all() as Array<{
+const foreignKeys = (db: ReturnType<typeof createDb>, table: string) =>
+  db.raw.prepare(`PRAGMA foreign_key_list(${table})`).all() as Array<{
     table: string;
     from: string;
     to: string;
     on_delete: string;
   }>;
-}
 
 describe("db schema", () => {
   test("applies drizzle migrations for core tables and indexes", () => {

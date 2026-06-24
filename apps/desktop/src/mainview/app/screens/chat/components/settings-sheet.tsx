@@ -438,11 +438,10 @@ export function ChatSettingsSheet({ children }: ChatSettingsSheetProps) {
   );
 }
 
-const healthLine = (health: HealthState): string => {
-  return match(health)
+const healthLine = (health: HealthState): string =>
+  match(health)
     .with({ kind: "idle" }, () => "Not checked.")
     .with({ kind: "checking" }, () => "Probing…")
     .with({ kind: "ok" }, ({ voices }) => `Online — ${voices} voices.`)
     .with({ kind: "fail" }, ({ reason }) => `Error: ${reason}`)
     .exhaustive();
-};
