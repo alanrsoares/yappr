@@ -277,6 +277,19 @@ export class McpManager {
     };
   }
 
+  /** Raw tool metadata for the desktop RPC bridge (ADR 0002). */
+  getToolMetadata(): Array<{
+    name: string;
+    description?: string;
+    inputSchema: unknown;
+  }> {
+    return [...this.tools.values()].map(({ tool }) => ({
+      name: tool.name,
+      ...(tool.description ? { description: tool.description } : {}),
+      inputSchema: tool.inputSchema,
+    }));
+  }
+
   getOllamaTools(): OllamaTool[] {
     return [...this.tools.values()].map(({ tool }) => ({
       type: "function",

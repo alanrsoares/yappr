@@ -19,6 +19,7 @@
     "./state": "./src/state.ts",
     "./voice": "./src/voice.ts",
     "./mcp": "./src/mcp.ts",
+    "./mcp-rpc": "./src/mcp-rpc.ts",
     "./tts": "./src/tts.ts",
     "./recorder": "./src/recorder.ts",
     "./audio-devices": "./src/audio-devices.ts"
