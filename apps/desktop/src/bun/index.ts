@@ -1,7 +1,6 @@
 import os from "node:os";
 import path from "node:path";
 import { createDb, importSettingsJsonIfFresh } from "@yappr/db";
-import type { DbRpcSchema } from "@yappr/db/rpc";
 import {
   BrowserWindow,
   defineElectrobunRPC,
@@ -9,7 +8,9 @@ import {
   Utils,
 } from "electrobun/bun";
 
+import type { AppRpcSchema } from "../rpc-schema";
 import { makeDbRpcHandlers } from "./db-rpc";
+import { makeMcpRpcHandlers } from "./mcp-rpc";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -45,8 +46,9 @@ if (importResult.kind === "imported") {
   console.log(`Migrated ${importResult.count} legacy settings into DB.`);
 }
 
-const rpc = defineElectrobunRPC<DbRpcSchema, "bun">("bun", {
-  handlers: { requests: makeDbRpcHandlers(db) },
+const mcp = makeMcpRpcHandlers();
+const rpc = defineElectrobunRPC<AppRpcSchema, "bun">("bun", {
+  handlers: { requests: { ...makeDbRpcHandlers(db), ...mcp.requests } },
 });
 
 const mainWindow = new BrowserWindow({
@@ -70,6 +72,7 @@ const mainWindow = new BrowserWindow({
 // launcher quits cleanly instead of leaving the main process orphaned.
 mainWindow.on("close", () => {
   db.close();
+  void mcp.close();
   Utils.quit();
 });
 

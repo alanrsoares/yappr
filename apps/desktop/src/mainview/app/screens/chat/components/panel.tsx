@@ -7,6 +7,7 @@ import {
   RefreshCcw,
   Square,
   Volume2,
+  Wrench,
 } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 
@@ -29,7 +30,12 @@ import {
   MessageContent,
 } from "~/ui/message";
 import { Composer } from "../../../components/composer";
-import { chatMessageText, useChatContext, useChatSession } from "../store";
+import {
+  chatMessageText,
+  type ToolTraceEntry,
+  useChatContext,
+  useChatSession,
+} from "../store";
 import { KaraokeCaptions } from "./karaoke-captions";
 
 export function ChatPanel() {
@@ -107,6 +113,9 @@ export function ChatPanel() {
               );
             })
           )}
+          {session.toolTrace.length > 0 ? (
+            <ToolTrace entries={session.toolTrace} />
+          ) : null}
           {session.showLoading ? <LoadingMessage /> : null}
           {session.error ? (
             <ErrorMessage message={session.error.message} />
@@ -362,6 +371,37 @@ const LoadingMessage = memo(function LoadingMessage() {
     <Message className="mx-auto flex w-full max-w-3xl flex-col gap-1">
       <div className="text-muted-foreground py-2">
         <DotsLoader />
+      </div>
+    </Message>
+  );
+});
+
+const ToolTrace = memo(function ToolTrace({
+  entries,
+}: {
+  entries: ToolTraceEntry[];
+}) {
+  return (
+    <Message className="mx-auto flex w-full max-w-3xl flex-col gap-1">
+      <div className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 font-mono text-[11px] text-foil-mute">
+        {entries.map((t) => (
+          <div key={t.id} className="flex items-center gap-2">
+            <Wrench
+              className={cn("size-3 shrink-0", {
+                "animate-pulse": t.status === "running",
+              })}
+              aria-hidden="true"
+            />
+            <span className="text-foreground/80">{t.name}</span>
+            <span>
+              {t.status === "running"
+                ? "running…"
+                : t.elapsedMs
+                  ? `${(t.elapsedMs / 1000).toFixed(1)}s`
+                  : "done"}
+            </span>
+          </div>
+        ))}
       </div>
     </Message>
   );

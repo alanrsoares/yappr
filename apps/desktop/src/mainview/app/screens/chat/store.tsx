@@ -29,8 +29,17 @@ import {
   ollamaModelsOptions,
   preferencesOptions,
 } from "~/lib/queries";
+import { buildMcpTools, mcpToolsOptions } from "~/services/mcp/tools";
 import { DEFAULT_CHAT_MODEL, pickModel } from "~/services/ollama";
 import { createOllamaConnection } from "~/services/ollama/transport";
+
+/** A tool round-trip surfaced in the chat trace, distinct from the answer. */
+export interface ToolTraceEntry {
+  id: string;
+  name: string;
+  status: "running" | "done";
+  elapsedMs?: number;
+}
 
 /**
  * Chat client/UI state — the only state shared across the chat subtree. The
@@ -173,6 +182,8 @@ export interface ChatSession {
   modelsLoaded: boolean;
   /** Stats for the most recent completed turn; null until the first reply. */
   telemetry: TurnTelemetry | null;
+  /** Tool round-trips for the current turn, in call order. */
+  toolTrace: ToolTraceEntry[];
   submit: (text: string, files: Attachment[]) => Promise<void>;
   regenerateMessage: (messageId: string) => Promise<void>;
   stop: () => void;
@@ -212,6 +223,16 @@ export function useChatSession(): ChatSession {
     );
   }, [persisted]);
 
+  // MCP tools (ADR 0002): metadata fetched over RPC, execution bridged to bun.
+  // Read live via a ref so tools arriving after first render still apply
+  // without recreating the frozen useChat connection.
+  const { data: toolMetas } = useQuery(mcpToolsOptions);
+  const tools = useMemo(() => buildMcpTools(toolMetas ?? []), [toolMetas]);
+  const toolsRef = useRef(tools);
+  useEffect(() => {
+    toolsRef.current = tools;
+  }, [tools]);
+
   // useChat freezes the connection at first render; read the live model via a
   // ref so switching models takes effect without recreating the chat instance.
   const modelRef = useRef(model);
@@ -219,7 +240,35 @@ export function useChatSession(): ChatSession {
     modelRef.current = model;
   }, [model]);
   const connection = useMemo(
-    () => createOllamaConnection(() => modelRef.current),
+    () =>
+      createOllamaConnection(
+        () => modelRef.current,
+        () => toolsRef.current,
+      ),
+    [],
+  );
+
+  // Tool-call trace for the current turn + start-times so TOOL_CALL_END can
+  // compute elapsed. Persisted to agent-events for cross-surface replay.
+  const [toolTrace, setToolTrace] = useState<ToolTraceEntry[]>([]);
+  const runIdRef = useRef<string | null>(null);
+  const toolStartedAtRef = useRef(new Map<string, number>());
+  const persistToolEvent = useCallback(
+    (type: "tool.call" | "tool.result", payload: Record<string, unknown>) => {
+      const convId = liveConvIdRef.current;
+      const runId = runIdRef.current;
+      if (!convId || !runId) return;
+      void dbRpc
+        .request("agentEvents:append", {
+          id: crypto.randomUUID(),
+          conversationId: convId,
+          runId,
+          type,
+          eventJson: JSON.stringify({ type, ...payload }),
+          createdAt: Date.now(),
+        })
+        .catch(() => {});
+    },
     [],
   );
 
@@ -235,6 +284,28 @@ export function useChatSession(): ChatSession {
             totalTokens: u.totalTokens,
             ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
           };
+        } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
+          const name = String(chunk.toolName);
+          const id = crypto.randomUUID();
+          toolStartedAtRef.current.set(name, Date.now());
+          setToolTrace((prev) => [...prev, { id, name, status: "running" }]);
+          persistToolEvent("tool.call", { name });
+        } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
+          const name = String(chunk.toolName);
+          const startedAt = toolStartedAtRef.current.get(name);
+          const elapsedMs = startedAt ? Date.now() - startedAt : undefined;
+          toolStartedAtRef.current.delete(name);
+          setToolTrace((prev) =>
+            prev.map((t) =>
+              t.name === name && t.status === "running"
+                ? { ...t, status: "done", ...(elapsedMs && { elapsedMs }) }
+                : t,
+            ),
+          );
+          persistToolEvent("tool.result", {
+            name,
+            ...(elapsedMs && { elapsedMs }),
+          });
         }
       },
       onFinish: async (message) => {
@@ -314,7 +385,10 @@ export function useChatSession(): ChatSession {
       });
       sentAtRef.current = Date.now();
       usageRef.current = null;
+      runIdRef.current = crypto.randomUUID();
+      toolStartedAtRef.current.clear();
       setTelemetry(null);
+      setToolTrace([]);
       await (files.length > 0
         ? sendMessage({ content: parts })
         : sendMessage(text.trim()));
@@ -330,7 +404,10 @@ export function useChatSession(): ChatSession {
         : null;
       sentAtRef.current = Date.now();
       usageRef.current = null;
+      runIdRef.current = crypto.randomUUID();
+      toolStartedAtRef.current.clear();
       setTelemetry(null);
+      setToolTrace([]);
       try {
         await reload();
       } catch {
@@ -349,6 +426,7 @@ export function useChatSession(): ChatSession {
     modelReady,
     modelsLoaded: Boolean(models),
     telemetry,
+    toolTrace,
     submit,
     regenerateMessage,
     stop,

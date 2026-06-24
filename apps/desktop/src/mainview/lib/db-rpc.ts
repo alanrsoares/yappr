@@ -1,17 +1,18 @@
-import type { DbRpcSchema } from "@yappr/db/rpc";
 import { Electroview } from "electrobun/view";
 
+import type { AppRpcSchema } from "../../rpc-schema";
+
 /**
- * Typed webview-side client for the `~/.yappr/yappr.db` persistence layer.
- * All DB access from React goes through `dbRpc.request("domain:verb", ...)`,
- * which is forwarded over Electrobun's websocket transport to the bun-side
- * handlers in `bun/db-rpc.ts`.
+ * Typed webview-side client for the bun ↔ webview RPC channel: the
+ * `~/.yappr/yappr.db` persistence layer plus the MCP tool bridge (ADR 0002).
+ * All access from React goes through `dbRpc.request("domain:verb", ...)`,
+ * forwarded over Electrobun's websocket transport to the bun-side handlers.
  *
  * Importing this module has a side-effect: it instantiates `Electroview`,
  * which opens the RPC socket. The module-singleton pattern matches Electrobun's
  * own examples — one Electroview per webview lifetime.
  */
-const rpc = Electroview.defineRPC<DbRpcSchema>({
+const rpc = Electroview.defineRPC<AppRpcSchema>({
   handlers: { requests: {} },
 });
 
