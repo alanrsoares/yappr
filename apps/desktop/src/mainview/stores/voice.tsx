@@ -5,7 +5,6 @@ import {
   useSelector,
 } from "@tanstack/react-store";
 import type { Store } from "@tanstack/store";
-import { toResultAsync } from "@yappr/lib/effect";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
 import { type HealthSnapshot, probeHealth } from "@yappr/sdk/health";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@yappr/sdk/schemas";
 import { buildSpeechPreset } from "@yappr/sdk/speech-presets";
 import { createVoiceClient } from "@yappr/sdk/voice";
+import { Effect } from "effect";
 import { type ReactNode, useEffect } from "react";
 
 import {
@@ -220,14 +220,10 @@ const voiceActionsFactory = ({
         setState((s) => ({ ...s, engineHealth: null }));
         return;
       }
-      const snapshot = await toResultAsync(probeHealth(speech.baseUrl));
-      setState((s) => ({
-        ...s,
-        engineHealth: snapshot.match(
-          (snap) => snap,
-          () => null,
-        ),
-      }));
+      const snapshot = await Effect.runPromise(
+        probeHealth(speech.baseUrl),
+      ).catch(() => null);
+      setState((s) => ({ ...s, engineHealth: snapshot }));
     },
     stopAudio: () => {
       speakRun += 1;
@@ -381,29 +377,29 @@ const voiceActionsFactory = ({
         });
       };
       const cached = narrationCache.get(cacheKey);
-      if (cached.isOk()) {
-        playBuffer(cached.value);
+      if (cached !== null) {
+        playBuffer(cached);
         return;
       }
       const client = createVoiceClient(get().voiceConfig);
       const reference = get().voiceReference;
-      const result = await toResultAsync(
+      await Effect.runPromise(
         client.synthesize(phrase, {
           voice,
           speed,
           ...(reference ? { reference } : {}),
         }),
-      );
-      if (speakRun !== runId) return;
-      result.match(
+      ).then(
         (buffer) => {
+          if (speakRun !== runId) return;
           narrationCache.set(cacheKey, buffer);
           playBuffer(buffer);
         },
-        (err) => {
+        (err: unknown) => {
+          if (speakRun !== runId) return;
           setState((s) => ({
             ...s,
-            tts: toTtsError(err.message),
+            tts: toTtsError(err instanceof Error ? err.message : String(err)),
             caption: { kind: "idle" },
           }));
         },
@@ -411,13 +407,8 @@ const voiceActionsFactory = ({
     },
     transcribe: async (blob) => {
       const client = createVoiceClient(get().voiceConfig);
-      const result = await toResultAsync(client.transcribe(blob));
-      return result.match(
-        (t) => t,
-        (err) => {
-          throw err;
-        },
-      );
+      // runPromise rejects with the TtsError, which the caller surfaces.
+      return Effect.runPromise(client.transcribe(blob));
     },
   };
 };

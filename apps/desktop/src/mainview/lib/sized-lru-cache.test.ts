@@ -10,20 +10,13 @@ describe("SizedLruCache", () => {
       sizeOf: (value) => value.length,
     });
 
-  test("returns Result misses and hits", () => {
+  test("returns null misses and value hits", () => {
     const cache = createCache();
 
-    const miss = cache.get("missing");
-    expect(miss.isErr()).toBe(true);
-    expect(miss._unsafeUnwrapErr()).toEqual({
-      kind: "miss",
-      key: "missing",
-    });
+    expect(cache.get("missing")).toBeNull();
 
     cache.set("a", "alpha");
-    const hit = cache.get("a");
-    expect(hit.isOk()).toBe(true);
-    expect(hit._unsafeUnwrap()).toBe("alpha");
+    expect(cache.get("a")).toBe("alpha");
   });
 
   test("evicts the least recently used entry by item count", () => {
@@ -31,12 +24,12 @@ describe("SizedLruCache", () => {
 
     cache.set("a", "a");
     cache.set("b", "b");
-    expect(cache.get("a").isOk()).toBe(true);
+    expect(cache.get("a")).toBe("a");
     cache.set("c", "c");
 
-    expect(cache.get("b").isErr()).toBe(true);
-    expect(cache.get("a")._unsafeUnwrap()).toBe("a");
-    expect(cache.get("c")._unsafeUnwrap()).toBe("c");
+    expect(cache.get("b")).toBeNull();
+    expect(cache.get("a")).toBe("a");
+    expect(cache.get("c")).toBe("c");
   });
 
   test("evicts oldest entries by size budget", () => {
@@ -46,9 +39,9 @@ describe("SizedLruCache", () => {
     cache.set("b", "bb");
     cache.set("c", "cc");
 
-    expect(cache.get("a").isErr()).toBe(true);
-    expect(cache.get("b")._unsafeUnwrap()).toBe("bb");
-    expect(cache.get("c")._unsafeUnwrap()).toBe("cc");
+    expect(cache.get("a")).toBeNull();
+    expect(cache.get("b")).toBe("bb");
+    expect(cache.get("c")).toBe("cc");
   });
 
   test("skips values larger than the size budget", () => {
@@ -56,6 +49,6 @@ describe("SizedLruCache", () => {
 
     cache.set("huge", "abcd");
 
-    expect(cache.get("huge").isErr()).toBe(true);
+    expect(cache.get("huge")).toBeNull();
   });
 });

@@ -31,7 +31,7 @@ describe("NarrationCache", () => {
     cache.set("first", first);
     cache.set("second", second);
 
-    expect(cache.get("first").isErr()).toBe(true);
-    expect(cache.get("second")._unsafeUnwrap()).toBe(second);
+    expect(cache.get("first")).toBeNull();
+    expect(cache.get("second")).toBe(second);
   });
 });

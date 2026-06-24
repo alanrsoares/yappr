@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
-import { toResultAsync } from "@yappr/lib/effect";
 import type { SpeechEndpointInput, VoiceId } from "@yappr/sdk/schemas";
 import { createSpeechClient } from "@yappr/sdk/voice";
+import { Effect } from "effect";
 
 import { dbRpc } from "~/lib/db-rpc";
 import { listOllamaModels } from "~/services/ollama";
@@ -36,14 +36,11 @@ export const voicesOptions = (speech: SpeechEndpointInput) =>
     queryKey: ["voice", "speech", speech] as const,
     queryFn: async ({ signal }): Promise<VoiceId[]> => {
       const client = createSpeechClient(speech);
-      const result = await toResultAsync(client.listVoices());
+      // runPromise rejects with the TtsError on failure — TanStack Query
+      // surfaces that as the query's error state.
+      const voices = await Effect.runPromise(client.listVoices());
       if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-      return result.match(
-        (voices) => voices,
-        (err) => {
-          throw err;
-        },
-      );
+      return voices;
     },
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
