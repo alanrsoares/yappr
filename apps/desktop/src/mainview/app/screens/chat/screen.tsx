@@ -1,5 +1,3 @@
 import { ChatLayout } from "./components/layout";
 
-export function ChatScreen() {
-  return <ChatLayout />;
-}
+export const ChatScreen = () => <ChatLayout />;

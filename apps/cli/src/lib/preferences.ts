@@ -25,8 +25,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
  * Read all preferences from the DB and merge with defaults. Validation is
  * per-field — invalid values fall back to defaults silently.
  */
-export function loadPreferences(): Effect.Effect<Preferences, Error> {
-  return Effect.try({
+export const loadPreferences = (): Effect.Effect<Preferences, Error> =>
+  Effect.try({
     try: () => {
       const db = getDb();
       const stored = db.preferences.getAll();
@@ -34,20 +34,18 @@ export function loadPreferences(): Effect.Effect<Preferences, Error> {
     },
     catch: toError,
   });
-}
 
 /**
  * Write a partial preferences update. Only the supplied keys are touched;
  * other rows in the DB are left intact (no full-row read-modify-write needed).
  */
-export function savePreferences(
+export const savePreferences = (
   partial: Partial<Preferences>,
-): Effect.Effect<void, Error> {
-  return Effect.try({
+): Effect.Effect<void, Error> =>
+  Effect.try({
     try: () => {
       const db = getDb();
       db.preferences.setMany(partial as Record<string, unknown>);
     },
     catch: toError,
   });
-}

@@ -5,6 +5,7 @@ export function filterBySubstring<T>(
   getSearchText: (item: T) => string,
 ): T[] {
   const q = query.trim().toLowerCase();
-  if (!q) return [...items];
-  return items.filter((item) => getSearchText(item).toLowerCase().includes(q));
+  return !q
+    ? [...items]
+    : items.filter((item) => getSearchText(item).toLowerCase().includes(q));
 }

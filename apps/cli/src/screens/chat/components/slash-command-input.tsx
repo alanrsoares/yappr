@@ -44,18 +44,18 @@ export function SlashCommandInput({
   useInput((input, key) => {
     const effectiveKey = getEffectiveKey(input, key as ExtendedKey);
 
-    if (effectiveKey === "return") {
-      const pick = n > 0 ? list[effectiveIndex] : undefined;
-      onSubmitLine(value, pick?.name);
-      return;
-    }
-    if (effectiveKey === "upArrow") {
-      setSelectedIndex((i) => cycleIndex(i, n, -1));
-      return;
-    }
-    if (effectiveKey === "downArrow") {
-      setSelectedIndex((i) => cycleIndex(i, n, 1));
-      return;
+    switch (effectiveKey) {
+      case "return": {
+        const pick = n > 0 ? list[effectiveIndex] : undefined;
+        onSubmitLine(value, pick?.name);
+        return;
+      }
+      case "upArrow":
+        setSelectedIndex((i) => cycleIndex(i, n, -1));
+        return;
+      case "downArrow":
+        setSelectedIndex((i) => cycleIndex(i, n, 1));
+        return;
     }
     if (effectiveKey === "backspace" || key.backspace) {
       setSelectedIndex(0);

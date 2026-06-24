@@ -6,8 +6,9 @@ export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 
 export function getOllamaClient(baseUrl?: string): Ollama {
   const url = baseUrl?.trim() || DEFAULT_OLLAMA_URL;
-  if (url === DEFAULT_OLLAMA_URL) return ollama as Ollama;
-  return new Ollama({ host: url });
+  return url === DEFAULT_OLLAMA_URL
+    ? (ollama as Ollama)
+    : new Ollama({ host: url });
 }
 
 export function listOllamaModels(

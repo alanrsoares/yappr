@@ -61,10 +61,10 @@ export class HealthProbeError extends Data.TaggedError("HealthProbeError")<{
  * channel as {@link HealthProbeError}. Apps typically render them as a
  * "(unreachable)" footer rather than a hard error.
  */
-export function probeHealth(
+export const probeHealth = (
   baseUrl: string,
-): Effect.Effect<HealthSnapshot, HealthProbeError> {
-  return Effect.tryPromise({
+): Effect.Effect<HealthSnapshot, HealthProbeError> =>
+  Effect.tryPromise({
     try: async () => {
       const res = await fetch(`${trimTrailingSlash(baseUrl)}/health`);
       if (!res.ok) {
@@ -91,4 +91,3 @@ export function probeHealth(
         cause,
       }),
   });
-}

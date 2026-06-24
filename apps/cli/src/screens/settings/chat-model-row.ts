@@ -7,8 +7,9 @@ export function chatModelRowText(p: {
   defaultChatModel: string;
 }): string {
   if (p.defaultChatProvider === "openrouter") {
-    if (p.openRouterModelsLoading) return "…";
-    return p.defaultChatModel || "(set API key, then pick model)";
+    return p.openRouterModelsLoading
+      ? "…"
+      : p.defaultChatModel || "(set API key, then pick model)";
   }
   if (p.modelsLoading) return "…";
   return p.defaultChatModel;

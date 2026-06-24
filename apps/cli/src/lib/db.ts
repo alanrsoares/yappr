@@ -15,13 +15,10 @@ const LEGACY_SETTINGS_FILE = "settings.json";
  */
 const dbCache = new Map<string, YapprDb>();
 
-function getDbPath(): string {
-  return path.join(userHomeDir(), YAPPR_DIR, DB_FILE);
-}
+const getDbPath = (): string => path.join(userHomeDir(), YAPPR_DIR, DB_FILE);
 
-function getLegacySettingsPath(): string {
-  return path.join(userHomeDir(), YAPPR_DIR, LEGACY_SETTINGS_FILE);
-}
+const getLegacySettingsPath = (): string =>
+  path.join(userHomeDir(), YAPPR_DIR, LEGACY_SETTINGS_FILE);
 
 /**
  * Open (or reuse) the shared Yappr SQLite DB at `~/.yappr/yappr.db`. First

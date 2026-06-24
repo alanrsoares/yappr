@@ -44,8 +44,7 @@ export function getEffectiveKey(input: string, key: ExtendedKey): string {
     if (key[fKey]) return fKey;
   }
 
-  if (key.ctrl && input) return `ctrl+${input.toLowerCase()}`;
-  return input;
+  return key.ctrl && input ? `ctrl+${input.toLowerCase()}` : input;
 }
 
 export function useKeyboard({ bindings }: UseKeyboardOptions): void {

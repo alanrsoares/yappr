@@ -38,16 +38,14 @@ export interface YapprPresetOverrides {
   speed?: number;
 }
 
-export function yapprSpeechPreset(
+export const yapprSpeechPreset = (
   overrides: YapprPresetOverrides = {},
-): YapprSpeechEndpointInput {
-  return {
-    kind: "yappr",
-    baseUrl: overrides.baseUrl ?? DEFAULT_SERVER_URL,
-    voice: overrides.voice ?? DEFAULT_VOICE,
-    speed: overrides.speed ?? DEFAULT_SPEED,
-  };
-}
+): YapprSpeechEndpointInput => ({
+  kind: "yappr",
+  baseUrl: overrides.baseUrl ?? DEFAULT_SERVER_URL,
+  voice: overrides.voice ?? DEFAULT_VOICE,
+  speed: overrides.speed ?? DEFAULT_SPEED,
+});
 
 export interface CustomOpenAiPresetOverrides {
   baseUrl?: string;
@@ -62,18 +60,16 @@ export interface CustomOpenAiPresetOverrides {
  * requires a non-empty string in both fields so we ship sensible literals
  * users will recognise and want to replace.
  */
-export function customOpenAiSpeechPreset(
+export const customOpenAiSpeechPreset = (
   overrides: CustomOpenAiPresetOverrides = {},
-): OpenAiCompatibleSpeechEndpointInput {
-  return {
-    kind: "openai-compatible",
-    baseUrl: overrides.baseUrl ?? "https://api.example.com/v1",
-    ...(overrides.apiKey ? { apiKey: overrides.apiKey } : {}),
-    model: overrides.model ?? "tts-1",
-    voice: overrides.voice ?? "alloy",
-    format: "wav",
-  };
-}
+): OpenAiCompatibleSpeechEndpointInput => ({
+  kind: "openai-compatible",
+  baseUrl: overrides.baseUrl ?? "https://api.example.com/v1",
+  ...(overrides.apiKey ? { apiKey: overrides.apiKey } : {}),
+  model: overrides.model ?? "tts-1",
+  voice: overrides.voice ?? "alloy",
+  format: "wav",
+});
 
 export type SpeechPresetOverrides = {
   baseUrl?: string;
@@ -88,11 +84,11 @@ export type SpeechPresetOverrides = {
  * from a UI control; the returned shape plugs straight into
  * `VoiceConfigInput.speech`.
  */
-export function buildSpeechPreset(
+export const buildSpeechPreset = (
   kind: SpeechPresetKind,
   overrides: SpeechPresetOverrides = {},
-): YapprSpeechEndpointInput | OpenAiCompatibleSpeechEndpointInput {
-  return match(kind)
+): YapprSpeechEndpointInput | OpenAiCompatibleSpeechEndpointInput =>
+  match(kind)
     .with("yappr", () => yapprSpeechPreset(overrides))
     .with("voxtral", () =>
       voxtralSpeechPreset({
@@ -105,21 +101,19 @@ export function buildSpeechPreset(
     )
     .with("custom", () => customOpenAiSpeechPreset(overrides))
     .exhaustive();
-}
 
 /**
  * Inverse of {@link buildSpeechPreset}: detect the preset a config came from
  * so the UI can highlight the active row. Anything openai-compatible that
  * isn't Voxtral is treated as custom.
  */
-export function detectSpeechPreset(
+export const detectSpeechPreset = (
   speech: YapprSpeechEndpointInput | OpenAiCompatibleSpeechEndpointInput,
-): SpeechPresetKind {
-  return match(speech)
+): SpeechPresetKind =>
+  match(speech)
     .with({ kind: "yappr" }, () => "yappr" as const)
     .with(
       { kind: "openai-compatible", model: VOXTRAL_MODEL_ID },
       () => "voxtral" as const,
     )
     .otherwise(() => "custom" as const);
-}

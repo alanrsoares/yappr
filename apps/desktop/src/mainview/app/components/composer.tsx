@@ -88,16 +88,12 @@ export function Composer({
     setAttachBusy(true);
     try {
       const converted = await fileListToAttachments(list);
-      const sizedOk = converted.filter((p) => {
-        if (p.url.startsWith("data:")) {
-          return p.url.length <= MAX_FILE_BYTES * 2;
-        }
-        return true;
-      });
+      const sizedOk = converted.filter((p) =>
+        p.url.startsWith("data:") ? p.url.length <= MAX_FILE_BYTES * 2 : true,
+      );
       setPendingFiles((prev) => {
         const room = MAX_ATTACHMENTS - prev.length;
-        if (room <= 0) return prev;
-        return [...prev, ...sizedOk.slice(0, room)];
+        return room <= 0 ? prev : [...prev, ...sizedOk.slice(0, room)];
       });
     } finally {
       setAttachBusy(false);

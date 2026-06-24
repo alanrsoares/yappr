@@ -100,15 +100,14 @@ async function transcribe(baseUrl: string, wav: Uint8Array): Promise<string> {
   return body.text ?? "";
 }
 
-function tokenize(input: string): Set<string> {
-  return new Set(
+const tokenize = (input: string): Set<string> =>
+  new Set(
     input
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .split(/\s+/)
       .filter(Boolean),
   );
-}
 
 function jaccardSimilarity(a: string, b: string): number {
   const left = tokenize(a);
@@ -119,9 +118,7 @@ function jaccardSimilarity(a: string, b: string): number {
   return intersection.size / union.size;
 }
 
-function format(n: number): string {
-  return n.toFixed(3);
-}
+const format = (n: number): string => n.toFixed(3);
 
 async function main(): Promise<void> {
   const args = parseCliArgs();
@@ -169,7 +166,7 @@ async function main(): Promise<void> {
   const wavPath = join(tmpdir(), `yappr-smoke-${Date.now()}.wav`);
   await writeFile(wavPath, wav);
 
-  console.log(`▶ STT: transcribing…`);
+  console.log("▶ STT: transcribing…");
   const sttStart = Date.now();
   let transcript: string;
   try {
@@ -204,7 +201,7 @@ async function main(): Promise<void> {
     );
     process.exit(1);
   }
-  console.log(`\n✓ PASS`);
+  console.log("\n✓ PASS");
 }
 
 void main();

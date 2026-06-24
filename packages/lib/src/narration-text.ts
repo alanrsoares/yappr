@@ -9,8 +9,8 @@ const joinParts = (parts: string[]): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-function inlineTokensToSpeech(tokens: readonly Token[] = []): string {
-  return joinParts(
+const inlineTokensToSpeech = (tokens: readonly Token[] = []): string =>
+  joinParts(
     tokens.map((token) => {
       switch (token.type) {
         case "text":
@@ -40,7 +40,6 @@ function inlineTokensToSpeech(tokens: readonly Token[] = []): string {
       }
     }),
   );
-}
 
 function blockTokenToSpeech(token: Token): string {
   switch (token.type) {

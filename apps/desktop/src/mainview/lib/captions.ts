@@ -59,13 +59,14 @@ export const normalizeCaptionText = (text: string): string =>
 
 export const prepareCaption = (text: string): PreparedCaption | null => {
   const normalized = normalizeCaptionText(text);
-  if (!normalized) return null;
-  return {
-    text: normalized,
-    prepared: prepareWithSegments(normalized, CAPTION_FONT, {
-      whiteSpace: "pre-wrap",
-    }),
-  };
+  return !normalized
+    ? null
+    : {
+        text: normalized,
+        prepared: prepareWithSegments(normalized, CAPTION_FONT, {
+          whiteSpace: "pre-wrap",
+        }),
+      };
 };
 
 export const layoutCaption = (

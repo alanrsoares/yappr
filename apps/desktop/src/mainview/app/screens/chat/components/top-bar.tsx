@@ -69,22 +69,18 @@ export function ChatTopBar({ model, onModelChange }: ChatTopBarProps) {
   );
 }
 
-const healthLabel = (kind: "idle" | "checking" | "ok" | "fail"): string => {
-  return match(kind)
+const healthLabel = (kind: "idle" | "checking" | "ok" | "fail"): string =>
+  match(kind)
     .with("ok", () => "online")
     .with("checking", () => "probing")
     .with("fail", () => "offline")
     .with("idle", () => "idle")
     .exhaustive();
-};
 
-const healthDescription = (
-  kind: "idle" | "checking" | "ok" | "fail",
-): string => {
-  return match(kind)
+const healthDescription = (kind: "idle" | "checking" | "ok" | "fail"): string =>
+  match(kind)
     .with("ok", () => "Inference server reachable")
     .with("checking", () => "Probing inference server…")
     .with("fail", () => "Inference server unreachable — open Settings")
     .with("idle", () => "Inference server not checked — open Settings to probe")
     .exhaustive();
-};

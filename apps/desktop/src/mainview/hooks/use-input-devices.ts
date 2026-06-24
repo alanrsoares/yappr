@@ -20,10 +20,10 @@ export interface UseInputDevicesResult {
 
 const QUERY_KEY = ["audio-devices"] as const;
 
-async function fetchDevices(): Promise<MediaDeviceInfo[]> {
-  if (!navigator.mediaDevices?.enumerateDevices) return [];
-  return navigator.mediaDevices.enumerateDevices();
-}
+const fetchDevices = async (): Promise<MediaDeviceInfo[]> =>
+  !navigator.mediaDevices?.enumerateDevices
+    ? []
+    : navigator.mediaDevices.enumerateDevices();
 
 export function useInputDevices(): UseInputDevicesResult {
   const queryClient = useQueryClient();

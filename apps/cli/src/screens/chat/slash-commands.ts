@@ -125,22 +125,21 @@ for (const cmd of SLASH_COMMANDS) {
   }
 }
 
-export function listSlashCommands() {
-  return SLASH_COMMANDS;
-}
+export const listSlashCommands = () => SLASH_COMMANDS;
 
 export function filterSlashCommands(query: string) {
   const q = query.trim().toLowerCase();
-  if (!q) return [...SLASH_COMMANDS];
-  return SLASH_COMMANDS.filter(
-    (c) =>
-      c.name.startsWith(q) || Boolean(c.aliases?.some((a) => a.startsWith(q))),
-  );
+  return !q
+    ? [...SLASH_COMMANDS]
+    : SLASH_COMMANDS.filter(
+        (c) =>
+          c.name.startsWith(q) ||
+          Boolean(c.aliases?.some((a) => a.startsWith(q))),
+      );
 }
 
-export function resolveSlashCommand(token: string) {
-  return SLASH_BY_TOKEN.get(token.toLowerCase());
-}
+export const resolveSlashCommand = (token: string) =>
+  SLASH_BY_TOKEN.get(token.toLowerCase());
 
 export function resolveSlashSubmit(
   rawLine: string,

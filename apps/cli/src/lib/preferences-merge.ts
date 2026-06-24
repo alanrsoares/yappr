@@ -6,9 +6,7 @@ import { parsePreferencesJson } from "./preferences-schema.js";
  * keys and invalid values are silently dropped per-field by
  * {@link parsePreferencesJson}.
  */
-export function mergeStoredPreferences(
+export const mergeStoredPreferences = (
   parsed: unknown,
   defaults: Preferences,
-): Preferences {
-  return { ...defaults, ...parsePreferencesJson(parsed) };
-}
+): Preferences => ({ ...defaults, ...parsePreferencesJson(parsed) });

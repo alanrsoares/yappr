@@ -7,10 +7,8 @@ import { TooltipProvider } from "~/ui/tooltip";
  *   - ChatScreen mounts ChatLayout (sidebar + main column).
  * AppLayout only provides global providers that every route needs.
  */
-export function MainLayout() {
-  return (
-    <TooltipProvider delayDuration={250}>
-      <Outlet />
-    </TooltipProvider>
-  );
-}
+export const MainLayout = () => (
+  <TooltipProvider delayDuration={250}>
+    <Outlet />
+  </TooltipProvider>
+);

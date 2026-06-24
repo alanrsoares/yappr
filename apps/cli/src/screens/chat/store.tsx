@@ -545,8 +545,8 @@ export function useChatController(initialState?: ChatStoreInitialState) {
     quit();
   }, [stopStt, stopChat]);
 
-  const buildSlashContext = useCallback((): SlashCommandContext => {
-    return {
+  const buildSlashContext = useCallback(
+    (): SlashCommandContext => ({
       clearConversation,
       stopChat,
       stopStt,
@@ -576,18 +576,19 @@ export function useChatController(initialState?: ChatStoreInitialState) {
       model,
       provider,
       voice,
-    };
-  }, [
-    clearConversation,
-    stopChat,
-    stopStt,
-    quitApp,
-    onBack,
-    onNavigate,
-    model,
-    provider,
-    voice,
-  ]);
+    }),
+    [
+      clearConversation,
+      stopChat,
+      stopStt,
+      quitApp,
+      onBack,
+      onNavigate,
+      model,
+      provider,
+      voice,
+    ],
+  );
 
   const handleComposerSubmit = useCallback(
     (raw: string, slashPick?: string) => {

@@ -26,10 +26,12 @@ function VoicesPreviewStatusLine({
   return null;
 }
 
-function EmptyVoicesMessage({ voices }: { voices: readonly string[] }) {
-  if (voices.length === 0) return <Text dimColor>No voices returned.</Text>;
-  return <Text dimColor>No voices match filter.</Text>;
-}
+const EmptyVoicesMessage = ({ voices }: { voices: readonly string[] }) =>
+  voices.length === 0 ? (
+    <Text dimColor>No voices returned.</Text>
+  ) : (
+    <Text dimColor>No voices match filter.</Text>
+  );
 
 export function VoicesScreen({ onBack }: VoicesScreenProps) {
   const {

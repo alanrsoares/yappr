@@ -38,16 +38,12 @@ const MessageAvatar = ({
   fallback,
   delayMs,
   className,
-}: MessageAvatarProps) => {
-  return (
-    <Avatar className={cn("h-8 w-8 shrink-0", className)}>
-      <AvatarImage src={src} alt={alt} />
-      {fallback && (
-        <AvatarFallback delayMs={delayMs}>{fallback}</AvatarFallback>
-      )}
-    </Avatar>
-  );
-};
+}: MessageAvatarProps) => (
+  <Avatar className={cn("h-8 w-8 shrink-0", className)}>
+    <AvatarImage src={src} alt={alt} />
+    {fallback && <AvatarFallback delayMs={delayMs}>{fallback}</AvatarFallback>}
+  </Avatar>
+);
 
 export type MessageContentProps = {
   children: React.ReactNode;
@@ -109,23 +105,21 @@ const MessageAction = ({
   className,
   side = "bottom",
   ...props
-}: MessageActionProps) => {
-  return (
-    <TooltipProvider>
-      <Tooltip {...props}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent
-          side={side}
-          sideOffset={6}
-          avoidCollisions={false}
-          className={className}
-        >
-          {tooltip}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
+}: MessageActionProps) => (
+  <TooltipProvider>
+    <Tooltip {...props}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent
+        side={side}
+        sideOffset={6}
+        avoidCollisions={false}
+        className={className}
+      >
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 export {
   Message,

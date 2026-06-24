@@ -9,18 +9,16 @@ export interface MenuProps {
   selectedIndex: number;
 }
 
-export function Menu({ items, selectedIndex }: MenuProps) {
-  return (
-    <Box flexDirection="column" gap={0}>
-      {items.map((item, i) => (
-        <Box key={item.id}>
-          <Text color={i === selectedIndex ? semantic.accent : undefined}>
-            {listSelectionPrefix(i === selectedIndex)}
-            {item.label}
-          </Text>
-          {item.done && <Text color={semantic.success}> ✓</Text>}
-        </Box>
-      ))}
-    </Box>
-  );
-}
+export const Menu = ({ items, selectedIndex }: MenuProps) => (
+  <Box flexDirection="column" gap={0}>
+    {items.map((item, i) => (
+      <Box key={item.id}>
+        <Text color={i === selectedIndex ? semantic.accent : undefined}>
+          {listSelectionPrefix(i === selectedIndex)}
+          {item.label}
+        </Text>
+        {item.done && <Text color={semantic.success}> ✓</Text>}
+      </Box>
+    ))}
+  </Box>
+);

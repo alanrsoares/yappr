@@ -36,17 +36,16 @@ interface MicButtonProps {
   inputDeviceId?: string | null;
 }
 
-function getMicLabel(state: MicState) {
-  return match(state)
+const getMicLabel = (state: MicState) =>
+  match(state)
     .with({ kind: "idle" }, () => "Start dictation")
     .with({ kind: "recording" }, () => "Stop dictation")
     .with({ kind: "processing" }, () => "Transcribing…")
     .with({ kind: "error" }, ({ reason }) => `Mic error — ${reason}`)
     .exhaustive();
-}
 
-function MicStateIcon({ state }: { state: MicState }) {
-  return match(state)
+const MicStateIcon = ({ state }: { state: MicState }) =>
+  match(state)
     .with({ kind: "recording" }, () => (
       <Square className="size-3.5" aria-hidden="true" />
     ))
@@ -57,7 +56,6 @@ function MicStateIcon({ state }: { state: MicState }) {
       <Mic className="size-4" aria-hidden="true" />
     ))
     .exhaustive();
-}
 
 /**
  * Click-to-toggle dictation. Uses MediaRecorder + the Python /transcribe
@@ -77,9 +75,7 @@ export function MicButton({
   const streamRef = useRef<MediaStream | null>(null);
 
   // Always release the mic on unmount, even mid-recording.
-  useEffect(() => {
-    return () => releaseStream(streamRef.current);
-  }, []);
+  useEffect(() => () => releaseStream(streamRef.current), []);
 
   const start = useCallback(async () => {
     try {

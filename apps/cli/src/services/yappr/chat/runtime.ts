@@ -13,14 +13,12 @@ export interface ChatRuntime {
   getOllamaClient: typeof getOllamaClient;
 }
 
-export function createDefaultChatRuntime(): ChatRuntime {
-  return {
-    createMcpManager: () => new McpManager(),
-    tanstackChat,
-    createOllamaChat,
-    createOpenRouterText,
-    getOllamaClient,
-  };
-}
+export const createDefaultChatRuntime = (): ChatRuntime => ({
+  createMcpManager: () => new McpManager(),
+  tanstackChat,
+  createOllamaChat,
+  createOpenRouterText,
+  getOllamaClient,
+});
 
 export const defaultChatRuntime: ChatRuntime = createDefaultChatRuntime();

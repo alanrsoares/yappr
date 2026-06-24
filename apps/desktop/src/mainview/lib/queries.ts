@@ -83,10 +83,10 @@ export const archivedConversationsOptions = queryOptions({
 export const messagesOptions = (conversationId: string | null) =>
   queryOptions({
     queryKey: ["db", "messages", conversationId] as const,
-    queryFn: () => {
-      if (!conversationId) return Promise.resolve([]);
-      return dbRpc.request("messages:list", { conversationId });
-    },
+    queryFn: () =>
+      !conversationId
+        ? Promise.resolve([])
+        : dbRpc.request("messages:list", { conversationId }),
     enabled: Boolean(conversationId),
     staleTime: Infinity, // streaming appends drive invalidation manually
   });

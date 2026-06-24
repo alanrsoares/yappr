@@ -20,10 +20,10 @@ export const mcpToolsOptions = queryOptions({
 });
 
 /** Build `@tanstack/ai` tools whose execution is bridged to bun over RPC. */
-export function buildMcpTools(
+export const buildMcpTools = (
   metas: McpToolMeta[],
-): Array<Tool<SchemaInput, SchemaInput>> {
-  return metas.map((meta) => {
+): Array<Tool<SchemaInput, SchemaInput>> =>
+  metas.map((meta) => {
     const def = toolDefinition({
       name: meta.name,
       description: meta.description ?? "",
@@ -37,4 +37,3 @@ export function buildMcpTools(
       return result.content;
     });
   });
-}

@@ -34,6 +34,5 @@ export function checkSystemBinary(name: SystemBinary): SystemBinaryStatus {
   };
 }
 
-export function checkSystemBinaries(): SystemBinaryStatus[] {
-  return (["uv", "ffmpeg", "espeak-ng"] as const).map(checkSystemBinary);
-}
+export const checkSystemBinaries = (): SystemBinaryStatus[] =>
+  (["uv", "ffmpeg", "espeak-ng"] as const).map(checkSystemBinary);

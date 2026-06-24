@@ -26,42 +26,40 @@ export interface RunUvSyncOptions {
 /** Run `uv sync --extra dev` inside `${repoRoot}/python`. Streams output via onLine. */
 export function runUvSync(opts: RunUvSyncOptions): Effect.Effect<void, Error> {
   const cwd = join(opts.repoRoot, "python");
-  if (!existsSync(cwd)) {
-    return Effect.fail(new Error(`python directory not found at ${cwd}`));
-  }
+  return !existsSync(cwd)
+    ? Effect.fail(new Error(`python directory not found at ${cwd}`))
+    : Effect.tryPromise({
+        try: () =>
+          new Promise<void>((resolveP, rejectP) => {
+            const child = spawn("uv", ["sync", "--extra", "dev"], {
+              cwd,
+              env: process.env,
+              stdio: ["ignore", "pipe", "pipe"],
+            });
 
-  return Effect.tryPromise({
-    try: () =>
-      new Promise<void>((resolveP, rejectP) => {
-        const child = spawn("uv", ["sync", "--extra", "dev"], {
-          cwd,
-          env: process.env,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
+            const pump = (chunk: Buffer) => {
+              for (const line of chunk.toString().split(/\r?\n/)) {
+                if (line.length > 0) opts.onLine(line);
+              }
+            };
+            child.stdout.on("data", pump);
+            child.stderr.on("data", pump);
 
-        const pump = (chunk: Buffer) => {
-          for (const line of chunk.toString().split(/\r?\n/)) {
-            if (line.length > 0) opts.onLine(line);
-          }
-        };
-        child.stdout.on("data", pump);
-        child.stderr.on("data", pump);
+            const onAbort = () => child.kill("SIGTERM");
+            opts.signal?.addEventListener("abort", onAbort, { once: true });
 
-        const onAbort = () => child.kill("SIGTERM");
-        opts.signal?.addEventListener("abort", onAbort, { once: true });
-
-        child.on("error", (err) => {
-          opts.signal?.removeEventListener("abort", onAbort);
-          rejectP(err);
-        });
-        child.on("close", (code) => {
-          opts.signal?.removeEventListener("abort", onAbort);
-          if (code === 0) resolveP();
-          else rejectP(new Error(`uv sync exited with code ${code}`));
-        });
-      }),
-    catch: toError,
-  });
+            child.on("error", (err) => {
+              opts.signal?.removeEventListener("abort", onAbort);
+              rejectP(err);
+            });
+            child.on("close", (code) => {
+              opts.signal?.removeEventListener("abort", onAbort);
+              if (code === 0) resolveP();
+              else rejectP(new Error(`uv sync exited with code ${code}`));
+            });
+          }),
+        catch: toError,
+      });
 }
 
 /** Quick check: does `${repoRoot}/python/.venv/bin/python` exist? */

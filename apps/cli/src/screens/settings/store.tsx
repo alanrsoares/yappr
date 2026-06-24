@@ -58,18 +58,18 @@ const SPEECH_ENDPOINT_VALUES: readonly SpeechPresetKind[] = [
 
 type SpeechEndpointPreset = SpeechPresetKind;
 
-function applySpeechPreset(kind: SpeechPresetKind): {
+const applySpeechPreset = (
+  kind: SpeechPresetKind,
+): {
   voice: VoiceConfig;
   defaultVoice?: string;
-} {
-  return {
-    voice: VoiceConfigSchema.parse({
-      speech: buildSpeechPreset(kind),
-      transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
-    }),
-    ...(kind === "voxtral" ? { defaultVoice: VOXTRAL_DEFAULT_VOICE } : {}),
-  };
-}
+} => ({
+  voice: VoiceConfigSchema.parse({
+    speech: buildSpeechPreset(kind),
+    transcription: { kind: "yappr", baseUrl: DEFAULT_SERVER_URL },
+  }),
+  ...(kind === "voxtral" ? { defaultVoice: VOXTRAL_DEFAULT_VOICE } : {}),
+});
 
 type PickerKindNonNull = Exclude<PickerKind, null>;
 
@@ -185,20 +185,15 @@ function nextVoiceReference(
 ): Preferences["voiceReference"] {
   const audio_path = patch.audio_path ?? prefs.voiceReference?.audio_path ?? "";
   const transcript = patch.transcript ?? prefs.voiceReference?.transcript ?? "";
-  if (!audio_path && !transcript) return null;
-  return { audio_path, transcript };
+  return !audio_path && !transcript ? null : { audio_path, transcript };
 }
 
 export interface SettingsStoreInitialState {
   onBack: () => void;
 }
 
-function clampPickerScrollOffset(index: number, listLength: number): number {
-  return Math.max(
-    0,
-    Math.min(index, Math.max(0, listLength - VISIBLE_PICKER_ROWS)),
-  );
-}
+const clampPickerScrollOffset = (index: number, listLength: number): number =>
+  Math.max(0, Math.min(index, Math.max(0, listLength - VISIBLE_PICKER_ROWS)));
 
 export const CHAT_PROVIDER_LABEL: Record<ChatProvider, string> = {
   ollama: PROVIDER_LABELS[0],
@@ -213,13 +208,11 @@ export function pickerItemLabel(item: PickerListItem): string {
   return id ? `${id} ${name}`.trim() : name;
 }
 
-function filterPickerList(
+const filterPickerList = (
   list: readonly PickerListItem[] | null,
   query: string,
-): PickerListItem[] {
-  if (!list?.length) return [];
-  return filterBySubstring(list, query, pickerItemLabel);
-}
+): PickerListItem[] =>
+  !list?.length ? [] : filterBySubstring(list, query, pickerItemLabel);
 
 function commitPickerChoice(
   kind: PickerKindNonNull,

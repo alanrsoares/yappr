@@ -9,27 +9,25 @@ export interface MessageBubbleProps {
   borderColor: "green" | "cyan" | "gray";
 }
 
-export function MessageBubble({
+export const MessageBubble = ({
   content,
   label,
   borderColor,
-}: MessageBubbleProps) {
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Box marginBottom={0} marginLeft={0}>
-        <Text bold color={borderColor}>
-          {label}
-        </Text>
-      </Box>
-      <Box
-        borderStyle="round"
-        borderColor={borderColor}
-        paddingX={1}
-        paddingY={0}
-        marginTop={0}
-      >
-        <Markdown>{content}</Markdown>
-      </Box>
+}: MessageBubbleProps) => (
+  <Box flexDirection="column" marginBottom={1}>
+    <Box marginBottom={0} marginLeft={0}>
+      <Text bold color={borderColor}>
+        {label}
+      </Text>
     </Box>
-  );
-}
+    <Box
+      borderStyle="round"
+      borderColor={borderColor}
+      paddingX={1}
+      paddingY={0}
+      marginTop={0}
+    >
+      <Markdown>{content}</Markdown>
+    </Box>
+  </Box>
+);

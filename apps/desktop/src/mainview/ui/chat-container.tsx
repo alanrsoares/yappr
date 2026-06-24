@@ -16,50 +16,44 @@ export type ChatContainerContentProps = {
   className?: string;
 } & HTMLAttributes<HTMLDivElement>;
 
-function ChatContainerRoot({
+const ChatContainerRoot = ({
   children,
   className,
   ...props
-}: ChatContainerRootProps) {
-  return (
-    <StickToBottom
-      className={cn("flex overflow-y-auto", className)}
-      resize="smooth"
-      initial="instant"
-      role="log"
-      {...props}
-    >
-      {children}
-    </StickToBottom>
-  );
-}
+}: ChatContainerRootProps) => (
+  <StickToBottom
+    className={cn("flex overflow-y-auto", className)}
+    resize="smooth"
+    initial="instant"
+    role="log"
+    {...props}
+  >
+    {children}
+  </StickToBottom>
+);
 
-function ChatContainerContent({
+const ChatContainerContent = ({
   children,
   className,
   ...props
-}: ChatContainerContentProps) {
-  return (
-    <StickToBottom.Content
-      className={cn("flex w-full flex-col", className)}
-      {...props}
-    >
-      {children}
-    </StickToBottom.Content>
-  );
-}
+}: ChatContainerContentProps) => (
+  <StickToBottom.Content
+    className={cn("flex w-full flex-col", className)}
+    {...props}
+  >
+    {children}
+  </StickToBottom.Content>
+);
 
-function ChatContainerScrollAnchor({
+const ChatContainerScrollAnchor = ({
   className,
   ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("h-px w-full shrink-0 scroll-mt-4", className)}
-      aria-hidden="true"
-      {...props}
-    />
-  );
-}
+}: HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn("h-px w-full shrink-0 scroll-mt-4", className)}
+    aria-hidden="true"
+    {...props}
+  />
+);
 
 export { ChatContainerContent, ChatContainerRoot, ChatContainerScrollAnchor };

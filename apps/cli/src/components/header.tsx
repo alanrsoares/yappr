@@ -7,13 +7,11 @@ export interface HeaderProps {
   subtitle?: string;
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
-  return (
-    <Box marginBottom={1} flexDirection="column">
-      <Text bold color={semantic.accent}>
-        {title}
-      </Text>
-      {subtitle !== undefined && <Text dimColor>{subtitle}</Text>}
-    </Box>
-  );
-}
+export const Header = ({ title, subtitle }: HeaderProps) => (
+  <Box marginBottom={1} flexDirection="column">
+    <Text bold color={semantic.accent}>
+      {title}
+    </Text>
+    {subtitle !== undefined && <Text dimColor>{subtitle}</Text>}
+  </Box>
+);

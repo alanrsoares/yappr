@@ -29,8 +29,9 @@ function speechEndpointLabel(
         `OpenAI-compatible · ${prefs.voice.speech.kind === "openai-compatible" ? prefs.voice.speech.baseUrl : ""}`,
     )
     .exhaustive();
-  if (!health || prefs.voice.speech.kind !== "yappr") return baseLabel;
-  return `${baseLabel} (tts=${health.ttsBackend ?? "—"} · stt=${health.sttBackend ?? "—"})`;
+  return !health || prefs.voice.speech.kind !== "yappr"
+    ? baseLabel
+    : `${baseLabel} (tts=${health.ttsBackend ?? "—"} · stt=${health.sttBackend ?? "—"})`;
 }
 
 /** Main settings rows when no picker is open. */

@@ -153,31 +153,27 @@ export function useVoicesController(initialState?: VoicesStoreInitialState) {
       return;
     }
 
-    if (effectiveKey === "ctrl+e") {
-      if (phraseCustom) {
-        setPhraseCustom(false);
-      } else {
-        setPhrase((p) => (p.trim() ? p : VOICE_PREVIEW_SAMPLE));
-        setPhraseCustom(true);
-      }
-      return;
-    }
-
-    if (effectiveKey === "ctrl+p") {
-      playPreview(VOICE_PREVIEW_SAMPLE);
-      return;
-    }
-
-    if (
-      effectiveKey === "return" ||
-      effectiveKey === "enter" ||
-      effectiveKey === "ctrl+s"
-    ) {
-      if (phraseCustom) {
-        playPreview(phrase.trim() || VOICE_PREVIEW_SAMPLE);
-      } else {
+    switch (effectiveKey) {
+      case "ctrl+e":
+        if (phraseCustom) {
+          setPhraseCustom(false);
+        } else {
+          setPhrase((p) => (p.trim() ? p : VOICE_PREVIEW_SAMPLE));
+          setPhraseCustom(true);
+        }
+        return;
+      case "ctrl+p":
         playPreview(VOICE_PREVIEW_SAMPLE);
-      }
+        return;
+      case "return":
+      case "enter":
+      case "ctrl+s":
+        if (phraseCustom) {
+          playPreview(phrase.trim() || VOICE_PREVIEW_SAMPLE);
+        } else {
+          playPreview(VOICE_PREVIEW_SAMPLE);
+        }
+        break;
     }
   });
 

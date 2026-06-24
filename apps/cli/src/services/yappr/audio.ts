@@ -22,9 +22,8 @@ export function stopAudioPlayback(): void {
   getDefaultAudioRuntime().playback.stop();
 }
 
-export function listVoices(): Effect.Effect<string[], Error> {
-  return listVoicesWithRuntime(getDefaultAudioRuntime());
-}
+export const listVoices = (): Effect.Effect<string[], Error> =>
+  listVoicesWithRuntime(getDefaultAudioRuntime());
 
 export function listVoicesWithRuntime(
   runtime: AudioRuntime,
@@ -32,12 +31,11 @@ export function listVoicesWithRuntime(
   return runtime.tts.listVoices();
 }
 
-export function speak(
+export const speak = (
   text: string,
   options: SpeakOptions = {},
-): Effect.Effect<void, Error> {
-  return speakWithRuntime(text, options, getDefaultAudioRuntime());
-}
+): Effect.Effect<void, Error> =>
+  speakWithRuntime(text, options, getDefaultAudioRuntime());
 
 export function speakWithRuntime(
   text: string,
