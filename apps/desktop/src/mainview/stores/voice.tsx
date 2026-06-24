@@ -5,6 +5,7 @@ import {
   useSelector,
 } from "@tanstack/react-store";
 import type { Store } from "@tanstack/store";
+import { toResultAsync } from "@yappr/lib/effect";
 import { DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
 import { type HealthSnapshot, probeHealth } from "@yappr/sdk/health";
 import {
@@ -219,7 +220,7 @@ const voiceActionsFactory = ({
         setState((s) => ({ ...s, engineHealth: null }));
         return;
       }
-      const snapshot = await probeHealth(speech.baseUrl);
+      const snapshot = await toResultAsync(probeHealth(speech.baseUrl));
       setState((s) => ({
         ...s,
         engineHealth: snapshot.match(

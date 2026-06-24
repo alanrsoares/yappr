@@ -8,8 +8,7 @@
  * controls a backend actually honours — e.g. the voice-reference panel.
  */
 
-import { toError } from "@yappr/lib/result";
-import { ResultAsync } from "neverthrow";
+import { Data, Effect } from "effect";
 import { z } from "zod";
 
 const TtsFeaturesSchema = z.object({
@@ -49,17 +48,24 @@ export interface HealthSnapshot {
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
+/** Network / non-2xx / schema-mismatch failure from the `/health` probe. */
+export class HealthProbeError extends Data.TaggedError("HealthProbeError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
 /**
  * Hit `GET ${baseUrl}/health` and parse the typed snapshot.
  *
- * Failures (network, non-2xx, schema mismatch) come back as an `Err`. Apps
- * typically render them as a "(unreachable)" footer rather than a hard error.
+ * Failures (network, non-2xx, schema mismatch) come back in the Effect error
+ * channel as {@link HealthProbeError}. Apps typically render them as a
+ * "(unreachable)" footer rather than a hard error.
  */
 export function probeHealth(
   baseUrl: string,
-): ResultAsync<HealthSnapshot, Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
+): Effect.Effect<HealthSnapshot, HealthProbeError> {
+  return Effect.tryPromise({
+    try: async () => {
       const res = await fetch(`${trimTrailingSlash(baseUrl)}/health`);
       if (!res.ok) {
         throw new Error(`/health → HTTP ${res.status}`);
@@ -78,7 +84,11 @@ export function probeHealth(
             }
           : null,
       } satisfies HealthSnapshot;
-    })(),
-    toError,
-  );
+    },
+    catch: (cause) =>
+      new HealthProbeError({
+        message: cause instanceof Error ? cause.message : String(cause),
+        cause,
+      }),
+  });
 }

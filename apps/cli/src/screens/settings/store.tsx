@@ -1,3 +1,4 @@
+import { toResultAsync } from "@yappr/lib/effect";
 import { DEFAULT_SERVER_URL } from "@yappr/sdk/defaults";
 import { type HealthSnapshot, probeHealth } from "@yappr/sdk/health";
 import { type VoiceConfig, VoiceConfigSchema } from "@yappr/sdk/schemas";
@@ -296,10 +297,12 @@ export function useSettingsController(
   const { data: voices = [] } = useQuery(listVoices);
   const { data: engineHealth } = useQuery<HealthSnapshot, Error>(
     () =>
-      probeHealth(
-        preferences.voice.speech.kind === "yappr"
-          ? preferences.voice.speech.baseUrl
-          : DEFAULT_SERVER_URL,
+      toResultAsync(
+        probeHealth(
+          preferences.voice.speech.kind === "yappr"
+            ? preferences.voice.speech.baseUrl
+            : DEFAULT_SERVER_URL,
+        ),
       ),
     { deps: [preferences.voice.speech] },
   );
