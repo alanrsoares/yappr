@@ -1,12 +1,8 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { toResultAsync } from "@yappr/lib/effect";
 import { AudioRecorder } from "@yappr/sdk/recorder";
-import type { TTSOptions } from "@yappr/sdk/tts";
-import type { RecordOptions } from "@yappr/sdk/types";
 import { createVoiceClient, type VoiceClient } from "@yappr/sdk/voice";
 import { spawn } from "bun";
-import type { ResultAsync } from "neverthrow";
 
 export interface AudioPaths {
   tmpDir: string;
@@ -23,36 +19,11 @@ export function resolveAudioPaths(projectRoot: string): AudioPaths {
   };
 }
 
-/** neverthrow-facing port over the sdk's Effect {@link VoiceClient}. */
-export interface TtsPort {
-  listVoices(): ResultAsync<string[], Error>;
-  synthesize(
-    text: string,
-    options?: TTSOptions,
-  ): ResultAsync<ArrayBuffer, Error>;
-  transcribe(blob: Blob): ResultAsync<string, Error>;
-}
+/** The sdk's Effect voice client, used directly now the cli runs on Effect. */
+export type TtsPort = VoiceClient;
 
-export interface RecorderPort {
-  record(
-    outputPath: string,
-    deviceIndex?: number,
-    options?: RecordOptions,
-  ): ResultAsync<void, Error>;
-}
-
-/** Bridge the sdk's Effect-based voice client into the neverthrow TtsPort. */
-const toTtsPort = (client: VoiceClient): TtsPort => ({
-  listVoices: () => toResultAsync(client.listVoices()),
-  synthesize: (text, options) =>
-    toResultAsync(client.synthesize(text, options)),
-  transcribe: (blob) => toResultAsync(client.transcribe(blob)),
-});
-
-const toRecorderPort = (recorder: AudioRecorder): RecorderPort => ({
-  record: (outputPath, deviceIndex, options) =>
-    toResultAsync(recorder.record(outputPath, deviceIndex, options)),
-});
+/** The recorder surface the audio runtime needs (Effect-native). */
+export type RecorderPort = Pick<AudioRecorder, "record">;
 
 export interface PlaybackPort {
   playWav(wavPath: string): void;
@@ -119,8 +90,8 @@ export function createAudioRuntime(
   const playback = options.playback ?? createPlaybackPort();
 
   return {
-    tts: options.tts ?? toTtsPort(createVoiceClient()),
-    recorder: options.recorder ?? toRecorderPort(new AudioRecorder()),
+    tts: options.tts ?? createVoiceClient(),
+    recorder: options.recorder ?? new AudioRecorder(),
     paths,
     ensureTmp: () => {
       mkdirSync(paths.tmpDir, { recursive: true });

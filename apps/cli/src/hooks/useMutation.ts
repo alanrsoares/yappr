@@ -1,9 +1,8 @@
-import { ok, type Result, type ResultAsync } from "neverthrow";
+import { Cause, Effect, Exit } from "effect";
 import { useCallback, useState } from "react";
 
 export interface UseMutationResult<T, E, V> {
-  mutate: (variables: V) => Result<void, E>;
-  mutateAsync: (variables: V) => ResultAsync<T, E>;
+  mutate: (variables: V) => void;
   data: T | undefined;
   error: E | null;
   isPending: boolean;
@@ -18,7 +17,7 @@ export interface UseMutationOptions<T, E = Error> {
 }
 
 export function useMutation<T, E = Error, V = void>(
-  mutationFn: (variables: V) => ResultAsync<T, E>,
+  mutationFn: (variables: V) => Effect.Effect<T, E>,
   options?: UseMutationOptions<T, E>,
 ): UseMutationResult<T, E, V> {
   const { onSuccess, onError } = options ?? {};
@@ -27,48 +26,27 @@ export function useMutation<T, E = Error, V = void>(
   const [isPending, setIsPending] = useState(false);
 
   const mutate = useCallback(
-    (variables: V): Result<void, E> => {
+    (variables: V): void => {
       setIsPending(true);
       setError(null);
       setData(undefined);
-      mutationFn(variables)
-        .andTee((value) => {
-          setData(value);
-          setError(null);
-          onSuccess?.(value);
-        })
-        .orTee((err) => {
-          setError(err);
-          setData(undefined);
-          onError?.(err);
-        })
-        .match(
-          () => setIsPending(false),
-          () => setIsPending(false),
-        );
-      return ok();
-    },
-    [mutationFn, onSuccess, onError],
-  );
-
-  const mutateAsync = useCallback(
-    (variables: V): ResultAsync<T, E> => {
-      setIsPending(true);
-      setError(null);
-      setData(undefined);
-      return mutationFn(variables)
-        .andTee((value) => {
-          setData(value);
-          setError(null);
-          onSuccess?.(value);
-        })
-        .orTee((err) => {
-          setError(err);
-          setData(undefined);
-          onError?.(err);
-        })
-        .andTee(() => setIsPending(false))
-        .orTee(() => setIsPending(false));
+      Effect.runPromiseExit(mutationFn(variables))
+        .then((exit) =>
+          Exit.match(exit, {
+            onSuccess: (value) => {
+              setData(value);
+              setError(null);
+              onSuccess?.(value);
+            },
+            onFailure: (cause) => {
+              const err = Cause.squash(cause) as E;
+              setError(err);
+              setData(undefined);
+              onError?.(err);
+            },
+          }),
+        )
+        .finally(() => setIsPending(false));
     },
     [mutationFn, onSuccess, onError],
   );
@@ -80,7 +58,6 @@ export function useMutation<T, E = Error, V = void>(
 
   return {
     mutate,
-    mutateAsync,
     data,
     error,
     isPending,

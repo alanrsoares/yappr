@@ -1,7 +1,6 @@
-import { toResultAsync } from "@yappr/lib/effect";
 import { toError } from "@yappr/lib/result";
 import type { TurnTelemetry } from "@yappr/lib/telemetry";
-import { ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 import { match } from "ts-pattern";
 
 import { MCP_CONFIG_PATH } from "../../../constants.js";
@@ -31,7 +30,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 export function chat(
   prompt: string,
   options: ChatOptions = {},
-): ResultAsync<string | null, Error> {
+): Effect.Effect<string | null, Error> {
   const {
     provider = "ollama",
     model = "qwen2.5:14b",
@@ -58,20 +57,26 @@ export function chat(
     openrouterApiKey,
   });
 
-  return toResultAsync(
-    mcp.loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH),
-  ).andThen(() => {
-    const req: ChatStreamRequest = {
-      messages,
-      systemPrompts,
-      tools: useTools ? mcp.getTanStackTools() : [],
-      ...(abortController && { signal: abortController.signal }),
-    };
-    return ResultAsync.fromPromise(
-      drainStream(transport, req, { onUpdate, onToolCall, onTelemetry }, mcp),
-      toError,
-    );
-  });
+  return mcp.loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH).pipe(
+    Effect.flatMap(() => {
+      const req: ChatStreamRequest = {
+        messages,
+        systemPrompts,
+        tools: useTools ? mcp.getTanStackTools() : [],
+        ...(abortController && { signal: abortController.signal }),
+      };
+      return Effect.tryPromise({
+        try: () =>
+          drainStream(
+            transport,
+            req,
+            { onUpdate, onToolCall, onTelemetry },
+            mcp,
+          ),
+        catch: toError,
+      });
+    }),
+  );
 }
 
 interface ChatCallbacks {

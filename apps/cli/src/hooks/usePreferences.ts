@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { useCallback } from "react";
 
 import {
@@ -22,12 +23,10 @@ export function usePreferences(): UsePreferencesResult {
 
   const savePreferences = useCallback(
     (partial: Partial<Preferences>) => {
-      savePreferencesToDisk(partial)
-        .andTee(() => query.refetch())
-        .match(
-          () => {},
-          () => {},
-        );
+      Effect.runPromise(savePreferencesToDisk(partial)).then(
+        () => query.refetch(),
+        () => {},
+      );
     },
     [query],
   );

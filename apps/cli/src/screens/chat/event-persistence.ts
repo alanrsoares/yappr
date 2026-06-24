@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { err, ok, okAsync, type Result, ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import { getDb } from "~/lib/db.js";
 import type { ChatEvent } from "./events.js";
@@ -21,11 +21,11 @@ const DURABLE_EVENT_TYPES = new Set<ChatEvent["type"]>([
 export const isDurableChatEvent = (event: ChatEvent) =>
   DURABLE_EVENT_TYPES.has(event.type);
 
-export function persistChatEvent(event: ChatEvent): ResultAsync<void, Error> {
-  if (!isDurableChatEvent(event)) return okAsync();
+export function persistChatEvent(event: ChatEvent): Effect.Effect<void, Error> {
+  if (!isDurableChatEvent(event)) return Effect.void;
 
-  return ResultAsync.fromPromise(
-    (async () => {
+  return Effect.try({
+    try: () => {
       const db = getDb();
       db.agentEvents.append({
         id: event.id,
@@ -35,37 +35,37 @@ export function persistChatEvent(event: ChatEvent): ResultAsync<void, Error> {
         eventJson: JSON.stringify(event),
         createdAt: event.timestamp,
       });
-    })(),
-    toError,
-  );
+    },
+    catch: toError,
+  });
 }
 
-function parsePersistedEvent(eventJson: string): Result<ChatEvent, Error> {
+/** Parse a persisted row, dropping malformed JSON or shape mismatches. */
+function parsePersistedEvent(eventJson: string): ChatEvent | null {
   try {
     const parsed = JSON.parse(eventJson) as ChatEvent;
     return typeof parsed.id === "string" &&
       typeof parsed.runId === "string" &&
       typeof parsed.type === "string" &&
       typeof parsed.timestamp === "number"
-      ? ok(parsed)
-      : err(new Error("Persisted chat event is missing required fields"));
-  } catch (error) {
-    return err(toError(error));
+      ? parsed
+      : null;
+  } catch {
+    return null;
   }
 }
 
 export function listPersistedChatEvents(
   conversationId: string,
-): ResultAsync<ChatEvent[], Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
+): Effect.Effect<ChatEvent[], Error> {
+  return Effect.try({
+    try: () => {
       const db = getDb();
       return db.agentEvents
         .listForConversation(conversationId)
         .map((row) => parsePersistedEvent(row.eventJson))
-        .filter((event) => event.isOk())
-        .map((event) => event.value);
-    })(),
-    toError,
-  );
+        .filter((event): event is ChatEvent => event !== null);
+    },
+    catch: toError,
+  });
 }

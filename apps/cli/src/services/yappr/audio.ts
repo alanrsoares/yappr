@@ -1,6 +1,6 @@
 import { toError } from "@yappr/lib/result";
 import { DEFAULT_SPEED, DEFAULT_VOICE } from "@yappr/sdk/defaults";
-import { ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import type { SpeakOptions } from "../../types.js";
 import { type AudioRuntime, getDefaultAudioRuntime } from "./audio-runtime.js";
@@ -22,20 +22,20 @@ export function stopAudioPlayback(): void {
   getDefaultAudioRuntime().playback.stop();
 }
 
-export function listVoices(): ResultAsync<string[], Error> {
+export function listVoices(): Effect.Effect<string[], Error> {
   return listVoicesWithRuntime(getDefaultAudioRuntime());
 }
 
 export function listVoicesWithRuntime(
   runtime: AudioRuntime,
-): ResultAsync<string[], Error> {
+): Effect.Effect<string[], Error> {
   return runtime.tts.listVoices();
 }
 
 export function speak(
   text: string,
   options: SpeakOptions = {},
-): ResultAsync<void, Error> {
+): Effect.Effect<void, Error> {
   return speakWithRuntime(text, options, getDefaultAudioRuntime());
 }
 
@@ -43,7 +43,7 @@ export function speakWithRuntime(
   text: string,
   options: SpeakOptions,
   runtime: AudioRuntime,
-): ResultAsync<void, Error> {
+): Effect.Effect<void, Error> {
   const {
     voice = DEFAULT_VOICE,
     speed = DEFAULT_SPEED,
@@ -57,17 +57,22 @@ export function speakWithRuntime(
       speed,
       ...(reference ? { reference } : {}),
     })
-    .andThen((audioData) =>
-      ResultAsync.fromPromise(
-        runtime.writeArrayBuffer(outputWav, audioData),
-        toError,
-      ).map(() => undefined as void),
-    )
-    .andTee(() => {
-      if (!play) return;
-      runtime.playback.stop();
-      runtime.playback.playWav(outputWav);
-    });
+    .pipe(
+      Effect.flatMap((audioData) =>
+        Effect.tryPromise({
+          try: () => runtime.writeArrayBuffer(outputWav, audioData),
+          catch: toError,
+        }),
+      ),
+      Effect.asVoid,
+      Effect.tap(() =>
+        Effect.sync(() => {
+          if (!play) return;
+          runtime.playback.stop();
+          runtime.playback.playWav(outputWav);
+        }),
+      ),
+    );
 }
 
 export interface RecordAndTranscribeOptions {
@@ -78,7 +83,7 @@ export interface RecordAndTranscribeOptions {
 
 export function recordAndTranscribe(
   options: RecordAndTranscribeOptions,
-): ResultAsync<string, Error> {
+): Effect.Effect<string, Error> {
   const runtime = options.runtime ?? getDefaultAudioRuntime();
   return recordAndTranscribeWithRuntime(options, runtime);
 }
@@ -86,13 +91,15 @@ export function recordAndTranscribe(
 export function recordAndTranscribeWithRuntime(
   options: Omit<RecordAndTranscribeOptions, "runtime">,
   runtime: AudioRuntime,
-): ResultAsync<string, Error> {
+): Effect.Effect<string, Error> {
   const { deviceIndex = 0, recordSignal } = options;
   const { inputWav } = runtime.paths;
   return runtime.recorder
     .record(inputWav, deviceIndex, { signal: recordSignal })
-    .andThen(() => runtime.tts.transcribe(Bun.file(inputWav)))
-    .map((t) => t?.trim() ?? "");
+    .pipe(
+      Effect.flatMap(() => runtime.tts.transcribe(Bun.file(inputWav))),
+      Effect.map((t) => t?.trim() ?? ""),
+    );
 }
 
 export {

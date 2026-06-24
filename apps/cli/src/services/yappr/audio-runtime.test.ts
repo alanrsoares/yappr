@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { okAsync, ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import {
   createAudioRuntime,
@@ -35,17 +35,9 @@ describe("createPlaybackPort", () => {
 describe("createAudioRuntime", () => {
   test("injected TTS port is used (no real HTTP)", async () => {
     const tts = {
-      listVoices: () => okAsync<string[], Error>(["af_test"]),
-      synthesize: () =>
-        ResultAsync.fromPromise(
-          Promise.reject(new Error("should not run")),
-          (e) => (e instanceof Error ? e : new Error(String(e))),
-        ),
-      transcribe: () =>
-        ResultAsync.fromPromise(
-          Promise.reject(new Error("should not run")),
-          (e) => (e instanceof Error ? e : new Error(String(e))),
-        ),
+      listVoices: () => Effect.succeed(["af_test"]),
+      synthesize: () => Effect.die(new Error("should not run")),
+      transcribe: () => Effect.die(new Error("should not run")),
     };
     const rt = createAudioRuntime({
       projectRoot: "/tmp/yappr-fp-test",
@@ -54,12 +46,7 @@ describe("createAudioRuntime", () => {
       writeArrayBuffer: async () => {},
     });
     rt.ensureTmp();
-    const voices = await rt.tts.listVoices().match(
-      (v) => v,
-      (e) => {
-        throw e;
-      },
-    );
+    const voices = await Effect.runPromise(rt.tts.listVoices());
     expect(voices).toEqual(["af_test"]);
   });
 });

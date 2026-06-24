@@ -5,7 +5,7 @@ import {
 } from "@yappr/lib/image-path";
 import { markdownToNarrationText } from "@yappr/lib/narration-text";
 import type { TurnTelemetry } from "@yappr/lib/telemetry";
-import { okAsync } from "neverthrow";
+import { Effect } from "effect";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { buildChatFooterItems } from "~/footer-items.js";
@@ -113,9 +113,8 @@ export function useChatController(initialState?: ChatStoreInitialState) {
   const emit = useCallback((event: ChatEventInput) => {
     const created = createChatEvent(event);
     setEvents((prev) => appendChatEvent(prev, created));
-    void persistChatEvent(created).match(
-      () => {},
-      (err) => console.warn("[yappr] failed to persist agent event:", err),
+    void Effect.runPromise(persistChatEvent(created)).catch((err) =>
+      console.warn("[yappr] failed to persist agent event:", err),
     );
   }, []);
 
@@ -185,16 +184,12 @@ export function useChatController(initialState?: ChatStoreInitialState) {
       role: "user",
       content: promptWithAttachmentHint,
     };
-    const persistUser = (async () => {
-      const convId = conversationIdRef.current;
-      if (!convId) return;
-      const result = await appendMessage(convId, userMessage);
-      result.match(
-        () => {},
+    const convIdForUser = conversationIdRef.current;
+    if (convIdForUser) {
+      void Effect.runPromise(appendMessage(convIdForUser, userMessage)).catch(
         (err) => console.warn("[yappr] failed to persist user message:", err),
       );
-    })();
-    void persistUser;
+    }
 
     setTelemetry(null);
     return chat(prompt, {
@@ -259,9 +254,9 @@ export function useChatController(initialState?: ChatStoreInitialState) {
           elapsedMs: Date.now() - active.startedAt,
         });
       },
-    })
-      .andThen((text) => {
-        if (!text) return okAsync(null);
+    }).pipe(
+      Effect.flatMap((text) => {
+        if (!text) return Effect.succeed(null);
         const startedAt = Date.now();
         ttsStartedAtRef.current = startedAt;
         ttsModeRef.current = "direct";
@@ -276,20 +271,22 @@ export function useChatController(initialState?: ChatStoreInitialState) {
         return speak(markdownToNarrationText(text), {
           voice,
           ...(voiceReference ? { reference: voiceReference } : {}),
-        }).map(() => {
-          ttsStartedAtRef.current = null;
-          ttsModeRef.current = null;
-          emit({
-            type: "tts.end",
-            runId,
-            conversationId: conversationIdRef.current,
-            status: "success",
-            elapsedMs: Date.now() - startedAt,
-          });
-          return text;
-        });
-      })
-      .map((res) => {
+        }).pipe(
+          Effect.map(() => {
+            ttsStartedAtRef.current = null;
+            ttsModeRef.current = null;
+            emit({
+              type: "tts.end",
+              runId,
+              conversationId: conversationIdRef.current,
+              status: "success",
+              elapsedMs: Date.now() - startedAt,
+            });
+            return text;
+          }),
+        );
+      }),
+      Effect.map((res) => {
         const ttltMs = Date.now() - runStartedAtRef.current;
         if (res !== null) {
           emit({
@@ -317,24 +314,16 @@ export function useChatController(initialState?: ChatStoreInitialState) {
         if (res !== null) {
           const convId = conversationIdRef.current;
           if (convId) {
-            void appendMessage(convId, {
-              role: "assistant",
-              content: res,
-            }).then((result) =>
-              result.match(
-                () => {},
-                (err) =>
-                  console.warn(
-                    "[yappr] failed to persist assistant message:",
-                    err,
-                  ),
-              ),
+            void Effect.runPromise(
+              appendMessage(convId, { role: "assistant", content: res }),
+            ).catch((err) =>
+              console.warn("[yappr] failed to persist assistant message:", err),
             );
           }
         }
         return res;
-      })
-      .mapErr((err) => {
+      }),
+      Effect.mapError((err) => {
         const elapsedMs = Date.now() - runStartedAtRef.current;
         const status = err.name === "AbortError" ? "cancelled" : "error";
         if (ttsStartedAtRef.current !== null) {
@@ -366,7 +355,8 @@ export function useChatController(initialState?: ChatStoreInitialState) {
         });
         activeToolIdsRef.current.clear();
         return err;
-      });
+      }),
+    );
   });
 
   const stopChat = useCallback(() => {
@@ -480,7 +470,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
   }, [stopChat, stopStt, chatMutation, sttMutation]);
 
   const attachImageFromClipboard = useCallback(() => {
-    void readClipboardImage().match(
+    void Effect.runPromise(readClipboardImage()).then(
       (path) => {
         if (!path) {
           setSlashNotice("No image on clipboard.");
@@ -497,7 +487,10 @@ export function useChatController(initialState?: ChatStoreInitialState) {
         setPendingAttachments((prev) => [...prev, path]);
         setComposer(`${before}${inserted}${after}`, c + inserted.length);
       },
-      (err) => setSlashNotice(`Clipboard read failed: ${err.message}`),
+      (err: unknown) =>
+        setSlashNotice(
+          `Clipboard read failed: ${err instanceof Error ? err.message : String(err)}`,
+        ),
     );
   }, [cursor, value, pendingAttachments.length, setComposer]);
 
@@ -523,7 +516,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
       const inserted = findInsertedImagePath(value, val);
       if (inserted) {
         const tokenN = pendingAttachments.length + 1;
-        void imagePathExists(inserted.path).match(
+        void Effect.runPromise(imagePathExists(inserted.path)).then(
           (exists) => {
             if (!exists) {
               setComposer(val, nextCursor);
@@ -563,10 +556,10 @@ export function useChatController(initialState?: ChatStoreInitialState) {
         setSlashNotice(null);
         const convId = conversationIdRef.current;
         if (convId) {
-          void listPersistedChatEvents(convId).match(
+          void Effect.runPromise(listPersistedChatEvents(convId)).then(
             (persistedEvents) =>
               setEvents((current) => mergeChatEvents(current, persistedEvents)),
-            (err) =>
+            (err: unknown) =>
               console.warn("[yappr] failed to load persisted events:", err),
           );
         }
@@ -628,7 +621,7 @@ export function useChatController(initialState?: ChatStoreInitialState) {
       };
       if (looksLikeImagePath(t)) {
         const path = normalizeImagePath(t);
-        void imagePathExists(path).match(
+        void Effect.runPromise(imagePathExists(path)).then(
           (exists) => {
             if (exists)
               submit("What's in this image?", [...pendingAttachments, path]);

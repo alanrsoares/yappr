@@ -1,7 +1,11 @@
 import { parseArgs } from "node:util";
+import { Effect } from "effect";
 
 import { loadPreferences } from "./lib/preferences.js";
 import { chat, listVoices, speak } from "./services/yappr";
+
+const errorMessage = (e: unknown): string =>
+  e instanceof Error ? e.message : String(e);
 
 const { values, positionals } = parseArgs({
   args: Bun.argv.slice(2),
@@ -26,13 +30,10 @@ async function run() {
       break;
     }
     case "voices": {
-      {
-        const voices = await listVoices();
-        voices.match(
-          (v) => console.log(v.join("\n")),
-          (e) => console.error("Error listing voices:", e.message),
-        );
-      }
+      await Effect.runPromise(listVoices()).then(
+        (v) => console.log(v.join("\n")),
+        (e: unknown) => console.error("Error listing voices:", errorMessage(e)),
+      );
       break;
     }
     case "speak": {
@@ -44,19 +45,18 @@ async function run() {
           );
           return;
         }
-        const prefs = await loadPreferences().match(
-          (p) => p,
+        const prefs = await Effect.runPromise(loadPreferences()).catch(
           () => null,
         );
-        const speakRes = await speak(text, {
-          voice: values.voice,
-          speed: values.speed ? Number.parseFloat(values.speed) : 1,
-          ...(prefs?.voiceReference ? { reference: prefs.voiceReference } : {}),
-        });
-        speakRes.match(
-          () => {},
-          (e) => console.error("Error:", e.message),
-        );
+        await Effect.runPromise(
+          speak(text, {
+            voice: values.voice,
+            speed: values.speed ? Number.parseFloat(values.speed) : 1,
+            ...(prefs?.voiceReference
+              ? { reference: prefs.voiceReference }
+              : {}),
+          }),
+        ).catch((e: unknown) => console.error("Error:", errorMessage(e)));
       }
       break;
     }
@@ -71,18 +71,16 @@ async function run() {
         }
         console.log(`Asking ${values.model || "default model"}...`);
         let lastLength = 0;
-        const chatRes = await chat(prompt, {
-          model: values.model,
-          onUpdate: (content) => {
-            process.stdout.write(content.slice(lastLength));
-            lastLength = content.length;
-          },
-        });
+        await Effect.runPromise(
+          chat(prompt, {
+            model: values.model,
+            onUpdate: (content) => {
+              process.stdout.write(content.slice(lastLength));
+              lastLength = content.length;
+            },
+          }),
+        ).catch((e: unknown) => console.error("Error:", errorMessage(e)));
         console.log(""); // newline
-        chatRes.match(
-          () => {},
-          (e) => console.error("Error:", e.message),
-        );
       }
       break;
     }
