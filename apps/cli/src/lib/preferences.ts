@@ -1,6 +1,6 @@
 import { toError } from "@yappr/lib/result";
 import { DEFAULT_VOICE, DEFAULT_VOICE_CONFIG } from "@yappr/sdk/defaults";
-import { ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import { MCP_CONFIG_PATH } from "../constants.js";
 import type { Preferences } from "../types.js";
@@ -25,15 +25,15 @@ export const DEFAULT_PREFERENCES: Preferences = {
  * Read all preferences from the DB and merge with defaults. Validation is
  * per-field — invalid values fall back to defaults silently.
  */
-export function loadPreferences(): ResultAsync<Preferences, Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
+export function loadPreferences(): Effect.Effect<Preferences, Error> {
+  return Effect.try({
+    try: () => {
       const db = getDb();
       const stored = db.preferences.getAll();
       return mergeStoredPreferences(stored, DEFAULT_PREFERENCES);
-    })(),
-    toError,
-  );
+    },
+    catch: toError,
+  });
 }
 
 /**
@@ -42,12 +42,12 @@ export function loadPreferences(): ResultAsync<Preferences, Error> {
  */
 export function savePreferences(
   partial: Partial<Preferences>,
-): ResultAsync<void, Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
+): Effect.Effect<void, Error> {
+  return Effect.try({
+    try: () => {
       const db = getDb();
       db.preferences.setMany(partial as Record<string, unknown>);
-    })(),
-    toError,
-  );
+    },
+    catch: toError,
+  });
 }

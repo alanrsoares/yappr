@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import type { ChatMessage } from "../types.js";
 import { getDb } from "./db.js";
@@ -44,9 +44,9 @@ export function createConversationSync(
 export function appendMessage(
   conversationId: string,
   message: ChatMessage,
-): ResultAsync<void, Error> {
-  return ResultAsync.fromPromise(
-    (async () => {
+): Effect.Effect<void, Error> {
+  return Effect.try({
+    try: () => {
       const db = getDb();
       const role = message.role as "user" | "assistant" | "system";
       db.messages.append({
@@ -54,7 +54,7 @@ export function appendMessage(
         role,
         content: message.content,
       });
-    })(),
-    toError,
-  );
+    },
+    catch: toError,
+  });
 }

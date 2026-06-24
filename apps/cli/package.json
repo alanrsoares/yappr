@@ -26,7 +26,6 @@
     "ink-text-input": "^6.0.0",
     "marked": "18.0.3",
     "marked-terminal": "^7.3.0",
-    "neverthrow": "^8.2.0",
     "ollama": "^0.6.3",
     "react": "^19.2.6",
     "string-width": "^8.2.1",

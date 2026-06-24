@@ -4,7 +4,7 @@ import { access, writeFile } from "node:fs/promises";
 import { homedir, platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { toError } from "@yappr/lib/result";
-import { okAsync, ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 export {
   imageMimeForPath,
@@ -44,23 +44,24 @@ function readMacClipboardPng(): Buffer | null {
   }
 }
 
-export function readClipboardImage(): ResultAsync<string | null, Error> {
-  if (platform() !== "darwin") return okAsync(null);
+export function readClipboardImage(): Effect.Effect<string | null, Error> {
+  if (platform() !== "darwin") return Effect.succeed(null);
   const buf = readMacClipboardPng();
-  if (!buf) return okAsync(null);
+  if (!buf) return Effect.succeed(null);
   const dir = ensureCacheDir();
   const path = join(dir, `clip-${Date.now()}.png`);
-  return ResultAsync.fromPromise(
-    writeFile(path, new Uint8Array(buf)).then(() => path),
-    toError,
-  );
+  return Effect.tryPromise({
+    try: () => writeFile(path, new Uint8Array(buf)).then(() => path),
+    catch: toError,
+  });
 }
 
-export function imagePathExists(path: string): ResultAsync<boolean, Error> {
-  return ResultAsync.fromPromise(
-    access(path)
-      .then(() => true)
-      .catch(() => false),
-    toError,
-  );
+export function imagePathExists(path: string): Effect.Effect<boolean, Error> {
+  return Effect.tryPromise({
+    try: () =>
+      access(path)
+        .then(() => true)
+        .catch(() => false),
+    catch: toError,
+  });
 }

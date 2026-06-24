@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { Effect } from "effect";
 
 import { createVoiceClient } from "./voice.js";
 
@@ -38,9 +39,9 @@ describe("createVoiceClient", () => {
       },
     });
 
-    const result = await client.synthesize("hello");
+    const result = await Effect.runPromise(client.synthesize("hello"));
 
-    expect([...new Uint8Array(result._unsafeUnwrap())]).toEqual([1, 2, 3]);
+    expect([...new Uint8Array(result)]).toEqual([1, 2, 3]);
   });
 
   test("decodes Mistral-style JSON speech audio", async () => {
@@ -63,8 +64,8 @@ describe("createVoiceClient", () => {
       },
     });
 
-    const result = await client.synthesize("hello");
-    const bytes = new Uint8Array(result._unsafeUnwrap());
+    const result = await Effect.runPromise(client.synthesize("hello"));
+    const bytes = new Uint8Array(result);
 
     expect([...bytes]).toEqual([119, 97, 118]);
   });
@@ -87,8 +88,8 @@ describe("createVoiceClient", () => {
       },
     });
 
-    const result = await client.listVoices();
+    const result = await Effect.runPromise(client.listVoices());
 
-    expect(result._unsafeUnwrap()).toEqual(["casual_male"]);
+    expect(result).toEqual(["casual_male"]);
   });
 });

@@ -1,5 +1,4 @@
-import { toError } from "@yappr/lib/result";
-import { ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 import { DEFAULT_SERVER_URL, DEFAULT_VOICE_CONFIG } from "./defaults.js";
 import {
@@ -19,15 +18,21 @@ import {
   VoiceConfigSchema,
   type VoiceId,
 } from "./schemas.js";
-import { TTSClient, type TTSOptions } from "./tts.js";
+import { TTSClient, type TTSOptions, TtsError } from "./tts.js";
+
+const toTtsError = (cause: unknown): TtsError =>
+  new TtsError({
+    message: cause instanceof Error ? cause.message : String(cause),
+    cause,
+  });
 
 export interface VoiceClient {
-  listVoices(): ResultAsync<VoiceId[], Error>;
+  listVoices(): Effect.Effect<VoiceId[], TtsError>;
   synthesize(
     text: string,
     options?: TTSOptions,
-  ): ResultAsync<ArrayBuffer, Error>;
-  transcribe(blob: Blob): ResultAsync<string, Error>;
+  ): Effect.Effect<ArrayBuffer, TtsError>;
+  transcribe(blob: Blob): Effect.Effect<string, TtsError>;
 }
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
@@ -67,14 +72,14 @@ export class YapprSpeechClient {
     this.client = new TTSClient(endpoint.baseUrl);
   }
 
-  listVoices(): ResultAsync<VoiceId[], Error> {
+  listVoices(): Effect.Effect<VoiceId[], TtsError> {
     return this.client.listVoices();
   }
 
   synthesize(
     text: string,
     options: TTSOptions = {},
-  ): ResultAsync<ArrayBuffer, Error> {
+  ): Effect.Effect<ArrayBuffer, TtsError> {
     return this.client.synthesize(text, {
       voice: options.voice ?? this.endpoint.voice,
       speed: options.speed ?? this.endpoint.speed,
@@ -86,9 +91,9 @@ export class YapprSpeechClient {
 export class OpenAiCompatibleSpeechClient {
   constructor(private endpoint: OpenAiCompatibleSpeechEndpoint) {}
 
-  listVoices(): ResultAsync<VoiceId[], Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  listVoices(): Effect.Effect<VoiceId[], TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const res = await fetch(
           endpointUrl(this.endpoint.baseUrl, "/audio/voices"),
           {
@@ -104,17 +109,17 @@ export class OpenAiCompatibleSpeechClient {
         const entries = parsed.items ?? parsed.data ?? [];
         const voices = entries.map((entry) => entry.id);
         return voices.length > 0 ? voices : [this.endpoint.voice];
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 
   synthesize(
     text: string,
     options: TTSOptions = {},
-  ): ResultAsync<ArrayBuffer, Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  ): Effect.Effect<ArrayBuffer, TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const headers = authHeaders(this.endpoint.apiKey);
         headers.set("Content-Type", "application/json");
         const voice = options.voice ?? this.endpoint.voice;
@@ -147,9 +152,9 @@ export class OpenAiCompatibleSpeechClient {
           return base64ToArrayBuffer(data.audio_data);
         }
         return await res.arrayBuffer();
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 }
 
@@ -160,7 +165,7 @@ export class YapprTranscriptionClient {
     this.client = new TTSClient(endpoint.baseUrl);
   }
 
-  transcribe(blob: Blob): ResultAsync<string, Error> {
+  transcribe(blob: Blob): Effect.Effect<string, TtsError> {
     return this.client.transcribe(blob);
   }
 }
@@ -168,9 +173,9 @@ export class YapprTranscriptionClient {
 export class OpenAiCompatibleTranscriptionClient {
   constructor(private endpoint: OpenAiCompatibleTranscriptionEndpoint) {}
 
-  transcribe(blob: Blob): ResultAsync<string, Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  transcribe(blob: Blob): Effect.Effect<string, TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const headers = authHeaders(this.endpoint.apiKey);
         const formData = new FormData();
         formData.append("file", blob, filenameFor(blob));
@@ -191,9 +196,9 @@ export class OpenAiCompatibleTranscriptionClient {
         }
         const data = TranscribeResponseSchema.parse(await res.json());
         return data.text;
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 }
 
@@ -209,18 +214,18 @@ export class EndpointVoiceClient implements VoiceClient {
     this.transcription = createTranscriptionClient(parsed.transcription);
   }
 
-  listVoices(): ResultAsync<VoiceId[], Error> {
+  listVoices(): Effect.Effect<VoiceId[], TtsError> {
     return this.speech.listVoices();
   }
 
   synthesize(
     text: string,
     options?: TTSOptions,
-  ): ResultAsync<ArrayBuffer, Error> {
+  ): Effect.Effect<ArrayBuffer, TtsError> {
     return this.speech.synthesize(text, options);
   }
 
-  transcribe(blob: Blob): ResultAsync<string, Error> {
+  transcribe(blob: Blob): Effect.Effect<string, TtsError> {
     return this.transcription.transcribe(blob);
   }
 }

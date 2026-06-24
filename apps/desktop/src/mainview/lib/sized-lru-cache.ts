@@ -1,13 +1,6 @@
-import { err, ok, type Result } from "neverthrow";
-
 type SizedCacheEntry<T> = {
   value: T;
   size: number;
-};
-
-export type SizedLruCacheMiss = {
-  kind: "miss";
-  key: string;
 };
 
 export type SizedLruCacheOptions<T> = {
@@ -22,12 +15,13 @@ export class SizedLruCache<T> {
 
   constructor(private readonly options: SizedLruCacheOptions<T>) {}
 
-  get(key: string): Result<T, SizedLruCacheMiss> {
+  /** Cached value, or null on miss (a miss is absence, not a failure). */
+  get(key: string): T | null {
     const entry = this.#entries.get(key);
-    if (!entry) return err({ kind: "miss", key });
+    if (!entry) return null;
     this.#entries.delete(key);
     this.#entries.set(key, entry);
-    return ok(entry.value);
+    return entry.value;
   }
 
   set(key: string, value: T): void {

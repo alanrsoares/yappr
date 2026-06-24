@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Effect } from "effect";
 
 import {
   DEFAULT_PREFERENCES,
@@ -27,12 +28,7 @@ function withTempHome<T>(fn: (homeDir: string) => Promise<T>): Promise<T> {
 
 test("loadPreferences returns defaults when settings file does not exist", async () => {
   await withTempHome(async () => {
-    const result = await loadPreferences().match(
-      (value) => value,
-      (err) => {
-        throw err;
-      },
-    );
+    const result = await Effect.runPromise(loadPreferences());
     expect(result).toEqual(DEFAULT_PREFERENCES);
   });
 });
@@ -44,18 +40,8 @@ test("savePreferences merges with defaults and persists", async () => {
       defaultInputDeviceIndex: 2,
     };
 
-    await savePreferences(partial).match(
-      () => {},
-      (err) => {
-        throw err;
-      },
-    );
-    const loaded = await loadPreferences().match(
-      (value) => value,
-      (err) => {
-        throw err;
-      },
-    );
+    await Effect.runPromise(savePreferences(partial));
+    const loaded = await Effect.runPromise(loadPreferences());
 
     expect(loaded.defaultChatModel).toBe("custom-model");
     expect(loaded.defaultInputDeviceIndex).toBe(2);
@@ -89,12 +75,7 @@ test("loadPreferences skips invalid fields and keeps valid ones", async () => {
       "utf8",
     );
 
-    const prefs = await loadPreferences().match(
-      (value) => value,
-      (err) => {
-        throw err;
-      },
-    );
+    const prefs = await Effect.runPromise(loadPreferences());
 
     expect(prefs.defaultVoice).toBe(DEFAULT_PREFERENCES.defaultVoice);
     expect(prefs.defaultChatModel).toBe("kept-model");

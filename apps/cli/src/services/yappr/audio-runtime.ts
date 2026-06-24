@@ -1,11 +1,8 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { AudioRecorder } from "@yappr/sdk/recorder";
-import type { TTSOptions } from "@yappr/sdk/tts";
-import type { RecordOptions } from "@yappr/sdk/types";
 import { createVoiceClient, type VoiceClient } from "@yappr/sdk/voice";
 import { spawn } from "bun";
-import type { ResultAsync } from "neverthrow";
 
 export interface AudioPaths {
   tmpDir: string;
@@ -22,22 +19,11 @@ export function resolveAudioPaths(projectRoot: string): AudioPaths {
   };
 }
 
-export interface TtsPort extends VoiceClient {
-  listVoices(): ResultAsync<string[], Error>;
-  synthesize(
-    text: string,
-    options?: TTSOptions,
-  ): ResultAsync<ArrayBuffer, Error>;
-  transcribe(blob: Blob): ResultAsync<string, Error>;
-}
+/** The sdk's Effect voice client, used directly now the cli runs on Effect. */
+export type TtsPort = VoiceClient;
 
-export interface RecorderPort {
-  record(
-    outputPath: string,
-    deviceIndex?: number,
-    options?: RecordOptions,
-  ): ResultAsync<void, Error>;
-}
+/** The recorder surface the audio runtime needs (Effect-native). */
+export type RecorderPort = Pick<AudioRecorder, "record">;
 
 export interface PlaybackPort {
   playWav(wavPath: string): void;

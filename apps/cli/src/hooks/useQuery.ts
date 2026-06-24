@@ -1,4 +1,4 @@
-import type { ResultAsync } from "neverthrow";
+import { Cause, Effect, Exit } from "effect";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseQueryOptions {
@@ -16,7 +16,7 @@ export interface UseQueryResult<T, E> {
 }
 
 export function useQuery<T, E = Error>(
-  queryFn: () => ResultAsync<T, E>,
+  queryFn: () => Effect.Effect<T, E>,
   options: UseQueryOptions = {},
 ): UseQueryResult<T, E> {
   const { enabled = true, deps = [] } = options;
@@ -32,17 +32,20 @@ export function useQuery<T, E = Error>(
   const run = useCallback(() => {
     setIsLoading(true);
     setError(null);
-    queryFnRef
-      .current()
-      .match(
-        (value) => {
-          setData(value);
-          setError(null);
-        },
-        (err) => {
-          setError(err);
-          setData(undefined);
-        },
+    Effect.runPromiseExit(queryFnRef.current())
+      .then((exit) =>
+        Exit.match(exit, {
+          onSuccess: (value) => {
+            setData(value);
+            setError(null);
+          },
+          onFailure: (cause) => {
+            // squash yields the Effect.fail value (the E) for typed failures,
+            // or the defect for unexpected throws.
+            setError(Cause.squash(cause) as E);
+            setData(undefined);
+          },
+        }),
       )
       .finally(() => setIsLoading(false));
   }, []);

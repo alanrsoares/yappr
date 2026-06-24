@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -215,8 +216,7 @@ function PythonStep({ onNext }: StepNextProps) {
 
   useEffect(() => {
     if (!repoRoot) return;
-    // biome-ignore lint/suspicious/useIterableCallbackReturn: ResultAsync.map (neverthrow), not Array.map
-    pythonVenvExists(repoRoot).map((exists) => {
+    void Effect.runPromise(pythonVenvExists(repoRoot)).then((exists) => {
       setPhase(exists ? "ready" : "syncing");
     });
   }, [repoRoot]);
@@ -225,15 +225,17 @@ function PythonStep({ onNext }: StepNextProps) {
     if (phase !== "syncing" || !repoRoot) return;
     const ac = new AbortController();
     abortRef.current = ac;
-    runUvSync({
-      repoRoot,
-      onLine: (line) =>
-        setLog((prev) => [...prev.slice(-MAX_LOG_LINES + 1), line]),
-      signal: ac.signal,
-    }).match(
+    void Effect.runPromise(
+      runUvSync({
+        repoRoot,
+        onLine: (line) =>
+          setLog((prev) => [...prev.slice(-MAX_LOG_LINES + 1), line]),
+        signal: ac.signal,
+      }),
+    ).then(
       () => setPhase("synced"),
-      (e) => {
-        setErrMsg(e.message);
+      (e: unknown) => {
+        setErrMsg(e instanceof Error ? e.message : String(e));
         setPhase("error");
       },
     );

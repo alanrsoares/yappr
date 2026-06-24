@@ -1,5 +1,4 @@
-import { toError } from "@yappr/lib/result";
-import { ResultAsync } from "neverthrow";
+import { Data, Effect } from "effect";
 
 import {
   type SynthesizeRequestInput,
@@ -27,6 +26,18 @@ export interface TTSOptions {
   reference?: VoiceReferenceInput;
 }
 
+/** Failure from a Yappr TTS/STT endpoint call (network, non-2xx, schema mismatch). */
+export class TtsError extends Data.TaggedError("TtsError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
+const toTtsError = (cause: unknown): TtsError =>
+  new TtsError({
+    message: cause instanceof Error ? cause.message : String(cause),
+    cause,
+  });
+
 export class TTSClient {
   private baseUrl: string;
 
@@ -34,23 +45,23 @@ export class TTSClient {
     this.baseUrl = baseUrl;
   }
 
-  listVoices(): ResultAsync<VoiceId[], Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  listVoices(): Effect.Effect<VoiceId[], TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const response = await fetch(`${this.baseUrl}/voices`);
         if (!response.ok) {
           throw new Error(`Failed to list voices: ${response.statusText}`);
         }
         const data = VoicesResponseSchema.parse(await response.json());
         return data.voices;
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 
-  transcribe(blob: Blob): ResultAsync<string, Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  transcribe(blob: Blob): Effect.Effect<string, TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const formData = new FormData();
         // Filename hint so the server (and faster-whisper / pyav) can pick the
         // right decoder. Without an extension, browsers send "blob" which has
@@ -71,17 +82,17 @@ export class TTSClient {
 
         const data = TranscribeResponseSchema.parse(await response.json());
         return data.text;
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 
   synthesize(
     text: string,
     options: TTSOptions = {},
-  ): ResultAsync<ArrayBuffer, Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
+  ): Effect.Effect<ArrayBuffer, TtsError> {
+    return Effect.tryPromise({
+      try: async () => {
         const input: SynthesizeRequestInput = {
           text,
           voice: options.voice,
@@ -104,8 +115,8 @@ export class TTSClient {
         }
 
         return await response.arrayBuffer();
-      })(),
-      toError,
-    );
+      },
+      catch: toTtsError,
+    });
   }
 }

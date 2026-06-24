@@ -1,7 +1,7 @@
 {
   "name": "@yappr/sdk",
   "version": "0.0.1",
-  "description": "Yappr SDK \u2014 TTS/STT clients, MCP manager, audio devices, MCP path cascade.",
+  "description": "Yappr SDK — TTS/STT clients, MCP manager, audio devices, MCP path cascade.",
   "type": "module",
   "private": true,
   "scripts": {
@@ -27,7 +27,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@tanstack/ai": "^0.33.0",
     "@yappr/lib": "workspace:*",
-    "neverthrow": "^8.2.0",
+    "effect": "^3.21.4",
     "ollama": "^0.6.3",
     "ts-pattern": "^5.9.0",
     "zod": "^4.4.3"

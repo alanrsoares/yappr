@@ -1,5 +1,5 @@
 import { toError } from "@yappr/lib/result";
-import { okAsync, ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
@@ -48,12 +48,12 @@ async function throwOpenRouterHttpError(res: Response): Promise<never> {
  */
 export function listOpenRouterModels(
   apiKey: string,
-): ResultAsync<OpenRouterModelInfo[], Error> {
+): Effect.Effect<OpenRouterModelInfo[], Error> {
   if (!apiKey.trim()) {
-    return okAsync([]);
+    return Effect.succeed([]);
   }
-  return ResultAsync.fromPromise(
-    (async () => {
+  return Effect.tryPromise({
+    try: async () => {
       const res = await fetch(
         `${OPENROUTER_BASE}/models?supported_parameters=tools`,
         {
@@ -70,7 +70,7 @@ export function listOpenRouterModels(
           name: m.name ?? m.id,
         }))
         .toSorted((a, b) => a.name.localeCompare(b.name));
-    })(),
-    toError,
-  );
+    },
+    catch: toError,
+  });
 }

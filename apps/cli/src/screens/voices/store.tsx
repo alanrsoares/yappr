@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { useInput } from "ink";
 import { useCallback, useMemo, useState } from "react";
 
@@ -66,19 +67,21 @@ export function useVoicesController(initialState?: VoicesStoreInitialState) {
       }
       setPreviewStatus("loading");
       setPreviewError(null);
-      void speak(t, {
-        voice: selectedVoice,
-        ...(preferences.voiceReference
-          ? { reference: preferences.voiceReference }
-          : {}),
-      }).match(
+      void Effect.runPromise(
+        speak(t, {
+          voice: selectedVoice,
+          ...(preferences.voiceReference
+            ? { reference: preferences.voiceReference }
+            : {}),
+        }),
+      ).then(
         () => {
           setPreviewStatus("ok");
           setPreviewError(null);
         },
-        (e) => {
+        (e: unknown) => {
           setPreviewStatus("error");
-          setPreviewError(e.message);
+          setPreviewError(e instanceof Error ? e.message : String(e));
         },
       );
     },

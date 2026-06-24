@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { toError } from "@yappr/lib/result";
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { Effect } from "effect";
 
 /** Find the yappr repo root by walking up from cwd until we hit `python/pyproject.toml`. */
 export function findRepoRoot(startDir: string = process.cwd()): string | null {
@@ -24,49 +24,50 @@ export interface RunUvSyncOptions {
 }
 
 /** Run `uv sync --extra dev` inside `${repoRoot}/python`. Streams output via onLine. */
-export function runUvSync(opts: RunUvSyncOptions): ResultAsync<void, Error> {
+export function runUvSync(opts: RunUvSyncOptions): Effect.Effect<void, Error> {
   const cwd = join(opts.repoRoot, "python");
   if (!existsSync(cwd)) {
-    return errAsync(new Error(`python directory not found at ${cwd}`));
+    return Effect.fail(new Error(`python directory not found at ${cwd}`));
   }
 
-  return ResultAsync.fromPromise(
-    new Promise<void>((resolveP, rejectP) => {
-      const child = spawn("uv", ["sync", "--extra", "dev"], {
-        cwd,
-        env: process.env,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+  return Effect.tryPromise({
+    try: () =>
+      new Promise<void>((resolveP, rejectP) => {
+        const child = spawn("uv", ["sync", "--extra", "dev"], {
+          cwd,
+          env: process.env,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
 
-      const pump = (chunk: Buffer) => {
-        for (const line of chunk.toString().split(/\r?\n/)) {
-          if (line.length > 0) opts.onLine(line);
-        }
-      };
-      child.stdout.on("data", pump);
-      child.stderr.on("data", pump);
+        const pump = (chunk: Buffer) => {
+          for (const line of chunk.toString().split(/\r?\n/)) {
+            if (line.length > 0) opts.onLine(line);
+          }
+        };
+        child.stdout.on("data", pump);
+        child.stderr.on("data", pump);
 
-      const onAbort = () => child.kill("SIGTERM");
-      opts.signal?.addEventListener("abort", onAbort, { once: true });
+        const onAbort = () => child.kill("SIGTERM");
+        opts.signal?.addEventListener("abort", onAbort, { once: true });
 
-      child.on("error", (err) => {
-        opts.signal?.removeEventListener("abort", onAbort);
-        rejectP(err);
-      });
-      child.on("close", (code) => {
-        opts.signal?.removeEventListener("abort", onAbort);
-        if (code === 0) resolveP();
-        else rejectP(new Error(`uv sync exited with code ${code}`));
-      });
-    }),
-    toError,
-  );
+        child.on("error", (err) => {
+          opts.signal?.removeEventListener("abort", onAbort);
+          rejectP(err);
+        });
+        child.on("close", (code) => {
+          opts.signal?.removeEventListener("abort", onAbort);
+          if (code === 0) resolveP();
+          else rejectP(new Error(`uv sync exited with code ${code}`));
+        });
+      }),
+    catch: toError,
+  });
 }
 
 /** Quick check: does `${repoRoot}/python/.venv/bin/python` exist? */
 export function pythonVenvExists(
   repoRoot: string,
-): ResultAsync<boolean, Error> {
+): Effect.Effect<boolean, Error> {
   const venvPython = join(repoRoot, "python", ".venv", "bin", "python");
-  return okAsync(existsSync(venvPython));
+  return Effect.succeed(existsSync(venvPython));
 }

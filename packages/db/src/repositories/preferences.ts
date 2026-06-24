@@ -8,8 +8,8 @@ type Db = BunSQLiteDatabase<typeof schema>;
 /**
  * KV preferences repository. Values are JSON-stringified at write and parsed
  * at read; callers validate with their own zod schemas (per-app). Synchronous
- * because bun:sqlite is sync — wrap in ResultAsync at the consumer edge if
- * the surrounding code expects async.
+ * because bun:sqlite is sync — wrap at the consumer edge if the surrounding
+ * code expects async.
  */
 export function makePreferencesRepo(db: Db) {
   return {
