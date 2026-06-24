@@ -306,10 +306,11 @@ export function useSettingsController(
       ),
     { deps: [preferences.voice.speech] },
   );
-  const { data: inputDevices = [], isLoading: inputDevicesLoading } =
-    useQuery(listInputDevices);
+  const { data: inputDevices = [], isLoading: inputDevicesLoading } = useQuery(
+    () => toResultAsync(listInputDevices()),
+  );
   const { data: outputDevices = [], isLoading: outputDevicesLoading } =
-    useQuery(listOutputDevices);
+    useQuery(() => toResultAsync(listOutputDevices()));
 
   const [selectedRow, setSelectedRow] = useState(0);
   const [picker, setPicker] = useState<PickerKind>(null);

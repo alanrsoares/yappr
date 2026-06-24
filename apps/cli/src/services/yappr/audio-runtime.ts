@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import { toResultAsync } from "@yappr/lib/effect";
 import { AudioRecorder } from "@yappr/sdk/recorder";
 import type { TTSOptions } from "@yappr/sdk/tts";
 import type { RecordOptions } from "@yappr/sdk/types";
@@ -22,7 +23,8 @@ export function resolveAudioPaths(projectRoot: string): AudioPaths {
   };
 }
 
-export interface TtsPort extends VoiceClient {
+/** neverthrow-facing port over the sdk's Effect {@link VoiceClient}. */
+export interface TtsPort {
   listVoices(): ResultAsync<string[], Error>;
   synthesize(
     text: string,
@@ -38,6 +40,19 @@ export interface RecorderPort {
     options?: RecordOptions,
   ): ResultAsync<void, Error>;
 }
+
+/** Bridge the sdk's Effect-based voice client into the neverthrow TtsPort. */
+const toTtsPort = (client: VoiceClient): TtsPort => ({
+  listVoices: () => toResultAsync(client.listVoices()),
+  synthesize: (text, options) =>
+    toResultAsync(client.synthesize(text, options)),
+  transcribe: (blob) => toResultAsync(client.transcribe(blob)),
+});
+
+const toRecorderPort = (recorder: AudioRecorder): RecorderPort => ({
+  record: (outputPath, deviceIndex, options) =>
+    toResultAsync(recorder.record(outputPath, deviceIndex, options)),
+});
 
 export interface PlaybackPort {
   playWav(wavPath: string): void;
@@ -104,8 +119,8 @@ export function createAudioRuntime(
   const playback = options.playback ?? createPlaybackPort();
 
   return {
-    tts: options.tts ?? createVoiceClient(),
-    recorder: options.recorder ?? new AudioRecorder(),
+    tts: options.tts ?? toTtsPort(createVoiceClient()),
+    recorder: options.recorder ?? toRecorderPort(new AudioRecorder()),
     paths,
     ensureTmp: () => {
       mkdirSync(paths.tmpDir, { recursive: true });

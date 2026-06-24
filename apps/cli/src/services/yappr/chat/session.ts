@@ -1,3 +1,4 @@
+import { toResultAsync } from "@yappr/lib/effect";
 import { toError } from "@yappr/lib/result";
 import type { TurnTelemetry } from "@yappr/lib/telemetry";
 import { ResultAsync } from "neverthrow";
@@ -57,20 +58,20 @@ export function chat(
     openrouterApiKey,
   });
 
-  return mcp
-    .loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH)
-    .andThen(() => {
-      const req: ChatStreamRequest = {
-        messages,
-        systemPrompts,
-        tools: useTools ? mcp.getTanStackTools() : [],
-        ...(abortController && { signal: abortController.signal }),
-      };
-      return ResultAsync.fromPromise(
-        drainStream(transport, req, { onUpdate, onToolCall, onTelemetry }, mcp),
-        toError,
-      );
-    });
+  return toResultAsync(
+    mcp.loadConfigAndGetStatuses(mcpConfigPath ?? MCP_CONFIG_PATH),
+  ).andThen(() => {
+    const req: ChatStreamRequest = {
+      messages,
+      systemPrompts,
+      tools: useTools ? mcp.getTanStackTools() : [],
+      ...(abortController && { signal: abortController.signal }),
+    };
+    return ResultAsync.fromPromise(
+      drainStream(transport, req, { onUpdate, onToolCall, onTelemetry }, mcp),
+      toError,
+    );
+  });
 }
 
 interface ChatCallbacks {

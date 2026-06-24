@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { toResultAsync } from "@yappr/lib/effect";
 import type { SpeechEndpointInput, VoiceId } from "@yappr/sdk/schemas";
 import { createSpeechClient } from "@yappr/sdk/voice";
 
@@ -35,7 +36,7 @@ export const voicesOptions = (speech: SpeechEndpointInput) =>
     queryKey: ["voice", "speech", speech] as const,
     queryFn: async ({ signal }): Promise<VoiceId[]> => {
       const client = createSpeechClient(speech);
-      const result = await client.listVoices();
+      const result = await toResultAsync(client.listVoices());
       if (signal?.aborted) throw new DOMException("aborted", "AbortError");
       return result.match(
         (voices) => voices,

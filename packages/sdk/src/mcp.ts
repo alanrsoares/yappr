@@ -10,8 +10,7 @@ import type {
   Tool as McpTool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { type SchemaInput, type Tool, toolDefinition } from "@tanstack/ai";
-import { toError } from "@yappr/lib/result";
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { Data, Effect } from "effect";
 import type { Tool as OllamaTool } from "ollama";
 
 import { resolveMcpConfigPath } from "./paths.js";
@@ -51,6 +50,18 @@ export interface McpManagerOptions {
 
 const DEFAULT_TOOL_CALL_TIMEOUT_MS = 30_000;
 
+/** Failure loading MCP config or calling an MCP tool. */
+export class McpError extends Data.TaggedError("McpError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
+const toMcpError = (cause: unknown): McpError =>
+  new McpError({
+    message: cause instanceof Error ? cause.message : String(cause),
+    cause,
+  });
+
 export class McpManager {
   private clients: Map<string, Client> = new Map();
   private tools: Map<string, { server: string; tool: McpTool }> = new Map();
@@ -78,22 +89,28 @@ export class McpManager {
 
   loadConfigAndGetStatuses(
     configPath: string = resolveMcpConfigPath(),
-  ): ResultAsync<ServerStatus[], Error> {
-    return ResultAsync.fromPromise(
-      (async () => {
-        const file = Bun.file(configPath);
-        return (await file.exists()) ? await file.text() : null;
-      })(),
-      toError,
-    ).andThen((content) => {
-      if (content === null) return okAsync([] as ServerStatus[]);
-      const parsed = McpConfigSchema.safeParse(JSON.parse(content));
+  ): Effect.Effect<ServerStatus[], McpError> {
+    return Effect.gen(this, function* () {
+      const content = yield* Effect.tryPromise({
+        try: async () => {
+          const file = Bun.file(configPath);
+          return (await file.exists()) ? await file.text() : null;
+        },
+        catch: toMcpError,
+      });
+      if (content === null) return [];
+      const parsed = yield* Effect.try({
+        try: () => McpConfigSchema.safeParse(JSON.parse(content)),
+        catch: toMcpError,
+      });
       if (!parsed.success) {
-        return errAsync(
-          new Error(`Invalid MCP config: ${parsed.error.message}`),
+        return yield* Effect.fail(
+          new McpError({
+            message: `Invalid MCP config: ${parsed.error.message}`,
+          }),
         );
       }
-      return ResultAsync.fromSafePromise(
+      return yield* Effect.promise(() =>
         this.connectAll(parsed.data.mcpServers),
       );
     });
@@ -280,14 +297,12 @@ export class McpManager {
       });
 
       return def.server(async (args: unknown) => {
-        const result = await this.callTool(
-          tool.name,
-          args as Record<string, unknown>,
+        // runPromise rejects with the McpError on failure, which def.server
+        // surfaces as a tool error — same contract as the old Err throw.
+        const result = await Effect.runPromise(
+          this.callTool(tool.name, args as Record<string, unknown>),
         );
-        if (result.isErr()) {
-          throw result.error;
-        }
-        return result.value.content;
+        return result.content;
       });
     });
   }
@@ -295,63 +310,65 @@ export class McpManager {
   callTool(
     name: string,
     args: Record<string, unknown>,
-  ): ResultAsync<CallToolResult, Error> {
+  ): Effect.Effect<CallToolResult, McpError> {
     const entry = this.tools.get(name);
     if (!entry) {
-      return errAsync(new Error(`Tool ${name} not found`));
+      return Effect.fail(new McpError({ message: `Tool ${name} not found` }));
     }
 
     const { server } = entry;
     const client = this.clients.get(server);
     if (!client) {
-      return errAsync(
-        new Error(`Server ${server} for tool ${name} is not connected`),
+      return Effect.fail(
+        new McpError({
+          message: `Server ${server} for tool ${name} is not connected`,
+        }),
       );
     }
 
     const timeoutMs = this.resolveTimeoutMs(server);
-    const ac = new AbortController();
-    const timer = setTimeout(() => {
-      ac.abort(
-        new Error(
-          `MCP tool '${name}' on server '${server}' timed out after ${timeoutMs}ms`,
-        ),
-      );
-    }, timeoutMs);
+    return Effect.gen(this, function* () {
+      const ac = new AbortController();
+      const timer = setTimeout(() => {
+        ac.abort(
+          new Error(
+            `MCP tool '${name}' on server '${server}' timed out after ${timeoutMs}ms`,
+          ),
+        );
+      }, timeoutMs);
 
-    console.log(`Calling MCP tool '${name}' on server '${server}'...`);
-    return ResultAsync.fromPromise(
-      client.callTool({ name, arguments: args }, undefined, {
-        signal: ac.signal,
-        timeout: timeoutMs,
-      }) as Promise<CallToolResult>,
-      toError,
-    )
-      .mapErr((err) =>
-        ac.signal.aborted && ac.signal.reason instanceof Error
-          ? ac.signal.reason
-          : err,
-      )
-      .orTee((err) => {
-        if (ac.signal.aborted) {
-          this.emit({
-            type: "tool.call.timeout",
-            serverId: server,
-            toolName: name,
-            timeoutMs,
-          });
-        } else {
-          this.emit({
-            type: "server.error",
-            serverId: server,
-            phase: "call-tool",
-            error: err.message,
-            toolName: name,
-          });
-        }
-      })
-      .andTee(() => clearTimeout(timer))
-      .orTee(() => clearTimeout(timer));
+      console.log(`Calling MCP tool '${name}' on server '${server}'...`);
+      return yield* Effect.tryPromise({
+        try: () =>
+          client.callTool({ name, arguments: args }, undefined, {
+            signal: ac.signal,
+            timeout: timeoutMs,
+          }) as Promise<CallToolResult>,
+        catch: (err) => {
+          const reason =
+            ac.signal.aborted && ac.signal.reason instanceof Error
+              ? ac.signal.reason
+              : err;
+          if (ac.signal.aborted) {
+            this.emit({
+              type: "tool.call.timeout",
+              serverId: server,
+              toolName: name,
+              timeoutMs,
+            });
+          } else {
+            this.emit({
+              type: "server.error",
+              serverId: server,
+              phase: "call-tool",
+              error: reason instanceof Error ? reason.message : String(reason),
+              toolName: name,
+            });
+          }
+          return toMcpError(reason);
+        },
+      }).pipe(Effect.ensuring(Effect.sync(() => clearTimeout(timer))));
+    });
   }
 
   async close(): Promise<void> {

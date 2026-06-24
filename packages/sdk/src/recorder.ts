@@ -1,19 +1,28 @@
-import { toError } from "@yappr/lib/result";
 import { spawn } from "bun";
-import { ResultAsync } from "neverthrow";
+import { Data, Effect } from "effect";
 
 import type { RecordOptions } from "./types.js";
+
+/** Failure capturing audio via ffmpeg. */
+export class RecorderError extends Data.TaggedError("RecorderError")<{
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
 
 export class AudioRecorder {
   record(
     outputPath: string,
     deviceIndex: number = 0,
     options: RecordOptions = {},
-  ): ResultAsync<void, Error> {
-    return ResultAsync.fromPromise(
-      this.recordAsync(outputPath, deviceIndex, options),
-      toError,
-    );
+  ): Effect.Effect<void, RecorderError> {
+    return Effect.tryPromise({
+      try: () => this.recordAsync(outputPath, deviceIndex, options),
+      catch: (cause) =>
+        new RecorderError({
+          message: cause instanceof Error ? cause.message : String(cause),
+          cause,
+        }),
+    });
   }
 
   private async recordAsync(

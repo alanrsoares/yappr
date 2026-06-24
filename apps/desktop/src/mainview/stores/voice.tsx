@@ -387,11 +387,13 @@ const voiceActionsFactory = ({
       }
       const client = createVoiceClient(get().voiceConfig);
       const reference = get().voiceReference;
-      const result = await client.synthesize(phrase, {
-        voice,
-        speed,
-        ...(reference ? { reference } : {}),
-      });
+      const result = await toResultAsync(
+        client.synthesize(phrase, {
+          voice,
+          speed,
+          ...(reference ? { reference } : {}),
+        }),
+      );
       if (speakRun !== runId) return;
       result.match(
         (buffer) => {
@@ -409,7 +411,7 @@ const voiceActionsFactory = ({
     },
     transcribe: async (blob) => {
       const client = createVoiceClient(get().voiceConfig);
-      const result = await client.transcribe(blob);
+      const result = await toResultAsync(client.transcribe(blob));
       return result.match(
         (t) => t,
         (err) => {

@@ -1,3 +1,4 @@
+import { toResultAsync } from "@yappr/lib/effect";
 import { McpManager } from "@yappr/sdk/mcp";
 import type { ServerStatus } from "@yappr/sdk/types";
 import { useEffect, useRef } from "react";
@@ -25,7 +26,7 @@ export function useMcpStatuses({
       managerRef.current?.close();
       const manager = new McpManager();
       managerRef.current = manager;
-      return manager.loadConfigAndGetStatuses(configPath);
+      return toResultAsync(manager.loadConfigAndGetStatuses(configPath));
     },
     { deps: [configPath] },
   );
