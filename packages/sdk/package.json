@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@tanstack/ai": "^0.33.0",
+    "@tanstack/ai": "^0.39.1",
     "@yappr/lib": "workspace:*",
     "effect": "^3.21.4",
     "ollama": "^0.6.3",

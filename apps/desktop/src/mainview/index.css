@@ -1,6 +1,63 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@config "../../tailwind.config.js";
+@plugin "tailwindcss-animate";
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility brushed {
+  /* Subtle horizontal brushed-metal lines */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 3px
+    );
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+}
+
+@utility engraved {
+  /* Engraved label — bottom highlight + top shadow */
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04),
+    0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+
+@utility lcd-text {
+  /* LCD amber glow */
+  color: #ffb02a;
+  text-shadow:
+    0 0 2px rgba(255, 176, 42, 0.8),
+    0 0 6px rgba(255, 165, 0, 0.4);
+}
+
+@utility lcd-text-dim {
+  color: #4a3318;
+  text-shadow: none;
+}
 
 @layer base {
   :root {
@@ -66,42 +123,5 @@
     --sidebar-accent-foreground: 38 16% 88%;
     --sidebar-border: 30 18% 10%;
     --sidebar-ring: 39 100% 50%;
-  }
-}
-
-@layer utilities {
-  /* Subtle horizontal brushed-metal lines */
-  .brushed::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 2px,
-      rgba(255, 255, 255, 0.012) 2px,
-      rgba(255, 255, 255, 0.012) 3px
-    );
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
-
-  /* Engraved label — bottom highlight + top shadow */
-  .engraved {
-    text-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.04),
-      0 -1px 0 rgba(0, 0, 0, 0.6);
-  }
-
-  /* LCD amber glow */
-  .lcd-text {
-    color: #ffb02a;
-    text-shadow:
-      0 0 2px rgba(255, 176, 42, 0.8),
-      0 0 6px rgba(255, 165, 0, 0.4);
-  }
-  .lcd-text-dim {
-    color: #4a3318;
-    text-shadow: none;
   }
 }

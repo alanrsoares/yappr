@@ -125,7 +125,7 @@ export function KaraokeCaptions({
         ref={panelRef}
         role="status"
         aria-live="polite"
-        className="pointer-events-auto w-full max-w-2xl overflow-hidden rounded-xl border border-border/80 bg-background/90 p-3 shadow-2xl backdrop-blur"
+        className="pointer-events-auto w-full max-w-2xl overflow-hidden rounded-xl border border-border/80 bg-background/90 p-3 shadow-2xl backdrop-blur-sm"
       >
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export function KaraokeCaptions({
             className={cn(
               "h-full origin-left rounded-full bg-accent transition-transform duration-200 motion-reduce:transition-none",
               !hasTrack &&
-                "bg-gradient-to-r from-accent/25 via-accent to-accent/25 motion-safe:animate-pulse",
+                "bg-linear-to-r from-accent/25 via-accent to-accent/25 motion-safe:animate-pulse",
             )}
             style={{
               transform: hasTrack ? `scaleX(${progress})` : "scaleX(1)",
@@ -268,7 +268,7 @@ function CaptionLine({
     <p
       key={motionKey}
       className={cn(
-        "min-h-7 break-words whitespace-pre-wrap transition-opacity duration-150 motion-reduce:transition-none",
+        "min-h-7 wrap-break-word whitespace-pre-wrap transition-opacity duration-150 motion-reduce:transition-none",
         className,
       )}
     >

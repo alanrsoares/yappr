@@ -20,7 +20,7 @@ export function ChatTopBar({ model, onModelChange }: ChatTopBarProps) {
 
   return (
     <header
-      className={`flex items-center gap-3 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 ${DRAG}`}
+      className={`flex items-center gap-3 border-b border-border bg-background/95 px-4 py-2 backdrop-blur-sm supports-backdrop-filter:bg-background/70 ${DRAG}`}
     >
       <div className={`flex flex-1 items-center gap-3 ${NO_DRAG}`}>
         <SidebarTrigger className="-ml-1" aria-label="Toggle sidebar" />

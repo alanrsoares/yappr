@@ -135,7 +135,7 @@ export function ChatPanel() {
 
       <div
         ref={composerShellRef}
-        className="border-t border-border bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70"
+        className="border-t border-border bg-background/95 p-4 backdrop-blur-sm supports-backdrop-filter:bg-background/70"
       >
         <div className="mx-auto max-w-3xl">
           {session.telemetry && !session.isBusy ? (
@@ -311,7 +311,7 @@ const MessageBubble = memo(function MessageBubble({
     >
       <div
         className={cn(
-          "flex max-w-[85%] flex-col gap-2 rounded-3xl bg-secondary px-4 py-2 text-foreground break-words sm:max-w-[75%]",
+          "flex max-w-[85%] flex-col gap-2 rounded-3xl bg-secondary px-4 py-2 text-foreground wrap-break-word sm:max-w-[75%]",
         )}
         style={
           userBubbleWidth === null

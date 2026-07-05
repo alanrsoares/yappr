@@ -1,13 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
-  content: ["./src/mainview/**/*.{html,js,ts,jsx,tsx}"],
   theme: {
     extend: {
       fontFamily: {
-        label: ['Antonio"', "system-ui", "sans-serif"],
-        mono: ['JetBrains Mono"', "ui-monospace", "monospace"],
-        lcd: ['VT323"', "ui-monospace", "monospace"],
+        label: ['"Antonio"', "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
+        lcd: ['"VT323"', "ui-monospace", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -103,22 +102,60 @@ export default {
       },
       keyframes: {
         "pulse-led": {
-          "0%, 100%": {
-            opacity: "0.85",
-            filter: "brightness(1)",
-          },
-          "50%": {
-            opacity: "1",
-            filter: "brightness(1.35)",
-          },
+          "0%, 100%": { opacity: "0.85", filter: "brightness(1)" },
+          "50%": { opacity: "1", filter: "brightness(1.35)" },
         },
         "reel-spin": {
-          from: {
-            transform: "rotate(0deg)",
-          },
-          to: {
-            transform: "rotate(360deg)",
-          },
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
+        typing: {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0.5" },
+          "50%": { transform: "translateY(-2px)", opacity: "1" },
+        },
+        "loading-dots": {
+          "0%, 100%": { opacity: "0" },
+          "50%": { opacity: "1" },
+        },
+        wave: {
+          "0%, 100%": { transform: "scaleY(1)" },
+          "50%": { transform: "scaleY(0.6)" },
+        },
+        blink: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" },
+        },
+        "text-blink": {
+          "0%, 100%": { color: "var(--primary)" },
+          "50%": { color: "var(--muted-foreground)" },
+        },
+        "bounce-dots": {
+          "0%, 100%": { transform: "scale(0.8)", opacity: "0.5" },
+          "50%": { transform: "scale(1.2)", opacity: "1" },
+        },
+        "thin-pulse": {
+          "0%, 100%": { transform: "scale(0.95)", opacity: "0.8" },
+          "50%": { transform: "scale(1.05)", opacity: "0.4" },
+        },
+        "pulse-dot": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.8" },
+          "50%": { transform: "scale(1.5)", opacity: "1" },
+        },
+        "shimmer-text": {
+          "0%": { backgroundPosition: "150% center" },
+          "100%": { backgroundPosition: "-150% center" },
+        },
+        "wave-bars": {
+          "0%, 100%": { transform: "scaleY(1)", opacity: "0.5" },
+          "50%": { transform: "scaleY(0.6)", opacity: "1" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "200% 50%" },
+          "100%": { backgroundPosition: "-200% 50%" },
+        },
+        "spinner-fade": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
       },
       animation: {
@@ -126,119 +163,5 @@ export default {
         "reel-spin": "reel-spin 3.2s linear infinite",
       },
     },
-    keyframes: {
-      typing: {
-        "0%, 100%": {
-          transform: "translateY(0)",
-          opacity: "0.5",
-        },
-        "50%": {
-          transform: "translateY(-2px)",
-          opacity: "1",
-        },
-      },
-      "loading-dots": {
-        "0%, 100%": {
-          opacity: "0",
-        },
-        "50%": {
-          opacity: "1",
-        },
-      },
-      wave: {
-        "0%, 100%": {
-          transform: "scaleY(1)",
-        },
-        "50%": {
-          transform: "scaleY(0.6)",
-        },
-      },
-      blink: {
-        "0%, 100%": {
-          opacity: "1",
-        },
-        "50%": {
-          opacity: "0",
-        },
-      },
-    },
-    "text-blink": {
-      "0%, 100%": {
-        color: "var(--primary)",
-      },
-      "50%": {
-        color: "var(--muted-foreground)",
-      },
-    },
-    "bounce-dots": {
-      "0%, 100%": {
-        transform: "scale(0.8)",
-        opacity: "0.5",
-      },
-      "50%": {
-        transform: "scale(1.2)",
-        opacity: "1",
-      },
-    },
-    "thin-pulse": {
-      "0%, 100%": {
-        transform: "scale(0.95)",
-        opacity: "0.8",
-      },
-      "50%": {
-        transform: "scale(1.05)",
-        opacity: "0.4",
-      },
-    },
-    "pulse-dot": {
-      "0%, 100%": {
-        transform: "scale(1)",
-        opacity: "0.8",
-      },
-      "50%": {
-        transform: "scale(1.5)",
-        opacity: "1",
-      },
-    },
-    "shimmer-text": {
-      "0%": {
-        backgroundPosition: "150% center",
-      },
-      "100%": {
-        backgroundPosition: "-150% center",
-      },
-    },
-    "wave-bars": {
-      "0%, 100%": {
-        transform: "scaleY(1)",
-        opacity: "0.5",
-      },
-      "50%": {
-        transform: "scaleY(0.6)",
-        opacity: "1",
-      },
-    },
-    shimmer: {
-      "0%": {
-        backgroundPosition: "200% 50%",
-      },
-      "100%": {
-        backgroundPosition: "-200% 50%",
-      },
-    },
-    "spinner-fade": {
-      "0%": {
-        opacity: "0",
-      },
-      "100%": {
-        opacity: "1",
-      },
-    },
   },
-  plugins: [
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("@tailwindcss/container-queries"),
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("tailwindcss-animate"),
-  ],
 };

@@ -46,14 +46,14 @@
     "desktop": "bun --filter @yappr/desktop dev:hmr"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.1",
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.0.1",
+    "@biomejs/biome": "^2.5.2",
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
     "@types/bun": "latest",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.17",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
-    "knip": "^6.14.1",
+    "knip": "^6.24.0",
     "lint-staged": "^17.0.8",
     "openapi-typescript": "^7.13.0",
     "pretty-quick": "^4.2.2"

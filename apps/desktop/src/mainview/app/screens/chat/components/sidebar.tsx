@@ -313,7 +313,7 @@ function ConversationRow({
           <DropdownMenuContent
             align="end"
             sideOffset={4}
-            className={cn("min-w-[10rem] font-mono text-xs", NO_DRAG)}
+            className={cn("min-w-40 font-mono text-xs", NO_DRAG)}
           >
             {kind === "active" ? (
               <DropdownMenuItem
