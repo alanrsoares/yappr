@@ -2,6 +2,7 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { electrobunViteAliases } from "./.hutch/devkit/api/config/electrobun-vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,6 +14,8 @@ export default defineConfig({
       // `node:fs`); the webview runs `chat()` in-process, so resolve to the
       // browser build, which exposes the same `Ollama` class over fetch.
       { find: /^ollama$/, replacement: "ollama/browser" },
+      // Electrobun 2 ships its SDK via the Hutch devkit, not node_modules.
+      ...electrobunViteAliases(path.resolve(__dirname, ".hutch/devkit")),
     ],
   },
   build: {

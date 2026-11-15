@@ -3,3 +3,6 @@ build/
 dist/
 artifacts/
 *.tsbuildinfo
+# Electrobun 2 / Hutch generated state (devkit projection, temp)
+.hutch/
+.cottontail-tmp/
