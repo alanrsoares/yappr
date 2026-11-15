@@ -50,3 +50,4 @@ __pycache__
 tmp
 *.wav
 kokoro-voice-assessment/
+.serena/
