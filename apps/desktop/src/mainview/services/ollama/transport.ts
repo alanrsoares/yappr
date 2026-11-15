@@ -45,6 +45,7 @@ export const createOllamaConnection = (
       adapter,
       messages,
       abortController,
+      threadId: "desktop",
       ...(tools.length > 0 && {
         tools,
         agentLoopStrategy: maxIterations(MAX_TOOL_ITERATIONS),

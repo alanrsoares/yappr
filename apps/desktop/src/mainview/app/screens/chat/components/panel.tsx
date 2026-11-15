@@ -84,7 +84,7 @@ export function ChatPanel() {
               return (
                 <MessageBubble
                   key={m.id}
-                  role={m.role === "system" ? "assistant" : m.role}
+                  role={m.role === "user" ? "user" : "assistant"}
                   content={text || (session.isBusy ? "…" : "")}
                   fileAttachments={m.role === "user" ? fileParts : []}
                   isLast={isLast}

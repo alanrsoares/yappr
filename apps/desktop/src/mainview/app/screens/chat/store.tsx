@@ -173,7 +173,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 }
 
 export interface ChatSession {
-  messages: UIMessage[];
+  messages: readonly UIMessage[];
   status: "submitted" | "streaming" | "ready" | "error";
   error: Error | undefined;
   isBusy: boolean;
@@ -275,15 +275,36 @@ export function useChatSession(): ChatSession {
   const { messages, reload, sendMessage, status, error, setMessages, stop } =
     useChat({
       connection,
+      threadId: conversationId ?? "default",
       onChunk: (chunk) => {
         if (chunk.type === "RUN_FINISHED" && chunk.usage) {
-          const u = chunk.usage;
-          usageRef.current = {
-            promptTokens: u.promptTokens,
-            completionTokens: u.completionTokens,
-            totalTokens: u.totalTokens,
-            ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
-          };
+          const u = Array.isArray(chunk.usage) ? chunk.usage[0] : chunk.usage;
+          if (u) {
+            const promptTokens =
+              "promptTokens" in u && typeof u.promptTokens === "number"
+                ? u.promptTokens
+                : "inputTokens" in u && typeof u.inputTokens === "number"
+                  ? u.inputTokens
+                  : 0;
+            const completionTokens =
+              "completionTokens" in u && typeof u.completionTokens === "number"
+                ? u.completionTokens
+                : "outputTokens" in u && typeof u.outputTokens === "number"
+                  ? u.outputTokens
+                  : 0;
+            const totalTokens =
+              "totalTokens" in u && typeof u.totalTokens === "number"
+                ? u.totalTokens
+                : promptTokens + completionTokens;
+            const cost =
+              "cost" in u && typeof u.cost === "number" ? u.cost : undefined;
+            usageRef.current = {
+              promptTokens,
+              completionTokens,
+              totalTokens,
+              ...(cost !== undefined ? { cost } : {}),
+            };
+          }
         } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
           const name = String(chunk.toolName);
           const id = crypto.randomUUID();

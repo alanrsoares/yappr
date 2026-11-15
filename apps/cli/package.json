@@ -13,9 +13,9 @@
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
-    "@tanstack/ai": "^0.39.1",
-    "@tanstack/ai-ollama": "^0.8.13",
-    "@tanstack/ai-openrouter": "^0.15.7",
+    "@tanstack/ai": "^1.4.0",
+    "@tanstack/ai-ollama": "^1.1.1",
+    "@tanstack/ai-openrouter": "^1.1.2",
     "@yappr/db": "workspace:*",
     "@yappr/lib": "workspace:*",
     "@yappr/sdk": "workspace:*",

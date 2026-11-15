@@ -38,6 +38,7 @@ export async function* streamTanstackChat(
   const stream = runtime.tanstackChat({
     adapter,
     messages: [...req.messages],
+    threadId: "cli",
     ...(req.systemPrompts.length > 0 && {
       systemPrompts: [...req.systemPrompts],
     }),
@@ -54,28 +55,54 @@ export async function* streamTanstackChat(
     if (chunk.type === "TEXT_MESSAGE_CONTENT") {
       const text = chunk.delta ?? "";
       if (text) yield { type: "delta", text };
-    } else if (chunk.type === "TOOL_CALL_START" && "toolName" in chunk) {
-      yield { type: "tool", phase: "start", name: chunk.toolName };
-    } else if (chunk.type === "TOOL_CALL_END" && "toolName" in chunk) {
-      if (chunk.toolName) {
-        yield { type: "tool", phase: "end", name: chunk.toolName };
-      }
+    } else if (
+      chunk.type === "TOOL_CALL_START" &&
+      "toolName" in chunk &&
+      chunk.toolName
+    ) {
+      yield { type: "tool", phase: "start", name: String(chunk.toolName) };
+    } else if (
+      chunk.type === "TOOL_CALL_END" &&
+      "toolName" in chunk &&
+      chunk.toolName
+    ) {
+      yield { type: "tool", phase: "end", name: String(chunk.toolName) };
     } else if (chunk.type === "RUN_ERROR") {
       yield {
         type: "error",
         message: chunk.error?.message ?? "Chat stream error",
       };
     } else if (chunk.type === "RUN_FINISHED" && chunk.usage) {
-      const u = chunk.usage;
-      yield {
-        type: "usage",
-        usage: {
-          promptTokens: u.promptTokens,
-          completionTokens: u.completionTokens,
-          totalTokens: u.totalTokens,
-          ...(typeof u.cost === "number" ? { cost: u.cost } : {}),
-        },
-      };
+      const u = Array.isArray(chunk.usage) ? chunk.usage[0] : chunk.usage;
+      if (u) {
+        const promptTokens =
+          "promptTokens" in u && typeof u.promptTokens === "number"
+            ? u.promptTokens
+            : "inputTokens" in u && typeof u.inputTokens === "number"
+              ? u.inputTokens
+              : 0;
+        const completionTokens =
+          "completionTokens" in u && typeof u.completionTokens === "number"
+            ? u.completionTokens
+            : "outputTokens" in u && typeof u.outputTokens === "number"
+              ? u.outputTokens
+              : 0;
+        const totalTokens =
+          "totalTokens" in u && typeof u.totalTokens === "number"
+            ? u.totalTokens
+            : promptTokens + completionTokens;
+        const cost =
+          "cost" in u && typeof u.cost === "number" ? u.cost : undefined;
+        yield {
+          type: "usage",
+          usage: {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            ...(cost !== undefined ? { cost } : {}),
+          },
+        };
+      }
     }
   }
 }
