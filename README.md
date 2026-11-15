@@ -38,6 +38,7 @@ Bun workspaces:
 - **uv:** `curl -LsSf https://astral.sh/uv/install.sh | sh` (Python env manager)
 - **Python 3.11+** (uv can install one for you if missing)
 - **System Dependencies:**
+
   ```bash
   brew install sox ffmpeg espeak-ng ollama
   ```

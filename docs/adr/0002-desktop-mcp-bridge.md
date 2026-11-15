@@ -24,8 +24,8 @@ clients). They cannot run in the webview. They must run on the Electrobun **bun
 side** — the same process that already owns the SQLite handle and the typed RPC
 channel (`bun/index.ts` → `makeDbRpcHandlers(db)` over `defineElectrobunRPC`).
 
-The question is *where the agent loop runs* and *how a webview-resident loop
-reaches bun-side tools*.
+The question is _where the agent loop runs_ and _how a webview-resident loop
+reaches bun-side tools_.
 
 ## Decision
 
@@ -36,18 +36,18 @@ the webview.**
    - `mcp:listTools` → tool metadata (`name`, `description`, JSON-Schema
      `inputSchema`) for every connected server.
    - `mcp:callTool` `{ name, args }` → the MCP `CallToolResult.content`.
-   Both validate input with zod bun-side, same trust model as `db-rpc` (a buggy
-   webview can only reach configured servers' tools). `McpManager` connects
-   **lazily** on the first `mcp:listTools` (config via the sdk's
-   `resolveMcpConfigPath()` — same cascade as the CLI) and is closed alongside
-   `db` on window close.
+     Both validate input with zod bun-side, same trust model as `db-rpc` (a buggy
+     webview can only reach configured servers' tools). `McpManager` connects
+     **lazily** on the first `mcp:listTools` (config via the sdk's
+     `resolveMcpConfigPath()` — same cascade as the CLI) and is closed alongside
+     `db` on window close.
 
 2. **Webview**, at chat-session start, fetches metadata via `mcp:listTools` and
    builds `@tanstack/ai` tools whose `.server()` callback round-trips to bun:
    `toolDefinition({...}).server((args) => dbRpc.request("mcp:callTool", { name, args }))`.
    These tools + `agentLoopStrategy: maxIterations(8)` are passed into the
    existing `chat()` call. The loop runs in the webview exactly as today; only
-   tool *execution* crosses to bun.
+   tool _execution_ crosses to bun.
 
 3. **Tool trace** renders from the `TOOL_CALL_START` / `TOOL_CALL_END` chunks
    the webview loop already emits — same pattern as the CLI's `onToolCall`,
@@ -81,7 +81,7 @@ OpenRouter transport yet.
 - **B. Move the whole chat loop to the bun side**, streaming `ChatStreamEvent`s
   to the webview over RPC (the CLI's `streamTanstackChat`, shared). Unifies CLI +
   desktop on one engine and keeps MCP entirely bun-side. **Rejected for now:**
-  requires a *streaming* RPC channel (the current one is request/response),
+  requires a _streaming_ RPC channel (the current one is request/response),
   discards the `@tanstack/ai-react` `useChat` integration, and is a much larger
   refactor. The unification upside doesn't justify the plumbing for #24.
 - **C. Static webview tools, no MCP.** Defeats the purpose — MCP servers are
