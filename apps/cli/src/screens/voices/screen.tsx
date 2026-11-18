@@ -1,7 +1,8 @@
 import { Box, Text } from "ink";
 
-import { Footer, Header, Loading } from "~/components";
+import { Loading, ScreenShell } from "~/components";
 import { footerVoices } from "~/footer-items.js";
+import { useTerminalHeight } from "~/hooks";
 import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { semantic } from "~/theme/semantic.js";
 import { useVoicesController, type VoicePreviewStatus } from "./store.js";
@@ -22,7 +23,7 @@ function VoicesPreviewStatusLine({
   if (status === "loading") return <Text dimColor>Synthesizing…</Text>;
   if (status === "error" && previewError)
     return <Text color={semantic.error}>{previewError}</Text>;
-  if (status === "ok") return <Text color={semantic.success}>Playing.</Text>;
+  if (status === "ok") return <Text color={semantic.success}>✓ Playing.</Text>;
   return null;
 }
 
@@ -47,41 +48,65 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
     effectiveIndex,
     filterText,
   } = useVoicesController({ onBack });
+  const terminalHeight = useTerminalHeight();
+
+  const maxVisible = Math.max(4, terminalHeight - (phraseCustom ? 15 : 11));
+  const windowStart =
+    len <= maxVisible
+      ? 0
+      : Math.min(
+          Math.max(0, effectiveIndex - Math.floor(maxVisible / 2)),
+          len - maxVisible,
+        );
+  const visible = filtered.slice(windowStart, windowStart + maxVisible);
 
   let content = (
-    <Box flexDirection="column" marginTop={1}>
-      {phraseCustom ? (
-        <Box flexDirection="column" marginBottom={1}>
-          <Text dimColor>
-            Preview phrase (↑/↓ change voice). Enter plays, Esc leaves phrase
-            mode, Ctrl+e closes editor.
-          </Text>
+    <Box flexDirection="column">
+      {phraseCustom && (
+        <Box
+          flexDirection="column"
+          borderStyle="round"
+          borderColor={semantic.border.composer}
+          paddingX={1}
+          marginBottom={1}
+        >
+          <Text dimColor>Custom preview phrase:</Text>
           <Text>{phrase}</Text>
         </Box>
-      ) : (
-        <Text dimColor>
-          Ctrl+p fixed sample · Ctrl+e type your own · Enter plays sample for
-          selection
-        </Text>
       )}
-      <Box marginTop={phraseCustom ? 0 : 1}>
+      <Box>
         <Text dimColor>Filter: </Text>
-        <Text>{filterText || "(type to filter)"}</Text>
+        <Text
+          color={filterText ? semantic.accent : undefined}
+          dimColor={!filterText}
+        >
+          {filterText || "(type to filter)"}
+        </Text>
       </Box>
       <VoicesPreviewStatusLine
         status={previewStatus}
         previewError={previewError}
       />
       <Box flexDirection="column" marginTop={1}>
-        {filtered.map((v, i) => (
-          <Text
-            key={v}
-            color={i === effectiveIndex ? semantic.accent : undefined}
-          >
-            {listSelectionPrefix(i === effectiveIndex)}
-            {v}
+        {visible.map((v, i) => {
+          const idx = windowStart + i;
+          const selected = idx === effectiveIndex;
+          return (
+            <Text
+              key={v}
+              color={selected ? semantic.accent : undefined}
+              bold={selected}
+            >
+              {listSelectionPrefix(selected)}
+              {v}
+            </Text>
+          );
+        })}
+        {len > maxVisible && (
+          <Text dimColor>
+            Showing {windowStart + 1}–{windowStart + visible.length} of {len}
           </Text>
-        ))}
+        )}
       </Box>
     </Box>
   );
@@ -93,14 +118,17 @@ export function VoicesScreen({ onBack }: VoicesScreenProps) {
     content = <EmptyVoicesMessage voices={voices} />;
   }
 
+  const badge =
+    voices.length > 0 ? `${filtered.length}/${voices.length}` : undefined;
+
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header
-        title="Voices"
-        subtitle="TTS from server — ↑/↓ select · Ctrl+p sample · Ctrl+e custom phrase · Enter play"
-      />
+    <ScreenShell
+      title="Voices"
+      badge={badge}
+      subtitle="TTS voices from server"
+      footerItems={footerVoices(phraseCustom ? "phrase" : "back")}
+    >
       {content}
-      <Footer items={footerVoices(phraseCustom ? "phrase" : "back")} />
-    </Box>
+    </ScreenShell>
   );
 }

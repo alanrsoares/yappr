@@ -1,6 +1,4 @@
-import { Box } from "ink";
-
-import { Footer, Header } from "~/components";
+import { ScreenShell } from "~/components";
 import { FOOTER_SETTINGS_LIST } from "~/footer-items.js";
 import { SettingsEditLayer } from "./components/settings-edit-layer.js";
 import { SettingsMainList } from "./components/settings-main-list.js";
@@ -21,16 +19,16 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
   }
 
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header title="Settings" subtitle={SETTINGS_SUBTITLE} />
-
+    <ScreenShell
+      title="Settings"
+      subtitle={SETTINGS_SUBTITLE}
+      footerItems={FOOTER_SETTINGS_LIST}
+    >
       {!picker ? (
         <SettingsMainList state={state} />
       ) : (
         <SettingsPickerPanel state={state} />
       )}
-
-      <Footer items={FOOTER_SETTINGS_LIST} />
-    </Box>
+    </ScreenShell>
   );
 }

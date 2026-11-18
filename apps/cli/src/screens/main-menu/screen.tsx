@@ -1,12 +1,11 @@
-import { Box } from "ink";
 import { useMemo, useState } from "react";
-
-import { Footer, Header } from "~/components/index.js";
+import { ScreenShell } from "~/components/index.js";
 import { MENU_ITEMS } from "~/constants.js";
 import { FOOTER_MAIN_MENU } from "~/footer-items.js";
 import { useKeyboard, usePreferences } from "~/hooks/index.js";
 import { quit } from "~/quit.js";
 import type { ScreenId } from "~/types.js";
+import pkg from "../../../package.json" with { type: "json" };
 import { Menu } from "./components/menu.js";
 
 export interface MainMenuScreenProps {
@@ -17,7 +16,7 @@ export function MainMenuScreen({ onSelect }: MainMenuScreenProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { preferences } = usePreferences();
 
-  const items: typeof MENU_ITEMS = useMemo(
+  const items = useMemo(
     () =>
       MENU_ITEMS.map((item) =>
         item.id === "setup"
@@ -43,15 +42,24 @@ export function MainMenuScreen({ onSelect }: MainMenuScreenProps) {
         keys: ["return", "enter"],
         action: () => onSelect(items[selectedIndex]!.id),
       },
+      ...items.map((item, idx) => ({
+        keys: [String(idx + 1)],
+        action: () => onSelect(item.id),
+      })),
       { keys: ["q", "escape"], action: quit },
     ],
   });
 
+  const subtitle = `${preferences.defaultChatModel} · ${preferences.defaultChatProvider} · voice: ${preferences.defaultVoice}`;
+
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header title="yappr" subtitle="Voice & tools" />
+    <ScreenShell
+      title="yappr"
+      badge={`v${pkg.version}`}
+      subtitle={subtitle}
+      footerItems={FOOTER_MAIN_MENU}
+    >
       <Menu items={items} selectedIndex={selectedIndex} />
-      <Footer items={FOOTER_MAIN_MENU} marginTop={2} />
-    </Box>
+    </ScreenShell>
   );
 }

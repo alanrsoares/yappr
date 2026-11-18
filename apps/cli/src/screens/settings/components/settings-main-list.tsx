@@ -1,6 +1,6 @@
 import type { HealthSnapshot } from "@yappr/sdk/health";
 import { detectSpeechPreset } from "@yappr/sdk/speech-presets";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { match } from "ts-pattern";
 
 import type { Preferences } from "~/types.js";
@@ -144,9 +144,6 @@ export function SettingsMainList({ state }: { state: SettingsState }) {
         label="MCP config path: "
         value={preferences.mcpConfigPath}
       />
-      <Box marginTop={1}>
-        <Text dimColor>Enter to change · Esc back · q quit</Text>
-      </Box>
     </Box>
   );
 }

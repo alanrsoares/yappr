@@ -1,8 +1,6 @@
 import { Box } from "ink";
 import { useCallback, useState } from "react";
 
-import pkg from "../package.json" with { type: "json" };
-import { Splash } from "./components/index.js";
 import { useTerminalHeight, useTerminalWidth } from "./hooks/index.js";
 import { usePreferences } from "./hooks/usePreferences.js";
 import { ChatScreen } from "./screens/chat/index.js";
@@ -16,7 +14,6 @@ import type { ScreenId } from "./types.js";
 
 export function Root() {
   const [screen, setScreen] = useState<ScreenId>("menu");
-  const [showSplash, setShowSplash] = useState(true);
   // Session-local: true once the wizard has been exited (completed or skipped).
   // Prevents re-entering setup while the async pref write is still in flight.
   const [setupAcknowledged, setSetupAcknowledged] = useState(false);
@@ -44,15 +41,7 @@ export function Root() {
     setScreen("menu");
   }, []);
 
-  const dismissSplash = useCallback(() => {
-    setShowSplash(false);
-  }, []);
-
-  return showSplash ? (
-    <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
-      <Splash version={pkg.version} onDismiss={dismissSplash} />
-    </Box>
-  ) : (
+  return (
     <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
       {effectiveScreen === "menu" && (
         <MainMenuScreen onSelect={(id) => setScreen(id)} />

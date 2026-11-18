@@ -42,6 +42,8 @@ export interface Preferences {
 export interface MenuItem {
   id: string;
   label: string;
+  description?: string;
+  group?: "core" | "config";
   /** When true, render a trailing green checkmark (used for one-shot tasks like setup). */
   done?: boolean;
 }

@@ -1,8 +1,9 @@
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
-import { Footer, Header } from "~/components";
+import { ScreenShell } from "~/components";
 import { FOOTER_SETTINGS_EDIT } from "~/footer-items.js";
+import { semantic } from "~/theme/semantic.js";
 import { SETTINGS_SUBTITLE } from "../constants.js";
 import type {
   SettingsActions,
@@ -51,22 +52,28 @@ function EditFieldShell(props: {
 }) {
   const { label, value, onChange, onSubmit, placeholder } = props;
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header title="Settings" subtitle={SETTINGS_SUBTITLE} />
+    <ScreenShell
+      title="Settings"
+      subtitle={SETTINGS_SUBTITLE}
+      footerItems={FOOTER_SETTINGS_EDIT}
+    >
       <Box flexDirection="column" marginTop={1}>
-        <Text>{label}</Text>
-        <TextInput
-          value={value}
-          onChange={onChange}
-          onSubmit={onSubmit}
-          placeholder={placeholder}
-        />
-        <Box marginTop={1}>
-          <Text dimColor>Enter or Ctrl+s save · Esc cancel · Ctrl+q quit</Text>
+        <Text dimColor>{label}</Text>
+        <Box
+          borderStyle="round"
+          borderColor={semantic.border.composer}
+          paddingX={1}
+          marginTop={1}
+        >
+          <TextInput
+            value={value}
+            onChange={onChange}
+            onSubmit={onSubmit}
+            placeholder={placeholder}
+          />
         </Box>
       </Box>
-      <Footer items={FOOTER_SETTINGS_EDIT} />
-    </Box>
+    </ScreenShell>
   );
 }
 

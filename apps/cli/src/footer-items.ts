@@ -1,13 +1,15 @@
 import type { FooterItem } from "~/components/index.js";
 
-/** Matches chat slash footer (`↑↓` + Footer arrow pulse). */
 export const FOOTER_MAIN_MENU: FooterItem[] = [
   { key: "↑↓", label: "select" },
+  { key: "1-6", label: "jump" },
   { key: "Enter", label: "open" },
   { key: "q", label: "quit" },
 ];
 
 export const footerQuit = () => ({ key: "q", label: "quit" });
+
+export const footerCtrlQuit = () => ({ key: "Ctrl+Q", label: "quit" });
 
 export const footerEscBack = () => ({ key: "Esc", label: "back" });
 
@@ -22,30 +24,44 @@ export const FOOTER_MCP_STATUS: FooterItem[] = [
   footerQuit(),
 ];
 
-/** Speak screen */
-export const FOOTER_SPEAK: FooterItem[] = [footerEscBack(), footerQuit()];
+/** Speak screen (text input active: use Ctrl+Q to quit) */
+export const FOOTER_SPEAK: FooterItem[] = [
+  { key: "Enter", label: "speak" },
+  footerEscBack(),
+  footerCtrlQuit(),
+];
 
-/** Settings main list + picker (same keys as MCP / Speak for quit). */
+/** Settings main list + picker */
 export const FOOTER_SETTINGS_LIST: FooterItem[] = [
+  { key: "↑↓", label: "select" },
+  { key: "Enter", label: "edit" },
   footerEscBack(),
   footerQuit(),
 ];
 
 /**
- * Inline text editors: `q` would go into the field — use Ctrl+q to quit here.
+ * Inline text editors: `q` would go into the field — use Ctrl+Q to quit here.
  */
 export const FOOTER_SETTINGS_EDIT: FooterItem[] = [
+  { key: "Enter", label: "save" },
+  { key: "Ctrl+S", label: "save" },
   footerEscCancel(),
-  { key: "Ctrl+s", label: "save" },
-  { key: "Ctrl+q", label: "quit" },
+  footerCtrlQuit(),
 ];
 
 export const footerVoices = (escLabel: string): FooterItem[] => [
-  { key: "Esc", label: escLabel },
-  { key: "Ctrl+p", label: "sample" },
-  { key: "Ctrl+e", label: "phrase" },
+  { key: "↑↓", label: "select" },
   { key: "Enter", label: "play" },
+  { key: "Ctrl+P", label: "sample" },
+  { key: "Ctrl+E", label: "phrase" },
+  { key: "Esc", label: escLabel },
   footerQuit(),
+];
+
+export const FOOTER_SETUP: FooterItem[] = [
+  { key: "Enter", label: "next" },
+  { key: "Esc", label: "skip setup" },
+  footerCtrlQuit(),
 ];
 
 type ComposerTailMode = "slash" | "submit" | "commands";
@@ -59,7 +75,7 @@ const CHAT_COMPOSER_TAIL: Record<ComposerTailMode, readonly FooterItem[]> = {
   commands: [{ key: "/", label: "commands" }],
 };
 
-const FOOTER_CTRL_C_STOP: FooterItem = { key: "ctrl+c", label: "stop" };
+const FOOTER_CTRL_C_STOP: FooterItem = { key: "Ctrl+C", label: "stop" };
 
 export function buildChatFooterItems(opts: {
   isSlashPalette: boolean;
@@ -89,12 +105,12 @@ export function buildChatFooterItems(opts: {
       : "commands";
 
   const base: FooterItem[] = [
-    { key: "ctrl+t", label: "voice" },
+    { key: "Ctrl+T", label: "voice" },
     {
       key: "Esc",
       label: isSlashPalette ? "cancel /" : "back",
     },
-    { key: "/quit", label: "exit app" },
+    { key: "/quit", label: "exit" },
   ];
 
   return [

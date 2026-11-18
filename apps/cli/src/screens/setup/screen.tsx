@@ -1,11 +1,9 @@
 import { Effect } from "effect";
 import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Footer, Header, Loading } from "~/components";
-import { DEFAULT_KEYS } from "~/constants.js";
-import { footerQuit } from "~/footer-items.js";
+import { Loading, ScreenShell } from "~/components";
+import { FOOTER_SETUP } from "~/footer-items.js";
 import { useKeyboard, useMutation, usePreferences } from "~/hooks";
 import {
   findRepoRoot,
@@ -20,8 +18,10 @@ import { listSelectionPrefix } from "~/list-selection-prefix.js";
 import { quit } from "~/quit.js";
 import { listVoices } from "~/services/yappr";
 import { semantic } from "~/theme/semantic.js";
-import type { ChatProvider, Preferences } from "~/types.js";
+import type { Preferences } from "~/types.js";
+import { LlmStep } from "./llm-step.js";
 import { SpeechStep } from "./speech-step.js";
+import { SttStep } from "./stt-step.js";
 
 export interface SetupScreenProps {
   onDone: () => void;
@@ -34,6 +34,7 @@ type Step =
   | "server"
   | "speech"
   | "voice"
+  | "stt"
   | "llm"
   | "done";
 
@@ -44,6 +45,7 @@ const STEP_ORDER: readonly Step[] = [
   "server",
   "speech",
   "voice",
+  "stt",
   "llm",
   "done",
 ] as const;
@@ -55,13 +57,10 @@ const STEP_TITLES: Record<Step, string> = {
   server: "Server reachability",
   speech: "Speech provider",
   voice: "Default voice",
+  stt: "Speech-to-text & mic",
   llm: "LLM provider",
   done: "All set",
 };
-
-const FOOTER_NEXT = { key: "Enter", label: "next" } as const;
-const FOOTER_SKIP_ALL = { key: "Esc", label: "skip setup" } as const;
-const FOOTER_SETUP = [FOOTER_NEXT, FOOTER_SKIP_ALL, footerQuit()];
 
 export function SetupScreen({ onDone }: SetupScreenProps) {
   const { preferences, savePreferences } = usePreferences();
@@ -69,7 +68,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
   const [voices, setVoices] = useState<readonly string[]>([]);
 
   const stepIndex = STEP_ORDER.indexOf(step);
-  const progress = `Step ${stepIndex + 1} of ${STEP_ORDER.length}`;
+  const progress = `Step ${stepIndex + 1}/${STEP_ORDER.length}`;
 
   const advance = useCallback((to: Step) => setStep(to), []);
 
@@ -81,16 +80,17 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
   useKeyboard({
     bindings: [
       { keys: ["escape"], action: finish },
-      { keys: [...DEFAULT_KEYS.quit], action: quit },
+      { keys: ["ctrl+q"], action: quit },
     ],
   });
 
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header
-        title={`Yappr setup — ${STEP_TITLES[step]}`}
-        subtitle={`${progress} · Esc skips the rest`}
-      />
+    <ScreenShell
+      title="Setup"
+      badge={progress}
+      subtitle={STEP_TITLES[step]}
+      footerItems={FOOTER_SETUP}
+    >
       {step === "welcome" && <WelcomeStep onNext={() => advance("deps")} />}
       {step === "deps" && <DepsStep onNext={() => advance("python")} />}
       {step === "python" && <PythonStep onNext={() => advance("server")} />}
@@ -106,14 +106,17 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
         <SpeechStep
           onPick={(choice) => {
             const updates: Partial<Preferences> = {
-              voice: choice.voiceConfig,
+              voice: {
+                ...choice.voiceConfig,
+                transcription: preferences.voice.transcription,
+              },
             };
             if (choice.kind === "voxtral") {
               updates.defaultVoice = choice.defaultVoice;
             }
             savePreferences(updates);
             if (choice.kind === "yappr") advance("voice");
-            else advance("llm");
+            else advance("stt");
           }}
           onSkip={() => advance("voice")}
         />
@@ -124,6 +127,23 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
           current={preferences.defaultVoice}
           onPick={(voice) => {
             savePreferences({ defaultVoice: voice });
+            advance("stt");
+          }}
+          onSkip={() => advance("stt")}
+        />
+      )}
+      {step === "stt" && (
+        <SttStep
+          initialTranscription={preferences.voice.transcription}
+          initialDeviceIndex={preferences.defaultInputDeviceIndex}
+          onSave={({ transcription, defaultInputDeviceIndex }) => {
+            savePreferences({
+              voice: {
+                ...preferences.voice,
+                transcription,
+              },
+              defaultInputDeviceIndex,
+            });
             advance("llm");
           }}
           onSkip={() => advance("llm")}
@@ -132,6 +152,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
       {step === "llm" && (
         <LlmStep
           initialProvider={preferences.defaultChatProvider}
+          initialModel={preferences.defaultChatModel}
           initialOllamaUrl={preferences.ollamaBaseUrl}
           initialOpenrouterKey={preferences.openrouterApiKey}
           onSave={(next) => {
@@ -142,8 +163,7 @@ export function SetupScreen({ onDone }: SetupScreenProps) {
         />
       )}
       {step === "done" && <DoneStep onFinish={finish} />}
-      <Footer items={FOOTER_SETUP} />
-    </Box>
+    </ScreenShell>
   );
 }
 
@@ -396,129 +416,37 @@ function VoiceStep({ voices, current, onPick, onSkip }: VoiceStepProps) {
     );
   }
 
-  const visible = voices.slice(0, 10);
+  const maxVisible = 10;
+  const windowStart =
+    voices.length <= maxVisible
+      ? 0
+      : Math.min(
+          Math.max(0, index - Math.floor(maxVisible / 2)),
+          voices.length - maxVisible,
+        );
+  const visible = voices.slice(windowStart, windowStart + maxVisible);
 
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text dimColor>↑/↓ to choose · Enter to confirm</Text>
       <Box flexDirection="column" marginTop={1}>
-        {visible.map((v, i) => (
-          <Text key={v} color={i === index ? semantic.accent : undefined}>
-            {listSelectionPrefix(i === index)}
-            {v}
-            {v === current ? " (current)" : ""}
+        {visible.map((v, i) => {
+          const idx = windowStart + i;
+          const selected = idx === index;
+          return (
+            <Text key={v} color={selected ? semantic.accent : undefined}>
+              {listSelectionPrefix(selected)}
+              {v}
+              {v === current ? " (current)" : ""}
+            </Text>
+          );
+        })}
+        {voices.length > maxVisible && (
+          <Text dimColor>
+            Showing {windowStart + 1}–{windowStart + visible.length} of{" "}
+            {voices.length}
           </Text>
-        ))}
-        {voices.length > visible.length && (
-          <Text dimColor>… {voices.length - visible.length} more</Text>
         )}
-      </Box>
-    </Box>
-  );
-}
-
-interface LlmStepProps {
-  initialProvider: ChatProvider;
-  initialOllamaUrl: string;
-  initialOpenrouterKey: string;
-  onSave: (next: {
-    defaultChatProvider: ChatProvider;
-    ollamaBaseUrl: string;
-    openrouterApiKey: string;
-  }) => void;
-  onSkip: () => void;
-}
-
-type LlmSubStep = "provider" | "ollamaUrl" | "openrouterKey";
-
-function LlmStep({
-  initialProvider,
-  initialOllamaUrl,
-  initialOpenrouterKey,
-  onSave,
-  onSkip,
-}: LlmStepProps) {
-  const [provider, setProvider] = useState<ChatProvider>(initialProvider);
-  const [ollamaUrl, setOllamaUrl] = useState(initialOllamaUrl);
-  const [openrouterKey, setOpenrouterKey] = useState(initialOpenrouterKey);
-  const [sub, setSub] = useState<LlmSubStep>("provider");
-
-  const finishLlm = useCallback(() => {
-    onSave({
-      defaultChatProvider: provider,
-      ollamaBaseUrl: ollamaUrl.trim() || "http://localhost:11434",
-      openrouterApiKey: openrouterKey.trim(),
-    });
-  }, [onSave, provider, ollamaUrl, openrouterKey]);
-
-  const providerBindings = useMemo(
-    () =>
-      sub === "provider"
-        ? [
-            {
-              keys: ["tab"],
-              action: () =>
-                setProvider((p) => (p === "ollama" ? "openrouter" : "ollama")),
-            },
-            {
-              keys: ["return"],
-              action: () =>
-                setSub(provider === "ollama" ? "ollamaUrl" : "openrouterKey"),
-            },
-            { keys: ["s"], action: onSkip },
-          ]
-        : [],
-    [sub, provider, onSkip],
-  );
-  useKeyboard({ bindings: providerBindings });
-
-  if (sub === "provider") {
-    return (
-      <Box flexDirection="column" marginBottom={1}>
-        <Text dimColor>Tab toggles · Enter confirm · s skip step</Text>
-        <Box marginTop={1}>
-          <Text>Provider: </Text>
-          <Text color={provider === "ollama" ? semantic.accent : undefined}>
-            [Ollama]
-          </Text>
-          <Text> </Text>
-          <Text color={provider === "openrouter" ? semantic.accent : undefined}>
-            [OpenRouter]
-          </Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (sub === "ollamaUrl") {
-    return (
-      <Box flexDirection="column" marginBottom={1}>
-        <Text dimColor>Ollama base URL · Enter to save</Text>
-        <Box marginTop={1}>
-          <Text color={semantic.accent}>URL: </Text>
-          <TextInput
-            value={ollamaUrl}
-            onChange={setOllamaUrl}
-            onSubmit={finishLlm}
-            placeholder="http://localhost:11434"
-          />
-        </Box>
-      </Box>
-    );
-  }
-
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Text dimColor>OpenRouter API key · Enter to save (blank = skip)</Text>
-      <Box marginTop={1}>
-        <Text color={semantic.accent}>Key: </Text>
-        <TextInput
-          value={openrouterKey}
-          onChange={setOpenrouterKey}
-          onSubmit={finishLlm}
-          mask="*"
-          placeholder="sk-or-..."
-        />
       </Box>
     </Box>
   );

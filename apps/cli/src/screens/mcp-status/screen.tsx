@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Text } from "ink";
 
-import { Footer, Header, Loading } from "~/components/index.js";
+import { Loading, ScreenShell } from "~/components/index.js";
 import { DEFAULT_KEYS } from "~/constants.js";
 import { FOOTER_MCP_STATUS } from "~/footer-items.js";
 import { useKeyboard, useMcpStatuses, usePreferences } from "~/hooks/index.js";
@@ -53,17 +53,17 @@ export function McpStatusScreen({ onBack }: McpStatusScreenProps) {
   const counts = getSummaryCounts(statuses);
 
   return (
-    <Box flexDirection="column" padding={1}>
-      <Header title="MCP servers" subtitle={preferences.mcpConfigPath} />
-
+    <ScreenShell
+      title="MCP servers"
+      subtitle={preferences.mcpConfigPath}
+      footerItems={FOOTER_MCP_STATUS}
+    >
       <McpStatusBody
         loading={loading}
         error={error}
         statuses={statuses}
         counts={counts}
       />
-
-      <Footer items={FOOTER_MCP_STATUS} />
-    </Box>
+    </ScreenShell>
   );
 }

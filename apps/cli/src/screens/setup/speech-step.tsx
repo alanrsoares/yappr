@@ -195,7 +195,7 @@ function VoxtralForm({ onDone, onCancel }: VoxtralFormProps) {
   useKeyboard({
     bindings: [
       { keys: ["tab"], action: () => cycle(focused, setFocused) },
-      { keys: ["escape"], action: onCancel },
+      { keys: ["ctrl+b"], action: onCancel },
       {
         keys: ["upArrow"],
         action: () => {
@@ -218,7 +218,7 @@ function VoxtralForm({ onDone, onCancel }: VoxtralFormProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text dimColor>
-        Tab to move between fields · Enter to confirm · Esc to go back
+        Tab to move between fields · Enter to confirm · Ctrl+B back
       </Text>
       <Box flexDirection="column" marginTop={1}>
         <Field
@@ -299,14 +299,14 @@ function CustomForm({ onDone, onCancel }: CustomFormProps) {
           if (next) setFocused(next);
         },
       },
-      { keys: ["escape"], action: onCancel },
+      { keys: ["ctrl+b"], action: onCancel },
     ],
   });
 
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text dimColor>
-        Tab to move between fields · Enter to advance · Esc to go back
+        Tab to move between fields · Enter to advance · Ctrl+B back
       </Text>
       <Box flexDirection="column" marginTop={1}>
         <Field

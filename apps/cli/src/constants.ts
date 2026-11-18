@@ -10,7 +10,7 @@ import type { ScreenId } from "./types.js";
 export const MCP_CONFIG_PATH = resolveMcpConfigPath();
 
 export const DEFAULT_KEYS = {
-  quit: ["q", "escape"],
+  quit: ["q"],
   refresh: ["r", "R"],
   back: ["escape"],
 } as const;
@@ -18,13 +18,48 @@ export const DEFAULT_KEYS = {
 export const wantsBackKey = (effectiveKey: string) =>
   (DEFAULT_KEYS.back as readonly string[]).includes(effectiveKey);
 
-export const MENU_ITEMS: Array<{ id: ScreenId; label: string }> = [
-  { id: "mcp", label: "MCP servers" },
-  { id: "speak", label: "Speak (text → speech)" },
-  { id: "chat", label: "Chat (interactive + voice mode)" },
-  { id: "voices", label: "List voices" },
-  { id: "settings", label: "Settings" },
-  { id: "setup", label: "Setup wizard" },
+export const MENU_ITEMS: Array<{
+  id: ScreenId;
+  label: string;
+  description: string;
+  group: "core" | "config";
+}> = [
+  {
+    id: "chat",
+    label: "Chat",
+    description: "Interactive chat & voice mode",
+    group: "core",
+  },
+  {
+    id: "speak",
+    label: "Speak",
+    description: "One-shot text to speech",
+    group: "core",
+  },
+  {
+    id: "voices",
+    label: "Voices",
+    description: "Browse & preview TTS voices",
+    group: "core",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    description: "Models, speech endpoint & devices",
+    group: "config",
+  },
+  {
+    id: "mcp",
+    label: "MCP servers",
+    description: "Inspect tool server connections",
+    group: "config",
+  },
+  {
+    id: "setup",
+    label: "Setup wizard",
+    description: "Check deps, server & defaults",
+    group: "config",
+  },
 ];
 
 export { userHomeDir } from "@yappr/sdk/paths";

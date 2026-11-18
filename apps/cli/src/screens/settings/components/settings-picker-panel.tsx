@@ -66,7 +66,12 @@ export function SettingsPickerPanel({ state }: { state: SettingsState }) {
       ) : null}
       <Box marginTop={1}>
         <Text dimColor>Filter: </Text>
-        <Text>{pickerFilterText || "(type to filter)"}</Text>
+        <Text
+          color={pickerFilterText ? semantic.accent : undefined}
+          dimColor={!pickerFilterText}
+        >
+          {pickerFilterText || "(type to filter)"}
+        </Text>
       </Box>
       {visiblePickerSlice.map((item, i) => {
         const actualIndex = visiblePickerStart + i;
@@ -81,12 +86,13 @@ export function SettingsPickerPanel({ state }: { state: SettingsState }) {
           </Box>
         );
       })}
-      <Box marginTop={1}>
-        <Text dimColor>
-          {pickerScrollPrefix}
-          ↑/↓ scroll · Type to filter · Enter confirm · Esc cancel · q quit
-        </Text>
-      </Box>
+      {pickerLen > visiblePickerRows && (
+        <Box marginTop={1}>
+          <Text dimColor>
+            {pickerScrollPrefix.replace(/ · $/, "")} · type to filter
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 }

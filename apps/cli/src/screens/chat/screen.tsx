@@ -36,40 +36,43 @@ export function ChatScreen({ onBack, onNavigate }: ChatScreenProps) {
   return (
     <Box
       flexDirection="column"
-      padding={1}
+      paddingX={2}
+      paddingY={1}
       width={terminalWidth}
       flexShrink={0}
-      flexGrow={0}
+      flexGrow={1}
     >
       <Header
         title={state.isEventStreamOpen ? "Events" : "Chat"}
         subtitle={subtitle}
       />
 
-      {state.isEventStreamOpen ? (
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          minHeight={4}
-          borderStyle="round"
-          borderColor={semantic.border.historyFrame}
-          paddingX={1}
-          paddingY={0}
-          marginBottom={1}
-        >
-          <EventStreamView
-            events={state.events}
-            width={terminalWidth}
-            onClose={actions.closeEventStream}
+      <Box flexDirection="column" flexGrow={1}>
+        {state.isEventStreamOpen ? (
+          <Box
+            flexDirection="column"
+            flexGrow={1}
+            minHeight={4}
+            borderStyle="round"
+            borderColor={semantic.border.historyFrame}
+            paddingX={1}
+            paddingY={0}
+            marginBottom={1}
+          >
+            <EventStreamView
+              events={state.events}
+              width={terminalWidth}
+              onClose={actions.closeEventStream}
+            />
+          </Box>
+        ) : (
+          <ChatHistory
+            messages={state.messages}
+            streamingResponse={state.streamingResponse}
+            modelName={state.model}
           />
-        </Box>
-      ) : (
-        <ChatHistory
-          messages={state.messages}
-          streamingResponse={state.streamingResponse}
-          modelName={state.model}
-        />
-      )}
+        )}
+      </Box>
 
       {!state.isEventStreamOpen && (
         <Box flexDirection="column" marginBottom={1} minHeight={1}>
